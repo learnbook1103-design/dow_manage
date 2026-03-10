@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Dow 근태 보고서</title>
+    <!-- Use a modern Google Font (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Include SheetJS (xlsx) from CDN for in-browser Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Shared Logic Module -->
+    <script src="shared_logic.js"></script>
+</head>
+
+<body>
+    <div id="ui-container" class="no-print">
+        <header>
+            <h1>근태 보고서 자동 생성기</h1>
+            <p>출퇴근 엑셀 데이터를 올려 프리미엄 매트릭스 보고서를 만들어 보세요.</p>
+        </header>
+
+        <main>
+            <div class="drop-zone-container">
+                <!-- 출퇴근 기록 통합 업로드 -->
+                <div class="upload-card">
+                    <div class="card-header">
+                        <div class="step-badge">1</div>
+                        <div class="step-title">출퇴근 기록 (여러 개 가능)</div>
+                    </div>
+                    <div id="drop-zone-attendance" class="drop-zone">
+                        <div class="drop-text">출퇴근 엑셀 파일들을 드래그하거나 클릭하여 업로드</div>
+                        <div class="drop-subtext">여러 파일을 한 번에 올릴 수 있습니다</div>
+                        <input type="file" id="file-input-attendance" accept=".xlsx, .xls, .csv" multiple hidden>
+                    </div>
+                    <div id="file-list-attendance" class="file-list">
+                        <!-- 업로드된 파일 목록 표시 -->
+                    </div>
+                </div>
+
+                <!-- 휴가/연차 내역 업로드 -->
+                <div class="upload-card">
+                    <div class="card-header">
+                        <div class="step-badge">2</div>
+                        <div class="step-title">휴가/연차 내역</div>
+                    </div>
+                    <div id="drop-zone-leave" class="drop-zone">
+                        <div class="drop-text">휴가 사용 내역 엑셀 업로드</div>
+                        <input type="file" id="file-input-leave" accept=".xlsx, .xls, .csv" hidden>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-container no-print">
+                <div class="control-group">
+                    <label for="report-date-input">보고일자</label>
+                    <input type="date" id="report-date-input">
+                </div>
+                <div class="middle-controls">
+                    <div class="settings-group">
+                        <button id="open-manager-btn" class="secondary-btn">
+                            사원 명단
+                        </button>
+                        <button id="open-holiday-btn" class="secondary-btn"
+                            style="color: #6366f1; background: #f5f3ff; border-color: #ddd6fe;">
+                            공휴일 설정
+                        </button>
+                    </div>
+                    <button id="highlight-anomaly-btn" class="secondary-btn"
+                        style="color: #ef4444; background: #fee2e2; border-color: #fca5a5; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
+                        이상 근태 표시
+                    </button>
+                    <button id="verify-data-btn" class="secondary-btn"
+                        style="color: #f97316; background: #fff7ed; border-color: #fed7aa; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
+                        데이터 검증
+                    </button>
+                </div>
+                <div style="display: flex; gap: 0.5rem; width: 100%;">
+                    <button id="cloud-sync-all-btn" class="primary-btn"
+                        style="flex: 1; background: #059669; border-color: #059669;">
+                        ☁️ 전체 데이터 클라우드 저장
+                    </button>
+                    <button id="cloud-fetch-all-btn" class="primary-btn"
+                        style="flex: 1; background: #2563eb; border-color: #2563eb;">
+                        📥 클라우드 데이터 불러오기
+                    </button>
+                </div>
+                <button id="print-btn" class="primary-btn">
+                    보고서 인쇄 및 PDF 저장
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- The Report Layout (Printable Area, Multi-Page Support) -->
+    <div id="report-container" class="report-container hidden">
+        <!-- Dynamic Tables will be injected here via JS -->
+    </div>
+
+    <!-- Employee Manager Modal -->
+    <div id="employee-modal" class="modal hidden no-print">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>사원 명단 관리</h2>
+                <button id="close-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="employee-manager-section">
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
+                    <button id="add-employee-btn" class="secondary-btn" type="button">+ 사원 추가</button>
+                </div>
+                <div id="employee-list-container" class="employee-list-container">
+                    <!-- Rows injected via JS -->
+                </div>
+                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.5rem; display: block;">위 순서대로 보고서에 출력됩니다
+                    (조직은 화면 관리용이며 보고서 표에는 인쇄되지 않습니다).</small>
+                <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
+                    <button id="save-employee-btn" class="primary-btn" style="width: 100%; justify-content: center;">명단
+                        저장 및 적용</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verification Modal -->
+    <div id="verify-modal" class="modal hidden no-print">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h2>근태 데이터 검증 결과</h2>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button id="bulk-confirm-btn" class="secondary-btn"
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #f97316; color: #f97316; background: #fff7ed;">
+                        선택 항목 일괄 확인
+                    </button>
+                    <button id="bulk-unconfirm-btn" class="secondary-btn"
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #6b7280; color: #6b7280; background: #f3f4f6;">
+                        선택 항목 확인 해제
+                    </button>
+                    <div style="width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px;"></div>
+                    <button id="sync-to-cloud-btn" class="secondary-btn" title="선택한 내역을 직원 소명 페이지로 전송"
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f0f9ff;">
+                        ☁️ 소명 요청 전송
+                    </button>
+                    <button id="fetch-from-cloud-btn" class="secondary-btn" title="직원이 입력한 소명 내역 가져오기"
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
+                        📥 소명 답변 읽기
+                    </button>
+                    <button id="close-verify-btn" class="close-btn">&times;</button>
+                </div>
+            </div>
+            <div>
+                <p style="font-size: 0.85rem; color: #6b7280; margin-top: -1rem; margin-bottom: 1rem;">근무조 기준 시간과 실제 출퇴근
+                    시간을 비교하여 지각 및 조기 퇴근 내역을 보여줍니다.</p>
+                <div class="verify-table-container"
+                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #f9fafb; position: relative;">
+                    <table class="verify-table">
+                        <thead>
+                            <tr>
+                                <th>일자</th>
+                                <th>이름</th>
+                                <th>근무조</th>
+                                <th>출근/퇴근</th>
+                                <th>이상 사유</th>
+                                <th style="width: 150px;">조치 사유</th>
+                                <th style="width: 100px;">확인</th>
+                            </tr>
+                        </thead>
+                        <tbody id="verify-tbody">
+                            <!-- Verification results injected here via JS -->
+                        </tbody>
+                    </table>
+                    <div id="verify-empty-msg" class="hidden"
+                        style="text-align: center; padding: 2.5rem; color: #10b981; font-weight: 600;">
+                        모든 직원의 출퇴근 기록이 정상입니다!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Holiday Manager Modal -->
+    <div id="holiday-modal" class="modal hidden no-print">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>공휴일/휴무일 관리</h2>
+                <button id="close-holiday-modal-btn" class="close-btn">&times;</button>
+            </div>
+            <div class="holiday-manager-section">
+                <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <input type="date" id="new-holiday-date"
+                        style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <button id="add-holiday-btn" class="secondary-btn" style="padding: 0.4rem 0.8rem;">수동 추가</button>
+                </div>
+                <div class="modal-divider"
+                    style="margin: 1rem 0; font-size: 0.85rem; color: #6b7280; text-align: center; border-bottom: 1px solid #eee; line-height: 0.1em;">
+                    <span style="background:#fff; padding:0 10px;">또는 공휴일 자동 호출</span>
+                </div>
+                <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                    <select id="holiday-year-select" class="year-select"
+                        style="flex: 1; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                        <option value="2024">2024년</option>
+                        <option value="2025">2025년</option>
+                        <option value="2026" selected>2026년</option>
+                        <option value="2027">2027년</option>
+                        <option value="2028">2028년</option>
+                        <option value="2029">2029년</option>
+                        <option value="2030">2030년</option>
+                    </select>
+                    <button id="auto-fetch-holiday-btn" class="fetch-btn" style="padding: 0.4rem 0.8rem;">
+                        <span class="btn-text">데이터 가져오기</span>
+                        <span class="loader hidden"></span>
+                    </button>
+                </div>
+                <div id="holiday-list-container" class="holiday-list-container"
+                    style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #f9fafb;">
+                    <!-- Holiday items injected via JS -->
+                </div>
+                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">가져오기 버튼을 누르면 2024~2030년 법정 공휴일을 자동으로
+                    불러옵니다.</p>
+                <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
+                    <button id="save-holiday-btn" class="primary-btn" style="width: 100%; justify-content: center;">공휴일
+                        설정 저장</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

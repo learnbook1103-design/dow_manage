@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>근태 소명 페이지</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --text-main: #111827;
+            --text-sub: #6B7280;
+            --border: #E5E7EB;
+            --danger: #EF4444;
+            --success: #10B981;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        p {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        input:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .anomaly-item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: #fff;
+            transition: transform 0.2s;
+        }
+
+        .anomaly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .date {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--primary);
+        }
+
+        .reason-badge {
+            background: #FEE2E2;
+            color: #B91C1C;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .original-reason {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+        }
+
+        .status-submitted {
+            color: var(--success);
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            color: var(--text-sub);
+        }
+
+        .empty-msg {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-sub);
+            display: none;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>근태 소명 시스템</h1>
+            <p>본인의 이름을 입력하여 소명이 필요한 내역을 확인하세요.</p>
+        </header>
+
+        <div class="card">
+            <div class="input-group">
+                <label for="employee-name">성함</label>
+                <input type="text" id="employee-name" placeholder="예: 홍길동" autocomplete="name">
+            </div>
+            <button id="search-btn" class="btn btn-primary" onclick="handleSearch()">내역 조회하기</button>
+        </div>
+
+        <div id="status-display"
+            style="font-size: 0.75rem; text-align: center; color: var(--text-sub); margin-bottom: 10px;">
+            시스템 연결 중...
+        </div>
+
+        <div id="loading" class="loading">데이터를 불러오는 중...</div>
+        <div id="anomaly-list"></div>
+        <div id="empty-msg" class="empty-msg">소명 요청된 내역이 없습니다. 🎉</div>
+
+        <footer>&copy; 2026 Dow Valve Attendance System</footer>
+    </div>
+
+    <!-- Supabase Library (Moved to bottom for reliability) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        (function () {
+            const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
+            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
+
+            let supabase = null;
+            const statusDisplay = document.getElementById('status-display');
+            const searchBtn = document.getElementById('search-btn');
+
+            function updateStatus(text, color) {
+                if (statusDisplay) {
+                    statusDisplay.innerText = text;
+                    if (color) statusDisplay.style.color = color;
+                }
+            }
+
+            function tryConnect() {
+                if (supabase) return true;
+
+                if (window.supabase) {
+                    try {
+                        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                        updateStatus("시스템 연결 완료 ✅", "#10B981");
+                        return true;
+                    } catch (e) {
+                        updateStatus("연결 오류: " + e.message, "#EF4444");
+                        return false;
+                    }
+                } else {
+                    updateStatus("엔진 로딩 중... (인터넷 확인 필수)", "#6B7280");
+                    return false;
+                }
+            }
+
+            // 전역 노출
+            window.handleSearch = async function () {
+                if (!supabase && !tryConnect()) {
+                    alert("시스템 연결 중입니다. 잠시 후 시도해 주세요.");
+                    return;
+                }
+
+                const nameInput = document.getElementById('employee-name');
+                const name = nameInput.value.trim();
+                if (!name) {
+                    alert('성함을 입력해주세요.');
+                    return;
+                }
+
+                const listContainer = document.getElementById('anomaly-list');
+                const loading = document.getElementById('loading');
+                const emptyMsg = document.getElementById('empty-msg');
+
+                loading.style.display = 'block';
+                listContainer.innerHTML = '';
+                emptyMsg.style.display = 'none';
+                searchBtn.disabled = true;
+                searchBtn.innerText = "조회 중...";
+
+                try {
+                    const { data, error } = await supabase
+                        .from('attendance_anomalies')
+                        .select('*')
+                        .eq('name', name)
+                        .order('date', { ascending: false });
+
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        emptyMsg.style.display = 'block';
+                    } else {
+                        renderList(data);
+                    }
+                } catch (err) {
+                    alert('조회 오류: ' + err.message);
+                } finally {
+                    loading.style.display = 'none';
+                    searchBtn.disabled = false;
+                    searchBtn.innerText = "내역 조회하기";
+                }
+            };
+
+            function renderList(items) {
+                const listContainer = document.getElementById('anomaly-list');
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'anomaly-item';
+                    const isSubmitted = item.explanation && item.explanation.trim() !== '';
+
+                    div.innerHTML = `
+                        <div class="anomaly-header">
+                            <span class="date">${item.date}</span>
+                            <span class="reason-badge">${item.reason}</span>
+                        </div>
+                        <div class="original-reason">관리자가 소명을 요청한 내역입니다.</div>
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            <textarea id="exp-${item.id}" rows="3" placeholder="사유를 상세히 입력해주세요." ${isSubmitted ? 'readonly' : ''}>${item.explanation || ''}</textarea>
+                        </div>
+                        ${isSubmitted ? `
+                            <div class="status-submitted">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                                제출 완료 ✅
+                            </div>
+                        ` : `
+                            <button class="btn btn-primary" onclick="window.submitExplanation('${item.id}')">사유 제출하기</button>
+                        `}
+                    `;
+                    listContainer.appendChild(div);
+                });
+            }
+
+            window.submitExplanation = async function (id) {
+                const textarea = document.getElementById(`exp-${id}`);
+                const explanation = textarea.value.trim();
+                if (!explanation) {
+                    alert('사유를 입력해주세요.');
+                    return;
+                }
+
+                if (!confirm('입력하신 사유를 제출하시겠습니까?')) return;
+
+                try {
+                    const { error } = await supabase
+                        .from('attendance_anomalies')
+                        .update({ explanation: explanation, status: 'submitted' })
+                        .eq('id', id);
+
+                    if (error) throw error;
+                    alert('제출되었습니다. 감사합니다.');
+                    window.handleSearch();
+                } catch (err) {
+                    alert('제출 오류: ' + err.message);
+                }
+            };
+
+            // 즉시 실행 및 주기적 확인
+            if (!tryConnect()) {
+                const checkInt = setInterval(() => {
+                    if (tryConnect()) clearInterval(checkInt);
+                }, 500);
+            }
+        })();
+    </script>
+</body>
+
+</html>
