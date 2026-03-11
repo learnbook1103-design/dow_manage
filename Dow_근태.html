@@ -2599,8 +2599,8 @@ Print Styles (@media print)
                 // [수정] 입사일/퇴사일 기준 보고서 제외 로직 추가
                 const manualNames = employeeConfigList
                     .filter(e => {
-                        const name = e.name.trim();
-                        if (name.length === 0) return false;
+                        // [추가] 대표이사 제외 로직
+                        if (e.org === "대표이사") return false;
 
                         // 입사일/퇴사일 필터링
                         if (startBound && endBound) {
