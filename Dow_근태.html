@@ -1229,6 +1229,10 @@ Print Styles (@media print)
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
                         📥 소명 답변 읽기
                     </button>
+                    <button id="reset-all-data-btn" class="secondary-btn" title="모든 수동 조치 및 소명 내역을 삭제합니다"
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: #fef2f2;">
+                        🗑️ 전체 초기화
+                    </button>
                     <button id="close-verify-btn" class="close-btn">&times;</button>
                 </div>
             </div>
@@ -2085,6 +2089,22 @@ Print Styles (@media print)
                     handleFiles(e.target.files);
                     // 파일 처리가 끝난 후에는 input value를 초기화하지 않음 (이름 표시를 위해)
                     // 대신 삭제 버튼을 누를 때 초기화함
+                }
+            });
+
+            const resetAllDataBtn = document.getElementById('reset-all-data-btn');
+            resetAllDataBtn.addEventListener('click', () => {
+                if (confirm("정말로 모든 수동 조치(확인 표시), 사유(조치 사유), 그리고 직원 소명 답변을 전부 삭제하시겠습니까?\n(로컬 저장소 데이터가 초기화됩니다)")) {
+                    manualCorrections = {};
+                    manualReasons = {};
+                    employeeExplanations = {};
+                    localStorage.removeItem('manualCorrections');
+                    localStorage.removeItem('manualReasons');
+                    localStorage.removeItem('employeeExplanations');
+                    localStorage.removeItem('manualEarlyPunches');
+                    manualEarlyPunches = {};
+                    alert("모든 데이터가 초기화되었습니다. 화면을 새로고침하거나 데이터를 다시 분석해 주세요.");
+                    updateAndProcessData();
                 }
             });
 
