@@ -234,8 +234,8 @@ function calculateAnomalies(combinedData, config) {
                 isFullLeave = true;
             } else if (checkStr.includes("오전반차")) {
                 isAMHalf = true;
-            } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("조퇴") || checkStr.includes("생일자") || checkStr.includes("생일")) {
-                // 기본적으로 반차/조퇴는 오후 반차 성격이 많으므로 false(오후)로 초기화하되 아래에서 시간으로 재검증
+            } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("생일자") || checkStr.includes("생일")) {
+                // [수정] '조퇴' 키워드는 이상 사유이므로 '반차' 판정 키워드에서 제외 (사용자 요청 대응)
                 isPMHalf = true; 
             } else {
                 otherLeaveType = checkStr;
@@ -252,26 +252,29 @@ function calculateAnomalies(combinedData, config) {
                     if (dateVal >= start && dateVal <= end) {
                         const type = lv.type || "";
                         if (lv.days < 1 || type.includes("반차") || type.includes("조퇴") || type.includes("생일자")) {
-                            const raw = lv.raw || "";
-                            let detectedAM = !raw.includes("오후");
+                            // [수정] 여기서도 '조퇴' 단독인 경우 반차로 오판하지 않도록 체크 (단, 휴가 파일에 '조퇴'라고 명시된 경우는 보통 조기퇴근 허가이므로 유지할 수도 있음)
+                            // 일단 '조퇴' 키워드만 있는 경우는 제외
+                            const isJustEarly = type.trim() === '조퇴';
+                            if (!isJustEarly) {
+                                const raw = lv.raw || "";
+                                let detectedAM = !raw.includes("오후");
 
-                            const inT = inVal ? inVal.replace(':', '') : null;
-                            const outT = outVal ? outVal.replace(':', '') : null;
+                                const inT = inVal ? inVal.replace(':', '') : null;
+                                const outT = outVal ? outVal.replace(':', '') : null;
 
-                            if (inT && inT.length >= 4) {
-                                const inMin = parseInt(inT.substring(0, 2)) * 60 + parseInt(inT.substring(2, 4));
-                                // 11시 이후 출근이면 오전 반차로 간주, 그 전이면 오후 반차로 간주
-                                if (inMin >= 660) detectedAM = true; 
-                                else detectedAM = false; 
-                            } else if (outT && outT.length >= 4) {
-                                const outMin = parseInt(outT.substring(0, 2)) * 60 + parseInt(outT.substring(2, 4));
-                                // 14시 이전에 퇴근했으면 오후 반차로 간주
-                                if (outMin <= 840) detectedAM = false;
-                                else detectedAM = true;
+                                if (inT && inT.length >= 4) {
+                                    const inMin = parseInt(inT.substring(0, 2)) * 60 + parseInt(inT.substring(2, 4));
+                                    if (inMin >= 660) detectedAM = true; 
+                                    else detectedAM = false; 
+                                } else if (outT && outT.length >= 4) {
+                                    const outMin = parseInt(outT.substring(0, 2)) * 60 + parseInt(outT.substring(2, 4));
+                                    if (outMin <= 840) detectedAM = false;
+                                    else detectedAM = true;
+                                }
+
+                                if (detectedAM) isAMHalf = true;
+                                else isPMHalf = true;
                             }
-
-                            if (detectedAM) isAMHalf = true;
-                            else isPMHalf = true;
                         } else if (lv.days >= 1 || type.includes("연차")) {
                             isFullLeave = true;
                         } else {
@@ -334,7 +337,6 @@ function calculateAnomalies(combinedData, config) {
                 outAnom = true;
             }
 
-            // 오전 반차인데 기록이 아예 없는지 (오후에 출근도 안 하고 퇴근도 안 한 경우)
             if (!inVal && !outVal && !group.minOut) {
                 reasons = ["출근 기록 없음", "퇴근 기록 없음"];
                 inAnom = true;
@@ -349,8 +351,14 @@ function calculateAnomalies(combinedData, config) {
                 reasons.push("지각");
                 inAnom = true;
             }
+            
+            // [추가] 오후 반차라도 오전 근무 종료 시간(보통 12:00~13:00)보다 일찍 퇴근하면 조기퇴근으로 간주
+            // 여기서는 보수적으로 12:00 이전 퇴근을 조기퇴근으로 체크
+            if (outVal && outVal < '12:00' && outVal.includes(':')) {
+                reasons.push("조기퇴근");
+                outAnom = true;
+            }
 
-            // 오후 반차인데 기록이 아예 없는지 (오전에 출근도 안 하고 퇴근도 안 한 경우)
             if (!inVal && !outVal && !group.minOut) {
                 reasons = ["출근 기록 없음", "퇴근 기록 없음"];
                 inAnom = true;
