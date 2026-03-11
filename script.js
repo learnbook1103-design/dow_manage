@@ -258,7 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { org: "다우밸브", name: "정광호" }, { org: "다우밸브", name: "이수형" },
         { org: "다우밸브", name: "장근영" }, { org: "다우밸브", name: "황나경" },
         { org: "밸브파크", name: "이도아" }, { org: "밸브파크", name: "채예은" },
-        { org: "다우밸브", name: "한옥연" }, { org: "다우밸브", name: "채민주" },
+        { org: "다우밸브", name: "한옥련" }, { org: "다우밸브", name: "채민주" },
         { org: "다우밸브", name: "정상민" }
     ];
 
