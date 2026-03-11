@@ -210,6 +210,13 @@ function calculateAnomalies(combinedData, config) {
 
         if (manualNames.length > 0 && !manualNames.includes(nameVal)) return;
 
+        // [추가] 재직 기간 외 데이터 검증 제외 (사용자 요청)
+        const empInfo = employeeConfigList.find(e => normalizeName(e.name) === nameVal);
+        if (empInfo) {
+            if (empInfo.joinDate && dateVal < empInfo.joinDate) return;
+            if (empInfo.leaveDate && dateVal > empInfo.leaveDate) return;
+        }
+
         // 휴가 데이터 연동 검증
         let isFullLeave = false;
         let isAMHalf = false;
