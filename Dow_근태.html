@@ -2291,13 +2291,35 @@ Print Styles (@media print)
                 findAndMap('출근', [h => h === '출근', h => h === '출', h => h.includes('출근') && (h.includes('시간') || h.includes('시각')), h => h.includes('출입')]);
                 findAndMap('퇴근', [h => h === '퇴근', h => h === '퇴', h => h.includes('퇴근') && (h.includes('시간') || h.includes('시각'))]);
                 findAndMap('근무조', [h => h === '근무조', h => h.includes('근무조'), h => h === '조']);
-                findAndMap('비고', [h => h === '비고', h => h === '부재', h => h === '예외', h => h.includes('비고'), h => h.includes('사유')]);
+                
+                // [수정] 비고(사유) 컬럼은 여러 곳(부재, 예외 등)에서 특정 키워드만 추출
+                const reasonHeaders = headers.filter(h => ['비고', '부재', '예외', '사유'].some(k => h.includes(k)));
 
                 return rawData.map(row => {
                     const newRow = Object.assign({}, row);
                     Object.entries(canonicalMap).forEach(([src, dst]) => {
                         if (src in newRow && !(dst in newRow)) newRow[dst] = newRow[src];
                     });
+
+                    // [추가] 특정 키워드(외근, 조퇴, 생일자)만 추출하여 비고로 통합
+                    let combinedReason = "";
+                    const targetKeywords = [
+                        { key: '외근', label: '외근' },
+                        { key: '조퇴', label: '조퇴' },
+                        { key: '생일자', label: '생일자 반차' }
+                    ];
+
+                    reasonHeaders.forEach(h => {
+                        const val = String(newRow[h] || "");
+                        targetKeywords.forEach(t => {
+                            if (val.includes(t.key) && !combinedReason.includes(t.label)) {
+                                if (combinedReason) combinedReason += ", ";
+                                combinedReason += t.label;
+                            }
+                        });
+                    });
+                    newRow['비고'] = combinedReason;
+
                     return newRow;
                 });
             }
@@ -2662,7 +2684,7 @@ Print Styles (@media print)
                                 } else {
                                     // 연차, 반차를 제외한 휴가 사항은 사유란에만 입력 (사용자 요청: 출퇴근란 공란)
                                     let displayType = type;
-                                    if (type.includes("생일자")) displayType = "생일자";
+                                    if (type.includes("생일자")) displayType = "생일자 반차";
                                     recordsMap[name][fDate].reason = displayType;
                                 }
                             }
