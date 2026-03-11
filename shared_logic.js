@@ -280,37 +280,16 @@ function calculateAnomalies(combinedData, config) {
         let inAnom = false;
         let outAnom = false;
 
-        if (!isAMHalf) {
+        if (!isAMHalf && !isPMHalf) {
+            // 일반 근무일 경우 (반차 아님)
             if (!inVal) {
                 inAnom = true;
                 reasons.push("출근/출입 기록 없음");
-            } else {
-                if (inVal > expIn && inVal.includes(':')) {
-                    reasons.push(`지각 (${expIn})`);
-                    inAnom = true;
-                }
-
-                // [추가] 출근 시간보다 먼저 찍힌 퇴근 기록이 있는지 체크 (오전 반차일 때 새벽/오전 기록 무시)
-                if (group.minOut && group.minOut < inVal) {
-                    if (!(isAMHalf && group.minOut < '13:00')) {
-                        reasons.push(`출근 시간 전 퇴근 기록 존재 (${group.minOut})`);
-                        inAnom = true;
-                    }
-                }
-            }
-        } else {
-            // 오전 반차일 때 (출근/출입 기록이 전혀 없다면 이상이 아님, 하지만 오후 퇴근만 찍혔을 수도 있음)
-            if (inVal && inVal > '14:00') {
-                // 지각 기준 재량껏 (오후 1시나 2시 기준 지각인지) 일단 생략
-            }
-            if (group.minOut && group.minOut < inVal && group.minOut > '12:00') {
-                reasons.push(`출근 시간 전 퇴근 기록 존재 (${group.minOut})`);
+            } else if (inVal > expIn && inVal.includes(':')) {
+                reasons.push(`지각 (${expIn})`);
                 inAnom = true;
             }
-        }
 
-        // 오후반차가 아닐 때
-        if (!isPMHalf) {
             if (!outVal) {
                 reasons.push("퇴근 기록 없음");
                 outAnom = true;
@@ -318,23 +297,40 @@ function calculateAnomalies(combinedData, config) {
                 reasons.push(`조기 퇴근 (${expOut})`);
                 outAnom = true;
             }
-        } else {
-            // 오후 반차일 때 지각 체크? 출근은 이미 위에서 체크됨. 퇴근은 안 찍혀도 됨.
-        }
 
-        // [추가] 기록 순환 오류 체크 (출근 > 퇴근)
-        if (inVal && outVal && inVal !== "반차" && outVal !== "반차") {
-            if (inVal > outVal) {
-                // 오전 반차이면서 inVal이 오후고 outVal이 퇴근 기록이 아니라 점심시간 출입 기록일 경우 등 예외 처리
-                if (!(isAMHalf && outVal < '14:00')) {
-                    reasons.push("기록 순서 오류 (출근 > 퇴근)");
-                    inAnom = true;
-                    outAnom = true;
-                }
+            // 일반 근무일 때 출근보다 퇴근 시간이 앞서 기록된 경우
+            if (inVal && outVal && inVal > outVal) {
+                reasons.push("기록 순서 오류 (출근 > 퇴근)");
+                inAnom = true;
+                outAnom = true;
             }
-        }
+        } else if (isAMHalf) {
+            // 오전 반차인 경우 (오후 근무)
+            if (!outVal) {
+                reasons.push("퇴근 기록 없음");
+                outAnom = true;
+            } else if (outVal < expOut && outVal.includes(':')) {
+                reasons.push(`조기 퇴근 (${expOut})`);
+                outAnom = true;
+            }
 
-        if (isAMHalf || isPMHalf) {
+            // 오전 반차인데 기록이 아예 없는지 (오후에 출근도 안 하고 퇴근도 안 한 경우)
+            if (!inVal && !outVal && !group.minOut) {
+                reasons = ["결근"];
+                inAnom = true;
+                outAnom = true;
+            }
+        } else if (isPMHalf) {
+            // 오후 반차인 경우 (오전 근무)
+            if (!inVal) {
+                inAnom = true;
+                reasons.push("출근/출입 기록 없음");
+            } else if (inVal > expIn && inVal.includes(':')) {
+                reasons.push(`지각 (${expIn})`);
+                inAnom = true;
+            }
+
+            // 오후 반차인데 기록이 아예 없는지 (오전에 출근도 안 하고 퇴근도 안 한 경우)
             if (!inVal && !outVal && !group.minOut) {
                 reasons = ["결근"];
                 inAnom = true;
