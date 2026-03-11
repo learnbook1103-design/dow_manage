@@ -1171,11 +1171,13 @@ Print Styles (@media print)
             <div class="employee-manager-section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
                     <div style="font-size: 0.8rem; color: #6b7280; display: flex; gap: 10px; padding-left: 10px;">
-                        <span style="width: 120px;">조직</span>
-                        <span style="width: 120px;">사원명</span>
-                        <span style="width: 180px;">이메일</span>
-                        <span style="width: 120px;">입사일</span>
-                        <span style="width: 120px;">퇴사일</span>
+                        <span style="width: 100px;">조직</span>
+                        <span style="width: 100px;">사원명</span>
+                        <span style="width: 100px;">직급</span>
+                        <span style="width: 150px;">이메일</span>
+                        <span style="width: 110px;">입사일</span>
+                        <span style="width: 110px;">퇴사일</span>
+                        <span style="width: 50px; text-align: center;">팀장</span>
                     </div>
                     <div style="display: flex; gap: 8px;">
                         <input type="file" id="upload-employee-file" accept=".xlsx,.xls,.csv" style="display: none;">
@@ -1456,17 +1458,17 @@ Print Styles (@media print)
             // 사원 리스트 데이터 (localStorage에서 불러오기)
             const savedEmployees = localStorage.getItem('employeeConfigList');
             let employeeConfigList = savedEmployees ? JSON.parse(savedEmployees) : [
-                { org: "다우밸브", name: "정미영", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "김혜원", email: "", joinDate: "", leaveDate: "" },
-                { org: "다우밸브", name: "이대희", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "이재근", email: "", joinDate: "", leaveDate: "" },
-                { org: "다우밸브", name: "서현석", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "박주연", email: "", joinDate: "", leaveDate: "" },
-                { org: "다우밸브", name: "김현욱", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "강미나", email: "", joinDate: "", leaveDate: "" },
-                { org: "밸브파크", name: "곽정원", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "안효모", email: "", joinDate: "", leaveDate: "" },
-                { org: "다우밸브", name: "김영민", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "이재룡", email: "", joinDate: "", leaveDate: "" },
-                { org: "다우밸브", name: "정광호", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "이수형", email: "", joinDate: "", leaveDate: "" },
-                { org: "다우밸브", name: "장근영", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "황나경", email: "", joinDate: "", leaveDate: "" },
-                { org: "밸브파크", name: "이도아", email: "", joinDate: "", leaveDate: "" }, { org: "밸브파크", name: "채예은", email: "", joinDate: "", leaveDate: "" },
-                { org: "다우밸브", name: "한옥련", email: "", joinDate: "", leaveDate: "" }, { org: "다우밸브", name: "채민주", email: "", joinDate: "", leaveDate: "" },
-                { org: "다우밸브", name: "정상민", email: "", joinDate: "", leaveDate: "" }
+                { org: "다우밸브", name: "정미영", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "김혜원", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "이대희", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이재근", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "서현석", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "박주연", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "김현욱", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "강미나", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "밸브파크", name: "곽정원", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "안효모", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "김영민", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이재룡", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "정광호", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이수형", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "장근영", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "황나경", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "밸브파크", name: "이도아", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "밸브파크", name: "채예은", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "한옥련", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "채민주", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "정상민", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }
             ];
 
             // 공휴일 리스트 데이터 (localStorage에서 불러오기)
@@ -1592,7 +1594,7 @@ Print Styles (@media print)
                     // 기존 입력창 및 버튼들
                     const orgSelect = document.createElement('select');
                     orgSelect.className = 'org-select';
-                    orgSelect.style.width = '120px';
+                    orgSelect.style.width = '100px';
                     ['조직 선택', '대표이사', '국내외관리 영업팀', '반도체 영업팀', '밸브파크팀', '생산기술팀', '엔지니어링팀', '해외영업팀', '2차전지 영업팀'].forEach(val => {
                         const opt = document.createElement('option');
                         opt.value = val === '조직 선택' ? '' : val;
@@ -1607,7 +1609,7 @@ Print Styles (@media print)
                     const nameInput = document.createElement('input');
                     nameInput.type = 'text';
                     nameInput.placeholder = '사원명';
-                    nameInput.style.width = '120px';
+                    nameInput.style.width = '100px';
                     nameInput.value = emp.name;
                     nameInput.addEventListener('change', (e) => {
                         const norm = normalizeName(e.target.value);
@@ -1615,10 +1617,19 @@ Print Styles (@media print)
                         tempEmployeeConfigList[index].name = norm;
                     });
 
+                    const rankInput = document.createElement('input');
+                    rankInput.type = 'text';
+                    rankInput.placeholder = '직급';
+                    rankInput.style.width = '100px';
+                    rankInput.value = emp.rank || '';
+                    rankInput.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].rank = e.target.value;
+                    });
+
                     const emailInput = document.createElement('input');
                     emailInput.type = 'email';
                     emailInput.placeholder = '이메일 주소';
-                    emailInput.style.width = '180px';
+                    emailInput.style.width = '150px';
                     emailInput.value = emp.email || '';
                     emailInput.addEventListener('input', (e) => {
                         tempEmployeeConfigList[index].email = e.target.value;
@@ -1627,7 +1638,7 @@ Print Styles (@media print)
                     const joinInput = document.createElement('input');
                     joinInput.type = 'date';
                     joinInput.title = '입사일';
-                    joinInput.style.width = '120px';
+                    joinInput.style.width = '110px';
                     joinInput.value = emp.joinDate || '';
                     joinInput.addEventListener('change', (e) => {
                         tempEmployeeConfigList[index].joinDate = e.target.value;
@@ -1636,10 +1647,19 @@ Print Styles (@media print)
                     const leaveInput = document.createElement('input');
                     leaveInput.type = 'date';
                     leaveInput.title = '퇴사일';
-                    leaveInput.style.width = '120px';
+                    leaveInput.style.width = '110px';
                     leaveInput.value = emp.leaveDate || '';
                     leaveInput.addEventListener('change', (e) => {
                         tempEmployeeConfigList[index].leaveDate = e.target.value;
+                    });
+
+                    const leaderCheckbox = document.createElement('input');
+                    leaderCheckbox.type = 'checkbox';
+                    leaderCheckbox.title = '팀장 여부';
+                    leaderCheckbox.style.width = '50px';
+                    leaderCheckbox.checked = emp.isLeader || false;
+                    leaderCheckbox.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].isLeader = e.target.checked;
                     });
 
                     const removeBtn = document.createElement('button');
@@ -1653,9 +1673,11 @@ Print Styles (@media print)
 
                     row.appendChild(orgSelect);
                     row.appendChild(nameInput);
+                    row.appendChild(rankInput);
                     row.appendChild(emailInput);
                     row.appendChild(joinInput);
                     row.appendChild(leaveInput);
+                    row.appendChild(leaderCheckbox);
                     row.appendChild(removeBtn);
                     employeeListContainer.appendChild(row);
                 });
@@ -1666,7 +1688,7 @@ Print Styles (@media print)
 
             if (addEmployeeBtn) {
                 addEmployeeBtn.addEventListener('click', () => {
-                    tempEmployeeConfigList.push({ org: "", name: "", email: "", joinDate: "", leaveDate: "" });
+                    tempEmployeeConfigList.push({ org: "", name: "", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false });
                     renderEmployeeManager();
                     employeeListContainer.scrollTop = employeeListContainer.scrollHeight;
                 });
@@ -1740,6 +1762,8 @@ Print Styles (@media print)
                                 if (nameVal) {
                                     let joinVal = "";
                                     let leaveVal = "";
+                                    let rankVal = "";
+                                    let isLeaderVal = false;
 
                                     const parseDate = (val) => {
                                         if (!val) return "";
@@ -1753,6 +1777,19 @@ Print Styles (@media print)
                                         return "";
                                     };
 
+                                    row.forEach(cell => {
+                                        if (typeof cell === 'string') {
+                                            const s = cell.trim();
+                                            if (s === '팀장' || s === 'O' || s === 'o' || s === 'Y' || s === 'y' || s === 'V' || s === 'v') {
+                                                isLeaderVal = true;
+                                            }
+                                            // 직급 판별 (부장, 차장, 과장, 대리, 사원, 주임 등)
+                                            if (s.match(/부장|차장|과장|대리|사원|주임|선임|책임|수석|대표|이사/)) {
+                                                rankVal = s;
+                                            }
+                                        }
+                                    });
+
                                     if (dateCandidates.length > 0) {
                                         const parsedDates = dateCandidates.map(parseDate).filter(d => d).sort();
                                         if (parsedDates.length > 0) {
@@ -1763,25 +1800,24 @@ Print Styles (@media print)
                                         }
                                     }
 
-                                    if (orgVal === "대표이사") {
-                                        // 대표이사는 사원 명단에 추가하지 않고 무시
-                                        return;
-                                    }
-
                                     const existingInput = tempEmployeeConfigList.find(e => e.name === nameVal);
                                     if (!existingInput) {
                                         tempEmployeeConfigList.push({
                                             org: orgVal,
                                             name: nameVal,
+                                            rank: rankVal,
                                             email: emailVal,
                                             joinDate: joinVal,
-                                            leaveDate: leaveVal
+                                            leaveDate: leaveVal,
+                                            isLeader: isLeaderVal
                                         });
                                     } else {
                                         if (orgVal) existingInput.org = orgVal;
+                                        if (rankVal) existingInput.rank = rankVal;
                                         if (emailVal) existingInput.email = emailVal;
                                         if (joinVal) existingInput.joinDate = joinVal;
                                         if (leaveVal) existingInput.leaveDate = leaveVal;
+                                        if (isLeaderVal) existingInput.isLeader = isLeaderVal;
                                     }
                                     addedCount++;
                                 }
@@ -1928,9 +1964,11 @@ Print Styles (@media print)
                 const toUpsert = validEmployees.map(emp => ({
                     name: normalizeName(emp.name),
                     org: emp.org,
+                    rank: emp.rank || null,
                     email: emp.email || null,
                     join_date: emp.joinDate || null,
                     leave_date: emp.leaveDate || null,
+                    is_leader: emp.isLeader || false
                 }));
 
                 try {
@@ -1972,9 +2010,11 @@ Print Styles (@media print)
                             tempEmployeeConfigList = data.map(row => ({
                                 org: row.org || "",
                                 name: normalizeName(row.name),
+                                rank: row.rank || "",
                                 email: row.email || "",
                                 joinDate: row.join_date || "",
-                                leaveDate: row.leave_date || ""
+                                leaveDate: row.leave_date || "",
+                                isLeader: row.is_leader || false
                             }));
                             renderEmployeeManager();
                         }
@@ -3274,7 +3314,7 @@ Print Styles (@media print)
 
             if (saveEmployeeBtn) {
                 saveEmployeeBtn.addEventListener('click', () => {
-                    employeeConfigList = [...tempEmployeeConfigList];
+                    employeeConfigList = tempEmployeeConfigList.map(e => ({ ...e })); // 딥카피 개념으로 전체 필드 복사
                     localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
                     updateAndProcessData();
                     alert('명단이 로컬 환경에 저장 및 적용되었습니다.');
