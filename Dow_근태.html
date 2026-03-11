@@ -2936,8 +2936,8 @@ Print Styles (@media print)
                                 if (empInfo.email) {
                                     const subject = encodeURIComponent(`[소명 요청] ${date} 근태 이상 내역 안내`);
 
-                                    // Github Pages 경로 등 실제 소명 페이지 주소로 변경해주세요.
-                                    const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/소명페이지.html";
+                                    // Github Pages 경로 등 실제 소명 페이지 주소로 변경해주세요. (한글 경로는 안전하게 인코딩 처리)
+                                    const EXPLANATION_PAGE_URL = encodeURI("https://learnbook1103-design.github.io/dow_manage/소명페이지.html");
 
                                     const bodyText = `안녕하세요 ${name}님,\n\n아래 날짜의 근태 기록에 이상 사유가 발생하여 소명이 필요합니다.\n사유를 확인하시고 아래 소명 페이지 링크에 접속하여 부서/이름과 날짜를 입력 후 답변 부탁드립니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n- 발생 일자: ${date}\n- 이상 사유: ${anomaly.reason}\n\n감사합니다.`;
                                     const body = encodeURIComponent(bodyText);
