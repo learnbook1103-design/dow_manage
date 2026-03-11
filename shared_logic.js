@@ -284,9 +284,9 @@ function calculateAnomalies(combinedData, config) {
             // 일반 근무일 경우 (반차 아님)
             if (!inVal) {
                 inAnom = true;
-                reasons.push("출근/출입 기록 없음");
+                reasons.push("출근 기록 없음");
             } else if (inVal > expIn && inVal.includes(':')) {
-                reasons.push(`지각 (${expIn})`);
+                reasons.push("지각");
                 inAnom = true;
             }
 
@@ -294,13 +294,14 @@ function calculateAnomalies(combinedData, config) {
                 reasons.push("퇴근 기록 없음");
                 outAnom = true;
             } else if (outVal < expOut && outVal.includes(':')) {
-                reasons.push(`조기 퇴근 (${expOut})`);
+                reasons.push("조기퇴근");
                 outAnom = true;
             }
 
             // 일반 근무일 때 출근보다 퇴근 시간이 앞서 기록된 경우
             if (inVal && outVal && inVal > outVal) {
-                reasons.push("기록 순서 오류 (출근 > 퇴근)");
+                reasons.push("출근 기록 없음");
+                reasons.push("퇴근 기록 없음");
                 inAnom = true;
                 outAnom = true;
             }
@@ -310,13 +311,13 @@ function calculateAnomalies(combinedData, config) {
                 reasons.push("퇴근 기록 없음");
                 outAnom = true;
             } else if (outVal < expOut && outVal.includes(':')) {
-                reasons.push(`조기 퇴근 (${expOut})`);
+                reasons.push("조기퇴근");
                 outAnom = true;
             }
 
             // 오전 반차인데 기록이 아예 없는지 (오후에 출근도 안 하고 퇴근도 안 한 경우)
             if (!inVal && !outVal && !group.minOut) {
-                reasons = ["결근"];
+                reasons = ["출근 기록 없음", "퇴근 기록 없음"];
                 inAnom = true;
                 outAnom = true;
             }
@@ -324,15 +325,15 @@ function calculateAnomalies(combinedData, config) {
             // 오후 반차인 경우 (오전 근무)
             if (!inVal) {
                 inAnom = true;
-                reasons.push("출근/출입 기록 없음");
+                reasons.push("출근 기록 없음");
             } else if (inVal > expIn && inVal.includes(':')) {
-                reasons.push(`지각 (${expIn})`);
+                reasons.push("지각");
                 inAnom = true;
             }
 
             // 오후 반차인데 기록이 아예 없는지 (오전에 출근도 안 하고 퇴근도 안 한 경우)
             if (!inVal && !outVal && !group.minOut) {
-                reasons = ["결근"];
+                reasons = ["출근 기록 없음", "퇴근 기록 없음"];
                 inAnom = true;
                 outAnom = true;
             }
@@ -347,7 +348,7 @@ function calculateAnomalies(combinedData, config) {
                 shift: shiftStr,
                 inTime: inVal || "",
                 outTime: outVal || "",
-                reason: reasons.length > 0 ? reasons.join(", ") : (hasEarly ? "새벽 기록 처리됨" : ""),
+                reason: reasons.length > 0 ? [...new Set(reasons)].join(", ") : "",
                 hasEarly: hasEarly,
                 originalDate: group.originalDate,
                 inAnom: inAnom,
@@ -374,7 +375,7 @@ function calculateAnomalies(combinedData, config) {
                             shift: "-",
                             inTime: "",
                             outTime: "",
-                            reason: `승인대기 휴가 (${lv.type})`,
+                            reason: "출근 기록 없음, 퇴근 기록 없음", // 승인대기 휴가는 기록 없음으로 통일 (사용자 요청 4종 기준)
                             originalDate: fDate
                         });
                     }

@@ -349,10 +349,10 @@
                                 let optionsHTML = '<option value="" disabled selected>사유를 선택해주세요</option>';
                                 let customOptions = [];
 
-                                if (r.includes('출근/출입 기록 없음') || r.includes('지각')) {
+                                if (r.includes('출근 기록 없음') || r.includes('지각')) {
                                     customOptions.push('정상출근', '지각', '외근');
                                 }
-                                if (r.includes('퇴근 기록 없음') || r.includes('조기 퇴근') || r.includes('조기퇴근')) {
+                                if (r.includes('퇴근 기록 없음') || r.includes('조기퇴근')) {
                                     customOptions.push('정상퇴근', '조기퇴근', '외근');
                                 }
 
