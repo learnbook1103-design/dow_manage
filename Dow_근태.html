@@ -1047,7 +1047,7 @@ Print Styles (@media print)
 <body>
     <div id="ui-container" class="no-print">
         <header>
-            <h1>근태 보고서 자동 생성기</h1>
+            <h1>DOW 근태 보고서</h1>
             <p>출퇴근 엑셀 데이터를 올려 프리미엄 매트릭스 보고서를 만들어 보세요.</p>
         </header>
 
@@ -1364,13 +1364,16 @@ Print Styles (@media print)
                 </div>
             </div>
             <div style="padding: 1rem;">
-                <div style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 12px; border-radius: 8px; margin-bottom: 1.5rem;">
-                    <p style="font-size: 0.85rem; color: #0369a1; margin-bottom: 8px; font-weight: 600;">⚡ 빠른 일괄 발송 (추천)</p>
+                <div
+                    style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 12px; border-radius: 8px; margin-bottom: 1.5rem;">
+                    <p style="font-size: 0.85rem; color: #0369a1; margin-bottom: 8px; font-weight: 600;">⚡ 빠른 일괄 발송 (추천)
+                    </p>
                     <p style="font-size: 0.8rem; color: #0c4a6e; margin-bottom: 12px; line-height: 1.3;">
                         모든 대상자에게 <strong>공통 안내 내용</strong>으로 메일을 한 번에 보냅니다.<br>
                         개별 날짜/사유는 포함되지 않지만 가장 빠릅니다. (숨은 참조 이용)
                     </p>
-                    <button id="mail-batch-bcc-btn" class="primary-btn" style="width: 100%; border-radius: 6px; background: #0ea5e9;">
+                    <button id="mail-batch-bcc-btn" class="primary-btn"
+                        style="width: 100%; border-radius: 6px; background: #0ea5e9;">
                         📧 공통 내용으로 한 번에 발송
                     </button>
                 </div>
@@ -1384,12 +1387,15 @@ Print Styles (@media print)
                 <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 1rem; line-height: 1.4;">
                     각 사원별로 <strong>상세 날짜/사유</strong>를 포함하려면 아래 버튼을 각각 눌러주세요.
                 </p>
-                <div id="mail-queue-list" style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                <div id="mail-queue-list"
+                    style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
                     <!-- Queue items injected here -->
                 </div>
             </div>
-            <div style="padding: 1.5rem; text-align: center; border-top: 1px solid var(--border-color); background: #f9fafb; border-radius: 0 0 16px 16px;">
-                <button id="mail-queue-done-btn" class="primary-btn" style="width: 100%; justify-content: center;">완료 및 닫기</button>
+            <div
+                style="padding: 1.5rem; text-align: center; border-top: 1px solid var(--border-color); background: #f9fafb; border-radius: 0 0 16px 16px;">
+                <button id="mail-queue-done-btn" class="primary-btn" style="width: 100%; justify-content: center;">완료 및
+                    닫기</button>
             </div>
         </div>
     </div>
@@ -3237,7 +3243,7 @@ Print Styles (@media print)
                             const group = emailGroups[name];
                             const div = document.createElement('div');
                             div.style = "display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;";
-                            
+
                             const subject = `[근태 소명 요청] ${name}님, 근태 이상 내역 안내`;
                             const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
                             let itemsText = group.items.map(item => `- ${item.date}: ${item.reason}`).join('\n');
@@ -3266,7 +3272,7 @@ Print Styles (@media print)
                                 const bccList = groupedNames.map(name => emailGroups[name].email).join(',');
                                 const subject = encodeURIComponent(`[알림] 근태 이상 내역 소명 요청 안내`);
                                 const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
-                                
+
                                 const bodyText = `안녕하세요,\n\n최근 근태 기록에 이상 내역이 발생한 분들께 안내드립니다.\n아래 링크의 소명 페이지에 접속하여 본인의 성명과 날짜를 입력 후 이상 사유를 확인하시고 소명 답변을 작성해 주시기 바랍니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n감사합니다.`;
                                 const body = encodeURIComponent(bodyText);
 
