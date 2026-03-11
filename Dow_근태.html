@@ -1100,17 +1100,17 @@ Print Styles (@media print)
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <label for="report-date-input" style="min-width: 60px; font-weight: 500;">보고일자</label>
-                            <input type="date" id="report-date-input"
+                            <input type="date" id="report-date-input" max="9999-12-31"
                                 style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <label for="report-period-start" style="min-width: 60px; font-weight: 500;">시작일자</label>
-                            <input type="date" id="report-period-start"
+                            <input type="date" id="report-period-start" max="9999-12-31"
                                 style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <label for="report-period-end" style="min-width: 60px; font-weight: 500;">종료일자</label>
-                            <input type="date" id="report-period-end"
+                            <input type="date" id="report-period-end" max="9999-12-31"
                                 style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
                         </div>
                     </div>
@@ -1678,6 +1678,7 @@ Print Styles (@media print)
 
                     const joinInput = document.createElement('input');
                     joinInput.type = 'date';
+                    joinInput.max = '9999-12-31';
                     joinInput.title = '입사일';
                     joinInput.style.width = '110px';
                     joinInput.value = emp.joinDate || '';
@@ -1687,6 +1688,7 @@ Print Styles (@media print)
 
                     const leaveInput = document.createElement('input');
                     leaveInput.type = 'date';
+                    leaveInput.max = '9999-12-31';
                     leaveInput.title = '퇴사일';
                     leaveInput.style.width = '110px';
                     leaveInput.value = emp.leaveDate || '';
