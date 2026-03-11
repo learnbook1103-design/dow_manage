@@ -33,6 +33,24 @@ function cleanTime(timeStr) {
     return "";
 }
 
+function expandShift(shiftStr) {
+    if (!shiftStr) return "0800-1700";
+    let s = String(shiftStr).trim();
+    if (s.includes('-') || s.includes('~')) return s;
+
+    // 숫지만 추출
+    let digits = s.replace(/[^0-9]/g, '');
+    if (digits.length === 3) digits = '0' + digits; // 830 -> 0830
+    if (digits.length === 4) {
+        let h = parseInt(digits.substring(0, 2));
+        let m = digits.substring(2, 4);
+        let outH = String(h + 9).padStart(2, '0');
+        // 보통 오후 24시를 넘는 경우는 없으므로 단순 처리
+        return digits + "-" + outH + m;
+    }
+    return s;
+}
+
 
 function calculateAnomalies(combinedData, config) {
     const { employeeConfigList = [], manualEarlyPunches = {}, manualReasons = {}, currentLeaveData = [], currentUniqueDates = new Set() } = config || {};
@@ -288,15 +306,17 @@ function calculateAnomalies(combinedData, config) {
         // 승인완료된 기타 휴가(경조, 보건 등)나 연차는 제외
         if (otherLeaveType || isFullLeave) return;
 
-        const parts = shiftStr.split('-');
+        const cleanShift = expandShift(shiftStr);
+        const parts = cleanShift.split(/[-~]/);
         const padTime = (s) => {
             if (!s) return "";
             s = String(s).replace(/[^0-9]/g, '');
             if (s.length === 3) s = '0' + s;
             return s.length === 4 ? s.substring(0, 2) + ':' + s.substring(2, 4) : "";
         };
+
         const expIn = padTime(parts[0]);
-        const expOut = padTime(parts[1]);
+        const expOut = padTime(parts[1] || "");
 
         let reasons = [];
         let inAnom = false;

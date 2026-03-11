@@ -2306,6 +2306,11 @@ Print Styles (@media print)
                         if (src in newRow && !(dst in newRow)) newRow[dst] = newRow[src];
                     });
 
+                    // [추가] 근무조 정보 정규화 (출근 시간만 있는 경우 +9시간)
+                    if (newRow['근무조']) {
+                        newRow['근무조'] = expandShift(newRow['근무조']);
+                    }
+
                     // [추가] 특정 키워드(외근, 조퇴, 생일자)만 추출하여 비고로 통합
                     let combinedReason = "";
                     const targetKeywords = [
