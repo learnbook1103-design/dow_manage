@@ -38,12 +38,16 @@ function calculateAnomalies(combinedData, config) {
     const { employeeConfigList = [], manualEarlyPunches = {}, manualReasons = {}, currentLeaveData = [], currentUniqueDates = new Set() } = config || {};
     const anomalies = [];
     const manualNames = employeeConfigList.map(e => e.name.trim()).filter(n => n.length > 0);
+    const ceoNames = new Set(employeeConfigList.filter(e => e.org === "대표이사").map(e => normalizeName(e.name)));
 
     // 이름과 날짜별로 데이터 통합 (중복 제거)
     const groupedMap = {};
     combinedData.forEach(row => {
         let dateValInput = row["날짜"];
         const nameVal = normalizeName(row["이름"]);
+
+        // [추가] 대표이사 제외
+        if (ceoNames.has(nameVal)) return;
 
         let jsDateOrig = null;
         if (typeof dateValInput === 'number') jsDateOrig = new Date(Math.round((dateValInput - 25569) * 86400 * 1000));
@@ -167,7 +171,7 @@ function calculateAnomalies(combinedData, config) {
         currentUniqueDates.forEach(fDate => {
             employeeConfigList.forEach(emp => {
                 const nameVal = normalizeName(emp.name);
-                if (!nameVal) return;
+                if (!nameVal || ceoNames.has(nameVal)) return;
 
                 // 입사일/퇴사일 범위 확인
                 if (emp.joinDate && fDate < emp.joinDate) return;
