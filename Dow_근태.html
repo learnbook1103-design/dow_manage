@@ -2291,6 +2291,7 @@ Print Styles (@media print)
                 findAndMap('출근', [h => h === '출근', h => h === '출', h => h.includes('출근') && (h.includes('시간') || h.includes('시각')), h => h.includes('출입')]);
                 findAndMap('퇴근', [h => h === '퇴근', h => h === '퇴', h => h.includes('퇴근') && (h.includes('시간') || h.includes('시각'))]);
                 findAndMap('근무조', [h => h === '근무조', h => h.includes('근무조'), h => h === '조']);
+                findAndMap('비고', [h => h === '비고', h => h === '부재', h => h === '예외', h => h.includes('비고'), h => h.includes('사유')]);
 
                 return rawData.map(row => {
                     const newRow = Object.assign({}, row);
@@ -2628,25 +2629,27 @@ Print Styles (@media print)
 
                                     let detectedAM = !raw.includes("오후"); // 기본값
 
-                                    // [수정] 출근 시간을 확인하여 근무조 기준 출근시간 +1시간 이내이면 '오후반차'로 적용 (오전에 일하고 오후에 퇴근함)
-                                    if (actualIn && shiftStart) {
-                                        const parseToMin = (t) => {
-                                            const cleaned = t.replace(':', '').trim();
-                                            if (cleaned.length >= 4) {
-                                                return parseInt(cleaned.substring(0, 2)) * 60 + parseInt(cleaned.substring(2, 4));
-                                            }
-                                            return null;
-                                        };
-                                        const inMin = parseToMin(actualIn);
-                                        const startMin = parseToMin(shiftStart);
-
-                                        if (inMin !== null) {
-                                            if (inMin < 720) {
-                                                detectedAM = false; // 12시 이전에 왔으니 오후에 쉬는 것 (오후반차)
-                                            } else {
-                                                detectedAM = true; // 12시 이후에 왔으니 오전에 쉰 것 (오전반차)
-                                            }
+                                    const parseToMin = (t) => {
+                                        if (!t) return null;
+                                        const cleaned = t.replace(':', '').trim();
+                                        if (cleaned.length >= 4) {
+                                            return parseInt(cleaned.substring(0, 2)) * 60 + parseInt(cleaned.substring(2, 4));
                                         }
+                                        return null;
+                                    };
+
+                                    const inMin = parseToMin(actualIn);
+                                    const outMin = parseToMin(rec.outTime);
+
+                                    // [개선] 출근/퇴근 시각을 모두 고려하여 오전/오후 반차 여부 판단 (Heuristic)
+                                    if (inMin !== null) {
+                                        // 11시 이후에 출근했다면 오전 반차(오전에 쉬고 오후 출근)로 간주
+                                        if (inMin >= 660) detectedAM = true;
+                                        else detectedAM = false;
+                                    } else if (outMin !== null) {
+                                        // 14시 이전에 퇴근했다면 오후 반차(오전에 일하고 오후 퇴사)로 간주
+                                        if (outMin <= 840) detectedAM = false;
+                                        else detectedAM = true;
                                     }
 
                                     if (detectedAM) {

@@ -221,15 +221,15 @@ function calculateAnomalies(combinedData, config) {
         const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자'];
         if (leaveKeywords.some(k => combinedReason.includes(k) || String(inVal).includes(k) || String(outVal).includes(k))) {
             const checkStr = combinedReason + " " + String(inVal) + " " + String(outVal);
-            if (checkStr.includes("연차") || checkStr.includes("경조") || checkStr.includes("휴가") || checkStr.includes("공가") || checkStr.includes("병가")) {
+            // [수정] '연차,반차'와 같이 키워드가 섞인 경우 반차로 우선 처리하기 위해 조건 수정
+            const isPartialKeyword = checkStr.includes("반차") || checkStr.includes("조퇴") || checkStr.includes("외출") || checkStr.includes("생일자");
+            if ((checkStr.includes("연차") || checkStr.includes("경조") || checkStr.includes("휴가") || checkStr.includes("공가") || checkStr.includes("병가") || checkStr.includes("청원") || checkStr.includes("대체") || checkStr.includes("포상") || checkStr.includes("출장")) && !isPartialKeyword) {
                 isFullLeave = true;
             } else if (checkStr.includes("오전반차")) {
                 isAMHalf = true;
-            } else if (checkStr.includes("오후반차") || checkStr.includes("반차")) {
-                isPMHalf = true;
-            } else if (checkStr.includes("생일자")) {
-                isPMHalf = true; // 생일자는 보통 오후 반차 성격
-                otherLeaveType = "생일자";
+            } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("조퇴") || checkStr.includes("생일자")) {
+                // 기본적으로 반차/조퇴는 오후 반차 성격이 많으므로 false(오후)로 초기화하되 아래에서 시간으로 재검증
+                isPMHalf = true; 
             } else {
                 otherLeaveType = checkStr;
             }
@@ -244,18 +244,23 @@ function calculateAnomalies(combinedData, config) {
 
                     if (dateVal >= start && dateVal <= end) {
                         const type = lv.type || "";
-                        if (lv.days < 1 || type.includes("반차")) {
+                        if (lv.days < 1 || type.includes("반차") || type.includes("조퇴") || type.includes("생일자")) {
                             const raw = lv.raw || "";
                             let detectedAM = !raw.includes("오후");
 
-                            const shiftParts = shiftStr.split('-');
-                            const startT = shiftParts[0].trim().replace(':', '');
                             const inT = inVal ? inVal.replace(':', '') : null;
+                            const outT = outVal ? outVal.replace(':', '') : null;
 
                             if (inT && inT.length >= 4) {
                                 const inMin = parseInt(inT.substring(0, 2)) * 60 + parseInt(inT.substring(2, 4));
-                                if (inMin < 720) detectedAM = false; // 12시 이전 출근 -> 오후반차
-                                else detectedAM = true; // 12시 이후 출근 -> 오전반차
+                                // 11시 이후 출근이면 오전 반차로 간주, 그 전이면 오후 반차로 간주
+                                if (inMin >= 660) detectedAM = true; 
+                                else detectedAM = false; 
+                            } else if (outT && outT.length >= 4) {
+                                const outMin = parseInt(outT.substring(0, 2)) * 60 + parseInt(outT.substring(2, 4));
+                                // 14시 이전에 퇴근했으면 오후 반차로 간주
+                                if (outMin <= 840) detectedAM = false;
+                                else detectedAM = true;
                             }
 
                             if (detectedAM) isAMHalf = true;
