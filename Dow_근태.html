@@ -1463,6 +1463,10 @@ Print Styles (@media print)
 
             let manualEarlyPunches = JSON.parse(localStorage.getItem('manualEarlyPunches')) || {};
 
+            // [추가] 소명 요청을 보낸 항목들의 키 관리를 위한 Set (로컬 스토리지 연동)
+            const savedSentKeys = localStorage.getItem('sentAnomalyKeys');
+            let sentAnomalyKeys = new Set(savedSentKeys ? JSON.parse(savedSentKeys) : []);
+
             // Migration from legacy keys if they exist
             if (Object.keys(manualEarlyPunches).length === 0) {
                 const legacyOffsets = JSON.parse(localStorage.getItem('manualDateOffsets')) || {};
@@ -3137,6 +3141,10 @@ Print Styles (@media print)
                             console.error('Sync Error:', error);
                             alert('전송 중 오류가 발생했습니다: ' + error.message);
                         } else {
+                            // [추가] 성공 시 발송 상태 즉시 업데이트
+                            toSync.forEach(item => sentAnomalyKeys.add(item.manager_key));
+                            localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
+                            verifyBtn.click(); // 화면 갱신
                             alert('선택한 항목이 성공적으로 전송되었습니다.');
                         }
                     };
@@ -3197,8 +3205,7 @@ Print Styles (@media print)
 
                         const { data, error } = await supabase
                             .from('attendance_anomalies')
-                            .select('manager_key, explanation')
-                            .not('explanation', 'is', null);
+                            .select('manager_key, explanation');
 
                         if (error) {
                             alert('데이터를 가져오는 중 오류가 발생했습니다: ' + error.message);
@@ -3208,11 +3215,14 @@ Print Styles (@media print)
                         let updateCount = 0;
                         if (data && data.length > 0) {
                             data.forEach(item => {
+                                // 모든 전송된 키 목록 업데이트
+                                sentAnomalyKeys.add(item.manager_key);
                                 if (item.explanation) {
                                     employeeExplanations[item.manager_key] = item.explanation;
                                     updateCount++;
                                 }
                             });
+                            localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
                             localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
                             updateAndProcessData();
                             verifyBtn.click();
@@ -3220,6 +3230,29 @@ Print Styles (@media print)
                         } else {
                             alert('가져올 새로운 소명 답변이 없습니다.');
                         }
+                    };
+                }
+
+                const resetAllDataBtn = document.getElementById('reset-all-data-btn');
+                if (resetAllDataBtn) {
+                    resetAllDataBtn.onclick = () => {
+                        if (!confirm('주의: 모든 수동 확인 내역, 사유, 직원 소명 답변 및 전송 상태 기록이 삭제됩니다. 정말 초기화하시겠습니까?')) return;
+                        
+                        manualCorrections = {};
+                        manualReasons = {};
+                        employeeExplanations = {};
+                        sentAnomalyKeys.clear();
+                        manualEarlyPunches = {};
+
+                        localStorage.removeItem('manualCorrections');
+                        localStorage.removeItem('manualReasons');
+                        localStorage.removeItem('employeeExplanations');
+                        localStorage.removeItem('sentAnomalyKeys');
+                        localStorage.removeItem('manualEarlyPunches');
+
+                        updateAndProcessData();
+                        verifyBtn.click();
+                        alert('모든 데이터가 초기화되었습니다.');
                     };
                 }
 
@@ -3340,7 +3373,7 @@ Print Styles (@media print)
                                     <td>${(a.inTime || a.outTime) ? `${a.inTime} ~ ${a.outTime}` : '<span style="color:#999">(기록 없음)</span>'}</td>
                                     <td class="anomaly-reason" style="${isFullyConfirmed ? '' : 'color:#ef4444'}">${a.reason}</td>
                                     <td class="employee-explanation" style="font-size: 0.82rem; color: #4F46E5; background-color: #f0f4ff; border: 1px solid #e0e7ff; border-radius: 4px; padding: 4px; line-height: 1.2;">
-                                        ${employeeExplanations[corrKey] || '-'}
+                                        ${employeeExplanations[corrKey] || (sentAnomalyKeys.has(corrKey) ? '<span style="color: #6b7280; font-weight: 500;">⏳ 요청됨</span>' : '-')}
                                     </td>
                                     <td>
                                         <input type="text" class="manual-reason-input" 
