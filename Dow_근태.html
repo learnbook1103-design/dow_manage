@@ -309,6 +309,11 @@
             /* [추가] 헤더 배경색이 둥근 모서리를 넘지 않도록 */
         }
 
+        /* [추가] 사원 명단 모달은 더 크게 */
+        #employee-modal .modal-content {
+            max-width: 1200px;
+        }
+
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -1176,15 +1181,15 @@ Print Styles (@media print)
             </div>
             <div class="employee-manager-section">
                 <div style="display: flex; align-items: center; margin-bottom: 0.5rem; padding: 0 13px;">
-                    <div style="font-size: 0.8rem; color: #6b7280; display: flex; gap: 8px;">
-                        <span style="width: 100px;">조직</span>
-                        <span style="width: 100px;">사원명</span>
-                        <span style="width: 100px;">직급</span>
-                        <span style="width: 150px;">이메일</span>
-                        <span style="width: 110px;">입사일</span>
-                        <span style="width: 110px;">퇴사일</span>
-                        <span style="width: 50px; text-align: center;">팀장</span>
-                        <span style="width: 30px; text-align: center;"></span>
+                    <div style="font-size: 0.8rem; color: #6b7280; display: flex; gap: 8px; width: 100%;">
+                        <span style="flex: 0 0 120px;">조직</span>
+                        <span style="flex: 0 0 100px;">사원명</span>
+                        <span style="flex: 0 0 100px;">직급</span>
+                        <span style="flex: 1 1 150px;">이메일</span>
+                        <span style="flex: 0 0 130px;">입사일</span>
+                        <span style="flex: 0 0 130px;">퇴사일</span>
+                        <span style="flex: 0 0 60px; text-align: center;">팀장</span>
+                        <span style="flex: 0 0 40px; text-align: center;"></span>
                     </div>
                 </div>
                 <div id="employee-list-container" class="employee-list-container"
@@ -1707,15 +1712,15 @@ Print Styles (@media print)
                         renderEmployeeManager();
                     });
 
-                    // [추가] 너비 명시적 지정
-                    orgSelect.style.width = '100px';
-                    nameInput.style.width = '100px';
-                    rankSelect.style.width = '100px';
-                    emailInput.style.width = '150px';
-                    joinInput.style.width = '110px';
-                    leaveInput.style.width = '110px';
-                    leaderCheckbox.style.width = '50px';
-                    removeBtn.style.width = '30px';
+                    // [추가] 너비 및 유연성 명시적 지정
+                    orgSelect.style.flex = '0 0 120px';
+                    nameInput.style.flex = '0 0 100px';
+                    rankSelect.style.flex = '0 0 100px';
+                    emailInput.style.flex = '1 1 150px';
+                    joinInput.style.flex = '0 0 130px';
+                    leaveInput.style.flex = '0 0 130px';
+                    leaderCheckbox.style.flex = '0 0 60px';
+                    removeBtn.style.flex = '0 0 40px';
 
                     row.appendChild(orgSelect);
                     row.appendChild(nameInput);
