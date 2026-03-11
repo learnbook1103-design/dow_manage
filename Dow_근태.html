@@ -1258,6 +1258,20 @@ Print Styles (@media print)
                         </select>
                     </div>
                 </div>
+                <!-- 수동 조치 사유 추천 목록 -->
+                <datalist id="manual-reason-list">
+                    <option value="생일자">
+                    <option value="연차">
+                    <option value="반차">
+                    <option value="오전반차">
+                    <option value="오후반차">
+                    <option value="공가">
+                    <option value="경조">
+                    <option value="조퇴">
+                    <option value="외근">
+                    <option value="출장">
+                </datalist>
+
                 <div class="verify-table-container"
                     style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #f9fafb; position: relative;">
                     <table class="verify-table">
@@ -2646,7 +2660,9 @@ Print Styles (@media print)
                                     recordsMap[name][fDate].inTime = "연차";
                                 } else {
                                     // 연차, 반차를 제외한 휴가 사항은 사유란에만 입력 (사용자 요청: 출퇴근란 공란)
-                                    recordsMap[name][fDate].reason = type;
+                                    let displayType = type;
+                                    if (type.includes("생일자")) displayType = "생일자";
+                                    recordsMap[name][fDate].reason = displayType;
                                 }
                             }
                             curDay.setDate(curDay.getDate() + 1);
@@ -3265,6 +3281,7 @@ Print Styles (@media print)
                                         <input type="text" class="manual-reason-input" 
                                             value="${manualReasons[corrKey] || ''}" 
                                             placeholder="사유 입력..."
+                                            list="manual-reason-list"
                                             style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem;"
                                             data-key="${corrKey}">
                                     </td>
