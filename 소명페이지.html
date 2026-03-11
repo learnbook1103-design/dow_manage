@@ -239,6 +239,13 @@
             const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
 
+            function normalizeName(name) {
+                if (!name) return "";
+                let n = String(name).trim();
+                if (n === "한옥련") return "한옥연";
+                return n;
+            }
+
             let supabase = null;
             const statusDisplay = document.getElementById('status-display');
             const searchBtn = document.getElementById('search-btn');
@@ -276,7 +283,8 @@
                 }
 
                 const nameInput = document.getElementById('employee-name');
-                const name = nameInput.value.trim();
+                const rawName = nameInput.value.trim();
+                const name = normalizeName(rawName);
                 if (!name) {
                     alert('성함을 입력해주세요.');
                     return;

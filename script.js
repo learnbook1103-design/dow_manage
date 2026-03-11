@@ -676,11 +676,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // 1. 이름 찾기
-                let name = (nameIdx !== -1) ? rowValues[nameIdx] : rowValues.find(v => {
+                let rawName = (nameIdx !== -1) ? rowValues[nameIdx] : rowValues.find(v => {
                     const isHangul = /^[가-힣]{2,4}$/.test(v);
                     const isDept = v.endsWith('팀') || v.endsWith('부') || v.endsWith('과') || v.endsWith('사');
                     return isHangul && !isDept;
                 });
+                let name = normalizeName(rawName);
 
                 // 2. 시작일/종료일 찾기
                 let start = "";
