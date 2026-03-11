@@ -1617,12 +1617,17 @@ Print Styles (@media print)
                         tempEmployeeConfigList[index].name = norm;
                     });
 
-                    const rankInput = document.createElement('input');
-                    rankInput.type = 'text';
-                    rankInput.placeholder = '직급';
-                    rankInput.style.width = '100px';
-                    rankInput.value = emp.rank || '';
-                    rankInput.addEventListener('change', (e) => {
+                    const rankSelect = document.createElement('select');
+                    rankSelect.className = 'rank-select';
+                    rankSelect.style.width = '100px';
+                    ['직급 선택', '상무', '부장', '과장', '대리', '선임', '사원'].forEach(val => {
+                        const opt = document.createElement('option');
+                        opt.value = val === '직급 선택' ? '' : val;
+                        opt.text = val;
+                        rankSelect.appendChild(opt);
+                    });
+                    rankSelect.value = emp.rank || '';
+                    rankSelect.addEventListener('change', (e) => {
                         tempEmployeeConfigList[index].rank = e.target.value;
                     });
 
@@ -1673,7 +1678,7 @@ Print Styles (@media print)
 
                     row.appendChild(orgSelect);
                     row.appendChild(nameInput);
-                    row.appendChild(rankInput);
+                    row.appendChild(rankSelect);
                     row.appendChild(emailInput);
                     row.appendChild(joinInput);
                     row.appendChild(leaveInput);
