@@ -1355,8 +1355,29 @@ Print Styles (@media print)
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    <!-- Mail Queue Modal -->
+    <div id="mail-queue-modal" class="modal hidden no-print">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>메일 발송 대기열</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button id="close-mail-queue-btn" class="close-btn">&times;</button>
+                </div>
+            </div>
+            <div style="padding: 1.5rem; background: #fff;">
+                <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 1.5rem; line-height: 1.4;">
+                    브라우저 보안 정책상 여러 개의 메일을 한 번에 보낼 수 없습니다.<br>
+                    아래 리스트의 <strong>'발송'</strong> 버튼을 차례대로 눌러주세요.
+                </p>
+                <div id="mail-queue-list" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Queue items injected here -->
+                </div>
+            </div>
+            <div style="padding: 1.5rem; text-align: center; border-top: 1px solid var(--border-color); background: #f9fafb; border-radius: 0 0 16px 16px;">
+                <button id="mail-queue-done-btn" class="primary-btn" style="width: 100%; justify-content: center;">완료 및 닫기</button>
+            </div>
+        </div>
+    </div>
             // [설정] Supabase 연동 정보 (사용자가 직접 입력 필요)
             const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
@@ -1395,6 +1416,12 @@ Print Styles (@media print)
             const bulkUnconfirmBtn = document.getElementById('bulk-unconfirm-btn');
             const syncToCloudBtn = document.getElementById('sync-to-cloud-btn');
             const fetchFromCloudBtn = document.getElementById('fetch-from-cloud-btn');
+
+            // 메일 대기열 요소
+            const mailQueueModal = document.getElementById('mail-queue-modal');
+            const mailQueueList = document.getElementById('mail-queue-list');
+            const closeMailQueueBtn = document.getElementById('close-mail-queue-btn');
+            const mailQueueDoneBtn = document.getElementById('mail-queue-done-btn');
 
             // 공휴일 관리 요소
             const openHolidayBtn = document.getElementById('open-holiday-btn');
@@ -1453,6 +1480,7 @@ Print Styles (@media print)
             makeDraggable(employeeModal);
             makeDraggable(verifyModal);
             makeDraggable(holidayModal);
+            makeDraggable(mailQueueModal);
 
             // [추가] 수동 확인 데이터 (localStorage)
             const savedCorrections = localStorage.getItem('manualCorrections');
@@ -3165,7 +3193,6 @@ Print Styles (@media print)
                         attendanceFilesMap.forEach(data => combinedData.push(...data));
                         const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
 
-                        // [추가] 사원별로 데이터 그룹화
                         const emailGroups = {};
                         selectedAnomalyKeys.forEach(key => {
                             const [name, date] = key.split('_');
@@ -3174,10 +3201,7 @@ Print Styles (@media print)
 
                             if (anomaly && empInfo && empInfo.email) {
                                 if (!emailGroups[name]) {
-                                    emailGroups[name] = {
-                                        email: empInfo.email,
-                                        items: []
-                                    };
+                                    emailGroups[name] = { email: empInfo.email, items: [] };
                                 }
                                 emailGroups[name].items.push({ date, reason: anomaly.reason });
                             }
@@ -3189,41 +3213,39 @@ Print Styles (@media print)
                             return;
                         }
 
-                        // [추가] 순차 발송 처리기
-                        let currentIndex = 0;
-                        const sendNext = () => {
-                            if (currentIndex >= groupedNames.length) {
-                                alert('모든 메일 발송 대기열이 처리되었습니다.');
-                                return;
-                            }
-
-                            const name = groupedNames[currentIndex];
+                        // 대기열 리스트 생성
+                        mailQueueList.innerHTML = '';
+                        groupedNames.forEach((name, idx) => {
                             const group = emailGroups[name];
-                            const subject = encodeURIComponent(`[근태 소명 요청] ${name}님, 근태 이상 내역 안내`);
+                            const div = document.createElement('div');
+                            div.style = "display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;";
                             
+                            const subject = `[근태 소명 요청] ${name}님, 근태 이상 내역 안내`;
                             const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
-                            
                             let itemsText = group.items.map(item => `- ${item.date}: ${item.reason}`).join('\n');
                             const bodyText = `안녕하세요 ${name}님,\n\n아래 날짜들의 근태 기록에 이상 사유가 발생하여 소명이 필요합니다.\n내역을 확인하시고 아래 소명 페이지 링크에 접속하여 답변 부탁드립니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n[이상 내역 리스트]\n${itemsText}\n\n감사합니다.`;
-                            const body = encodeURIComponent(bodyText);
+                            const mailtoUrl = `mailto:${group.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
 
-                            window.open(`mailto:${group.email}?subject=${subject}&body=${body}`, '_blank');
-                            currentIndex++;
+                            div.innerHTML = `
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-weight: 600; font-size: 0.95rem;">${name} <small style="color:#6b7280; font-weight:normal;">(${group.email})</small></span>
+                                    <span style="font-size: 0.8rem; color: #10b981;">내역 ${group.items.length}건</span>
+                                </div>
+                                <a href="${mailtoUrl}" class="secondary-btn send-item-btn" 
+                                   style="padding: 6px 12px; font-size: 0.85rem; background: #4f46e5; color: white; border: none; text-decoration: none; border-radius: 4px;"
+                                   onclick="this.style.opacity='0.5'; this.innerText='발송됨'; this.style.pointerEvents='none';">
+                                   발송
+                                </a>
+                            `;
+                            mailQueueList.appendChild(div);
+                        });
 
-                            if (currentIndex < groupedNames.length) {
-                                if (confirm(`${name}님 메일 창을 열었습니다.\n\n다음 발송 대상: ${groupedNames[currentIndex]} (${groupedNames.length - currentIndex}명 남음)\n확인을 누르면 다음 메일을 엽니다.`)) {
-                                    sendNext();
-                                }
-                            } else {
-                                alert('전체 발송이 완료되었습니다.');
-                            }
-                        };
-
-                        if (confirm(`총 ${groupedNames.length}명의 사원에게 소명 요청 메일을 보냅니다. (동일 사원은 합산됨)\n발송을 시작하시겠습니까?`)) {
-                            sendNext();
-                        }
+                        mailQueueModal.classList.remove('hidden');
                     };
                 }
+
+                if (closeMailQueueBtn) closeMailQueueBtn.onclick = () => mailQueueModal.classList.add('hidden');
+                if (mailQueueDoneBtn) mailQueueDoneBtn.onclick = () => mailQueueModal.classList.add('hidden');
 
                 if (fetchFromCloudBtn) {
                     fetchFromCloudBtn.onclick = async () => {
