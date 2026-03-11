@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>근태 소명 페이지</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --text-main: #111827;
+            --text-sub: #6B7280;
+            --border: #E5E7EB;
+            --danger: #EF4444;
+            --success: #10B981;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        p {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        input[type="text"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111827%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px top 50%;
+            background-size: 12px auto;
+            padding-right: 32px;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .anomaly-item {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: #fff;
+            transition: transform 0.2s;
+        }
+
+        .anomaly-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .date {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--primary);
+        }
+
+        .reason-badge {
+            background: #FEE2E2;
+            color: #B91C1C;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .original-reason {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+        }
+
+        .status-submitted {
+            color: var(--success);
+            font-weight: 600;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            color: var(--text-sub);
+        }
+
+        .empty-msg {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-sub);
+            display: none;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 0.75rem;
+            color: var(--text-sub);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>근태 소명 시스템</h1>
+            <p>본인의 이름을 입력하여 소명이 필요한 내역을 확인하세요.</p>
+        </header>
+
+        <div class="card">
+            <div class="input-group">
+                <label for="employee-name">성함</label>
+                <input type="text" id="employee-name" placeholder="예: 홍길동" autocomplete="name">
+            </div>
+            <button id="search-btn" class="btn btn-primary" onclick="handleSearch()">내역 조회하기</button>
+        </div>
+
+        <div id="status-display"
+            style="font-size: 0.75rem; text-align: center; color: var(--text-sub); margin-bottom: 10px;">
+            시스템 연결 중...
+        </div>
+
+        <div id="loading" class="loading">데이터를 불러오는 중...</div>
+        <div id="anomaly-list"></div>
+        <div id="empty-msg" class="empty-msg">소명 요청된 내역이 없습니다. 🎉</div>
+
+        <footer>&copy; 2026 Dow Valve Attendance System</footer>
+    </div>
+
+    <!-- Supabase Library (Moved to bottom for reliability) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        (function () {
+            const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
+            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
+
+            let supabase = null;
+            const statusDisplay = document.getElementById('status-display');
+            const searchBtn = document.getElementById('search-btn');
+
+            function updateStatus(text, color) {
+                if (statusDisplay) {
+                    statusDisplay.innerText = text;
+                    if (color) statusDisplay.style.color = color;
+                }
+            }
+
+            function tryConnect() {
+                if (supabase) return true;
+
+                if (window.supabase) {
+                    try {
+                        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                        updateStatus("시스템 연결 완료 ✅", "#10B981");
+                        return true;
+                    } catch (e) {
+                        updateStatus("연결 오류: " + e.message, "#EF4444");
+                        return false;
+                    }
+                } else {
+                    updateStatus("엔진 로딩 중... (인터넷 확인 필수)", "#6B7280");
+                    return false;
+                }
+            }
+
+            // 전역 노출
+            window.handleSearch = async function () {
+                if (!supabase && !tryConnect()) {
+                    alert("시스템 연결 중입니다. 잠시 후 시도해 주세요.");
+                    return;
+                }
+
+                const nameInput = document.getElementById('employee-name');
+                const name = nameInput.value.trim();
+                if (!name) {
+                    alert('성함을 입력해주세요.');
+                    return;
+                }
+
+                const listContainer = document.getElementById('anomaly-list');
+                const loading = document.getElementById('loading');
+                const emptyMsg = document.getElementById('empty-msg');
+
+                loading.style.display = 'block';
+                listContainer.innerHTML = '';
+                emptyMsg.style.display = 'none';
+                searchBtn.disabled = true;
+                searchBtn.innerText = "조회 중...";
+
+                try {
+                    const { data, error } = await supabase
+                        .from('attendance_anomalies')
+                        .select('*')
+                        .eq('name', name)
+                        .order('date', { ascending: false });
+
+                    if (error) throw error;
+
+                    if (!data || data.length === 0) {
+                        emptyMsg.style.display = 'block';
+                    } else {
+                        renderList(data);
+                    }
+                } catch (err) {
+                    alert('조회 오류: ' + err.message);
+                } finally {
+                    loading.style.display = 'none';
+                    searchBtn.disabled = false;
+                    searchBtn.innerText = "내역 조회하기";
+                }
+            };
+
+            function renderList(items) {
+                const listContainer = document.getElementById('anomaly-list');
+                items.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'anomaly-item';
+                    const isSubmitted = item.explanation && item.explanation.trim() !== '';
+                    const hasCustomExplanation = isSubmitted && !['연차', '반차(오전)', '반차(오후)', '외근', '출장', '병가', '공가'].includes(item.explanation);
+
+                    div.innerHTML = `
+                        <div class="anomaly-header">
+                            <span class="date">${item.date}</span>
+                            <span class="reason-badge">${item.reason}</span>
+                        </div>
+                        <div class="original-reason">관리자가 소명을 요청한 내역입니다.</div>
+                        <div class="input-group" style="margin-bottom: 10px;">
+                            ${isSubmitted ? `
+                                <input type="text" value="${item.explanation}" readonly style="background-color: #f3f4f6; color: #4b5563;">
+                            ` : (function () {
+                            let reasonsArray = (item.reason || '').split(',').map(r => r.trim()).filter(r => r);
+                            if (reasonsArray.length === 0) reasonsArray = [''];
+
+                            let combinedHTML = '';
+                            reasonsArray.forEach((r, idx) => {
+                                let optionsHTML = '<option value="" disabled selected>사유를 선택해주세요</option>';
+                                let customOptions = [];
+
+                                if (r.includes('출근/출입 기록 없음') || r.includes('지각')) {
+                                    customOptions.push('정상출근', '지각', '외근');
+                                }
+                                if (r.includes('퇴근 기록 없음') || r.includes('조기 퇴근') || r.includes('조기퇴근')) {
+                                    customOptions.push('정상퇴근', '조기퇴근', '외근');
+                                }
+
+                                customOptions = [...new Set(customOptions)];
+
+                                if (customOptions.length === 0) {
+                                    customOptions = ['연차', '반차(오전)', '반차(오후)', '외근', '출장', '병가', '공가'];
+                                }
+                                customOptions.push('기타');
+
+                                customOptions.forEach(opt => {
+                                    optionsHTML += `<option value="${opt}">${opt === '기타' ? '기타 (직접 입력)' : opt}</option>`;
+                                });
+
+                                combinedHTML += `
+                                        <div style="margin-bottom: 12px; padding: 10px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                            <div style="font-size: 0.85rem; color: #4b5563; margin-bottom: 6px; font-weight: 500;">[${r}]에 대한 소명</div>
+                                            <select id="reason-sel-${item.id}-${idx}" onchange="window.toggleCustomExplanation('${item.id}', ${idx})" style="margin-bottom: 8px; width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                                                ${optionsHTML}
+                                            </select>
+                                            <textarea id="exp-${item.id}-${idx}" rows="2" placeholder="기타 사유를 상세히 입력해주세요." style="display: none; width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; box-sizing: border-box;"></textarea>
+                                        </div>
+                                    `;
+                            });
+
+                            combinedHTML += `<input type="hidden" id="reason-cnt-${item.id}" value="${reasonsArray.length}">`;
+                            return combinedHTML;
+                        })()}
+                        </div>
+                        ${isSubmitted ? `
+                            <div class="status-submitted">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                </svg>
+                                제출 완료 ✅
+                            </div>
+                        ` : `
+                            <button class="btn btn-primary" onclick="window.submitExplanation('${item.id}')">사유 제출하기</button>
+                        `}
+                    `;
+                    listContainer.appendChild(div);
+                });
+            }
+
+            window.toggleCustomExplanation = function (id, idx) {
+                const select = document.getElementById(`reason-sel-${id}-${idx}`);
+                const textarea = document.getElementById(`exp-${id}-${idx}`);
+                if (!select || !textarea) return;
+
+                if (select.value === '기타') {
+                    textarea.style.display = 'block';
+                    textarea.focus();
+                } else {
+                    textarea.style.display = 'none';
+                    textarea.value = ''; // 기타 선택 해제 시 입력 내용 초기화
+                }
+            };
+
+            window.submitExplanation = async function (id) {
+                const cntInput = document.getElementById(`reason-cnt-${id}`);
+                const count = cntInput ? parseInt(cntInput.value) : 1;
+
+                let explanations = [];
+                for (let i = 0; i < count; i++) {
+                    const select = document.getElementById(`reason-sel-${id}-${i}`);
+                    if (!select) continue;
+
+                    let exp = select.value;
+                    if (!exp) {
+                        alert('모든 이상 사유에 대한 소명을 선택해주세요.');
+                        return;
+                    }
+                    if (exp === '기타') {
+                        const textarea = document.getElementById(`exp-${id}-${i}`);
+                        exp = textarea.value.trim();
+                        if (!exp) {
+                            alert('기타 사유를 상세히 입력해주세요.');
+                            return;
+                        }
+                    }
+                    explanations.push(exp);
+                }
+
+                const finalExplanation = explanations.join(', ');
+
+                if (!confirm('입력하신 사유를 제출하시겠습니까?')) return;
+
+                try {
+                    const { error } = await supabase
+                        .from('attendance_anomalies')
+                        .update({ explanation: explanation, status: 'submitted' })
+                        .eq('id', id);
+
+                    if (error) throw error;
+                    alert('제출되었습니다. 감사합니다.');
+                    window.handleSearch();
+                } catch (err) {
+                    alert('제출 오류: ' + err.message);
+                }
+            };
+
+            // 즉시 실행 및 주기적 확인
+            if (!tryConnect()) {
+                const checkInt = setInterval(() => {
+                    if (tryConnect()) clearInterval(checkInt);
+                }, 500);
+            }
+        })();
+    </script>
+</body>
+
+</html>
