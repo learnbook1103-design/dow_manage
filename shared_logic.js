@@ -20,7 +20,7 @@ function cleanTime(timeStr) {
     if (str === "-") return "";
 
     // [추가] 휴가 관련 텍스트 키워드 보장 및 확장 (생일자 추가)
-    const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자'];
+    const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자', '생일'];
     if (leaveKeywords.some(k => str.includes(k))) return str;
 
     const t = str.split(' ').length > 1 ? str.split(' ')[1] : str.split(' ')[0];
@@ -218,7 +218,7 @@ function calculateAnomalies(combinedData, config) {
 
         // [추가] 수동 사유(클라우드 복구분) 및 행 사유에서 휴가 여부 판단
         const combinedReason = group.reason || "";
-        const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자'];
+        const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자', '생일'];
         if (leaveKeywords.some(k => combinedReason.includes(k) || String(inVal).includes(k) || String(outVal).includes(k))) {
             const checkStr = combinedReason + " " + String(inVal) + " " + String(outVal);
             // [수정] '연차,반차'와 같이 키워드가 섞인 경우 반차로 우선 처리하기 위해 조건 수정
@@ -227,7 +227,7 @@ function calculateAnomalies(combinedData, config) {
                 isFullLeave = true;
             } else if (checkStr.includes("오전반차")) {
                 isAMHalf = true;
-            } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("조퇴") || checkStr.includes("생일자")) {
+            } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("조퇴") || checkStr.includes("생일자") || checkStr.includes("생일")) {
                 // 기본적으로 반차/조퇴는 오후 반차 성격이 많으므로 false(오후)로 초기화하되 아래에서 시간으로 재검증
                 isPMHalf = true; 
             } else {

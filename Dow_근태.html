@@ -2306,7 +2306,7 @@ Print Styles (@media print)
                     const targetKeywords = [
                         { key: '외근', label: '외근' },
                         { key: '조퇴', label: '조퇴' },
-                        { key: '생일자', label: '생일자 반차' }
+                        { key: '생일자', label: '생일' }
                     ];
 
                     reasonHeaders.forEach(h => {
@@ -2684,7 +2684,7 @@ Print Styles (@media print)
                                 } else {
                                     // 연차, 반차를 제외한 휴가 사항은 사유란에만 입력 (사용자 요청: 출퇴근란 공란)
                                     let displayType = type;
-                                    if (type.includes("생일자")) displayType = "생일자 반차";
+                                    if (type.includes("생일자")) displayType = "생일";
                                     recordsMap[name][fDate].reason = displayType;
                                 }
                             }
