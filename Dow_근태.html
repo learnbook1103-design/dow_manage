@@ -2803,6 +2803,18 @@ Print Styles (@media print)
                 const weekdaysMap = ["일", "월", "화", "수", "목", "금", "토"];
 
                 dateChunks.forEach((datesChunk) => {
+                    const chunkStart = datesChunk[0];
+                    const chunkEnd = datesChunk[datesChunk.length - 1];
+
+                    // [추가] 현재 보고 페이지(청크) 기간에 재직하지 않는 사원은 해당 페이지 목록에서 제외
+                    const filteredNames = names.filter(name => {
+                        const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
+                        if (!empInfo.name) return true; // 정보가 없으면 일단 표시
+                        if (empInfo.joinDate && empInfo.joinDate > chunkEnd) return false;
+                        if (empInfo.leaveDate && empInfo.leaveDate < chunkStart) return false;
+                        return true;
+                    });
+
                     const pageDiv = document.createElement('div');
                     pageDiv.className = 'report-page';
                     const refDate = new Date(datesChunk[0]);
@@ -2844,7 +2856,7 @@ Print Styles (@media print)
                     theadHtml += `</tr></thead>`;
 
                     let tbodyHtml = `<tbody>`;
-                    names.forEach(name => {
+                    filteredNames.forEach(name => {
                         const recs = recordsMap[name] || {};
                         const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
                         
