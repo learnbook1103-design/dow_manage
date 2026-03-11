@@ -806,7 +806,6 @@ Holiday Modal Styles
 
         .confirmed-cell {
             color: #000 !important;
-            font-weight: 700;
             background-color: #ecfdf5 !important;
         }
 
@@ -3495,15 +3494,36 @@ Print Styles (@media print)
                                 const confirmBtn = tr.querySelector('.confirmation-btn');
                                 confirmBtn.onclick = () => {
                                     const key = confirmBtn.getAttribute('data-key');
+                                    const wasFullyConfirmed = isFullyConfirmed;
+
                                     if (isPendingLeave) {
                                         manualCorrections[key].leave = !manualCorrections[key].leave;
                                     } else {
-                                        if (isFullyConfirmed) {
+                                        if (wasFullyConfirmed) {
                                             manualCorrections[key].in = false;
                                             manualCorrections[key].out = false;
                                         } else {
                                             if (hasInAnom) manualCorrections[key].in = true;
                                             if (hasOutAnom) manualCorrections[key].out = true;
+
+                                            // [추가] 소명 답변 자동 사유 반영 로직
+                                            const rawExp = employeeExplanations[key];
+                                            if (rawExp) {
+                                                const exps = rawExp.split(',').map(s => s.trim()).filter(s => s);
+                                                if (exps.length === 1) {
+                                                    manualReasons[key] = exps[0];
+                                                } else if (exps.length >= 2) {
+                                                    const abnormalExps = exps.filter(s => s !== '정상출근' && s !== '정상퇴근');
+                                                    if (abnormalExps.length === 0) {
+                                                        manualReasons[key] = '정상근무';
+                                                    } else if (abnormalExps.length === 1) {
+                                                        manualReasons[key] = abnormalExps[0];
+                                                    } else {
+                                                        alert('복합적인 소명 사유가 있습니다. 직접 확인 후 입력해주세요.');
+                                                    }
+                                                }
+                                                localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                                            }
                                         }
                                     }
                                     localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));

@@ -322,26 +322,29 @@ function calculateAnomalies(combinedData, config) {
         let inAnom = false;
         let outAnom = false;
 
+        const isValidTime = (t) => t && t.includes(':') && !isNaN(parseInt(t.replace(':', '')));
+        const isLeaveMarker = (t) => t && leaveKeywords.some(k => t.includes(k));
+
         if (!isAMHalf && !isPMHalf) {
             // 일반 근무일 경우 (반차 아님)
-            if (!inVal) {
+            if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
                 inAnom = true;
                 reasons.push("출근 기록 없음");
-            } else if (inVal > expIn && inVal.includes(':')) {
+            } else if (isValidTime(inVal) && inVal > expIn) {
                 reasons.push("지각");
                 inAnom = true;
             }
 
-            if (!outVal) {
+            if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
                 reasons.push("퇴근 기록 없음");
                 outAnom = true;
-            } else if (outVal < expOut && outVal.includes(':')) {
+            } else if (isValidTime(outVal) && outVal < expOut) {
                 reasons.push("조기퇴근");
                 outAnom = true;
             }
 
             // 일반 근무일 때 출근보다 퇴근 시간이 앞서 기록된 경우
-            if (inVal && outVal && inVal > outVal) {
+            if (isValidTime(inVal) && isValidTime(outVal) && inVal > outVal) {
                 reasons.push("출근 기록 없음");
                 reasons.push("퇴근 기록 없음");
                 inAnom = true;
@@ -349,39 +352,35 @@ function calculateAnomalies(combinedData, config) {
             }
         } else if (isAMHalf) {
             // 오전 반차인 경우 (오후 근무)
-            if (!outVal) {
+            if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
                 reasons.push("퇴근 기록 없음");
                 outAnom = true;
-            } else if (outVal < expOut && outVal.includes(':')) {
+            } else if (isValidTime(outVal) && outVal < expOut) {
                 reasons.push("조기퇴근");
                 outAnom = true;
             }
 
-            if (!inVal && !outVal && !group.minOut) {
-                reasons = ["출근 기록 없음", "퇴근 기록 없음"];
+            // [추가] 오후 출근 기록도 체크
+            if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
+                reasons.push("출근 기록 없음");
                 inAnom = true;
-                outAnom = true;
             }
         } else if (isPMHalf) {
             // 오후 반차인 경우 (오전 근무)
-            if (!inVal) {
+            if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
                 inAnom = true;
                 reasons.push("출근 기록 없음");
-            } else if (inVal > expIn && inVal.includes(':')) {
+            } else if (isValidTime(inVal) && inVal > expIn) {
                 reasons.push("지각");
                 inAnom = true;
             }
             
-            // [추가] 오후 반차라도 오전 근무 종료 시간(보통 12:00~13:00)보다 일찍 퇴근하면 조기퇴근으로 간주
-            // 여기서는 보수적으로 12:00 이전 퇴근을 조기퇴근으로 체크
-            if (outVal && outVal < '12:00' && outVal.includes(':')) {
-                reasons.push("조기퇴근");
+            // [추가] 오전 퇴근 기록(12:00 기준) 체크
+            if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
+                reasons.push("퇴근 기록 없음");
                 outAnom = true;
-            }
-
-            if (!inVal && !outVal && !group.minOut) {
-                reasons = ["출근 기록 없음", "퇴근 기록 없음"];
-                inAnom = true;
+            } else if (isValidTime(outVal) && outVal < '12:00') {
+                reasons.push("조기퇴근");
                 outAnom = true;
             }
         }
