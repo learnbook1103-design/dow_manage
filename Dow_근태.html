@@ -657,6 +657,11 @@ Report Layout / Matrix View Layout
             font-weight: bold;
         }
 
+        .not-employed {
+            background-color: #94a3b8 !important; /* 슬레이트 회색 */
+            color: transparent !important;
+        }
+
         .corner-cell {
             z-index: 20;
             left: 0;
@@ -2841,8 +2846,11 @@ Print Styles (@media print)
                     let tbodyHtml = `<tbody>`;
                     names.forEach(name => {
                         const recs = recordsMap[name] || {};
+                        const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
+                        
                         tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
                         datesChunk.forEach(dt => {
+                            const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
                             const corrKey = `${name}_${dt}`;
                             let corrData = manualCorrections[corrKey];
                             if (corrData === true) corrData = { in: true, out: true };
@@ -2857,15 +2865,17 @@ Print Styles (@media print)
                             }
 
                             let cls = '';
-                            if (val === '연차') cls = 'leave-annual';
+                            if (isOutRange) cls = 'not-employed';
+                            else if (val === '연차') cls = 'leave-annual';
                             else if (val === '반차') cls = 'leave-half';
                             else if (isConfirmedIn) cls = 'confirmed-cell';
 
                             let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
-                            tbodyHtml += `<td class="${cls}${hlClass}">${displayVal}</td>`;
+                            tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
                         tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
                         datesChunk.forEach(dt => {
+                            const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
                             const corrKey = `${name}_${dt}`;
                             let corrData = manualCorrections[corrKey];
                             if (corrData === true) corrData = { in: true, out: true };
@@ -2880,38 +2890,47 @@ Print Styles (@media print)
                             }
 
                             let cls = '';
-                            if (val === '연차') cls = 'leave-annual';
+                            if (isOutRange) cls = 'not-employed';
+                            else if (val === '연차') cls = 'leave-annual';
                             else if (val === '반차') cls = 'leave-half';
                             else if (isConfirmedOut) cls = 'confirmed-cell';
 
                             let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
-                            tbodyHtml += `<td class="${cls}${hlClass}">${displayVal}</td>`;
+                            tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
                         tbodyHtml += `</tr><tr class="employee-border-bottom"><td class="sticky-col td-label label-reason">사유</td>`;
                         let r_idx = 0;
                         while (r_idx < datesChunk.length) {
                             const dt = datesChunk[r_idx];
-                            const currentReason = (recs[dt] || {}).reason || '';
+                            const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
+                            const currentReason = isOutRange ? '' : (recs[dt] || {}).reason || '';
                             let span = 1;
 
                             // 빈 사유가 아니고(연속될 가치가 있는 경우) 다음 날짜들과 사유가 같은지 확인
-                            if (currentReason !== '') {
-                                while (r_idx + span < datesChunk.length) {
-                                    const nextDt = datesChunk[r_idx + span];
+                            while (r_idx + span < datesChunk.length) {
+                                const nextDt = datesChunk[r_idx + span];
+                                const nextIsOutRange = (empInfo.joinDate && nextDt < empInfo.joinDate) || (empInfo.leaveDate && nextDt > empInfo.leaveDate);
+                                
+                                if (isOutRange && nextIsOutRange) {
+                                    span++; // 둘 다 재직 기간 외면 계속 병합
+                                } else if (!isOutRange && !nextIsOutRange && currentReason !== '') {
                                     const nextReason = (recs[nextDt] || {}).reason || '';
                                     if (nextReason === currentReason) {
                                         span++;
                                     } else {
                                         break;
                                     }
+                                } else {
+                                    break;
                                 }
                             }
 
+                            const cls = isOutRange ? 'time-cell reason-cell not-employed' : 'time-cell reason-cell';
                             if (span > 1) {
-                                tbodyHtml += `<td class="time-cell reason-cell" colspan="${span}">${currentReason}</td>`;
+                                tbodyHtml += `<td class="${cls}" colspan="${span}">${currentReason}</td>`;
                                 r_idx += span;
                             } else {
-                                tbodyHtml += `<td class="time-cell reason-cell">${currentReason}</td>`;
+                                tbodyHtml += `<td class="${cls}">${currentReason}</td>`;
                                 r_idx++;
                             }
                         }
