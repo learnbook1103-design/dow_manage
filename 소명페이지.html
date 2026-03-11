@@ -78,6 +78,7 @@
         }
 
         input[type="text"],
+        select,
         textarea {
             width: 100%;
             padding: 12px;
@@ -85,9 +86,20 @@
             border-radius: 8px;
             font-size: 1rem;
             transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23111827%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px top 50%;
+            background-size: 12px auto;
+            padding-right: 32px;
         }
 
         input:focus,
+        select:focus,
         textarea:focus {
             outline: none;
             border-color: var(--primary);
@@ -309,6 +321,7 @@
                     const div = document.createElement('div');
                     div.className = 'anomaly-item';
                     const isSubmitted = item.explanation && item.explanation.trim() !== '';
+                    const hasCustomExplanation = isSubmitted && !['연차', '반차(오전)', '반차(오후)', '외근', '출장', '병가', '공가'].includes(item.explanation);
 
                     div.innerHTML = `
                         <div class="anomaly-header">
@@ -317,7 +330,49 @@
                         </div>
                         <div class="original-reason">관리자가 소명을 요청한 내역입니다.</div>
                         <div class="input-group" style="margin-bottom: 10px;">
-                            <textarea id="exp-${item.id}" rows="3" placeholder="사유를 상세히 입력해주세요." ${isSubmitted ? 'readonly' : ''}>${item.explanation || ''}</textarea>
+                            ${isSubmitted ? `
+                                <input type="text" value="${item.explanation}" readonly style="background-color: #f3f4f6; color: #4b5563;">
+                            ` : (function () {
+                            let reasonsArray = (item.reason || '').split(',').map(r => r.trim()).filter(r => r);
+                            if (reasonsArray.length === 0) reasonsArray = [''];
+
+                            let combinedHTML = '';
+                            reasonsArray.forEach((r, idx) => {
+                                let optionsHTML = '<option value="" disabled selected>사유를 선택해주세요</option>';
+                                let customOptions = [];
+
+                                if (r.includes('출근/출입 기록 없음') || r.includes('지각')) {
+                                    customOptions.push('정상출근', '지각', '외근');
+                                }
+                                if (r.includes('퇴근 기록 없음') || r.includes('조기 퇴근') || r.includes('조기퇴근')) {
+                                    customOptions.push('정상퇴근', '조기퇴근', '외근');
+                                }
+
+                                customOptions = [...new Set(customOptions)];
+
+                                if (customOptions.length === 0) {
+                                    customOptions = ['연차', '반차(오전)', '반차(오후)', '외근', '출장', '병가', '공가'];
+                                }
+                                customOptions.push('기타');
+
+                                customOptions.forEach(opt => {
+                                    optionsHTML += `<option value="${opt}">${opt === '기타' ? '기타 (직접 입력)' : opt}</option>`;
+                                });
+
+                                combinedHTML += `
+                                        <div style="margin-bottom: 12px; padding: 10px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                            <div style="font-size: 0.85rem; color: #4b5563; margin-bottom: 6px; font-weight: 500;">[${r}]에 대한 소명</div>
+                                            <select id="reason-sel-${item.id}-${idx}" onchange="window.toggleCustomExplanation('${item.id}', ${idx})" style="margin-bottom: 8px; width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                                                ${optionsHTML}
+                                            </select>
+                                            <textarea id="exp-${item.id}-${idx}" rows="2" placeholder="기타 사유를 상세히 입력해주세요." style="display: none; width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; box-sizing: border-box;"></textarea>
+                                        </div>
+                                    `;
+                            });
+
+                            combinedHTML += `<input type="hidden" id="reason-cnt-${item.id}" value="${reasonsArray.length}">`;
+                            return combinedHTML;
+                        })()}
                         </div>
                         ${isSubmitted ? `
                             <div class="status-submitted">
@@ -334,13 +389,46 @@
                 });
             }
 
-            window.submitExplanation = async function (id) {
-                const textarea = document.getElementById(`exp-${id}`);
-                const explanation = textarea.value.trim();
-                if (!explanation) {
-                    alert('사유를 입력해주세요.');
-                    return;
+            window.toggleCustomExplanation = function (id, idx) {
+                const select = document.getElementById(`reason-sel-${id}-${idx}`);
+                const textarea = document.getElementById(`exp-${id}-${idx}`);
+                if (!select || !textarea) return;
+
+                if (select.value === '기타') {
+                    textarea.style.display = 'block';
+                    textarea.focus();
+                } else {
+                    textarea.style.display = 'none';
+                    textarea.value = ''; // 기타 선택 해제 시 입력 내용 초기화
                 }
+            };
+
+            window.submitExplanation = async function (id) {
+                const cntInput = document.getElementById(`reason-cnt-${id}`);
+                const count = cntInput ? parseInt(cntInput.value) : 1;
+
+                let explanations = [];
+                for (let i = 0; i < count; i++) {
+                    const select = document.getElementById(`reason-sel-${id}-${i}`);
+                    if (!select) continue;
+
+                    let exp = select.value;
+                    if (!exp) {
+                        alert('모든 이상 사유에 대한 소명을 선택해주세요.');
+                        return;
+                    }
+                    if (exp === '기타') {
+                        const textarea = document.getElementById(`exp-${id}-${i}`);
+                        exp = textarea.value.trim();
+                        if (!exp) {
+                            alert('기타 사유를 상세히 입력해주세요.');
+                            return;
+                        }
+                    }
+                    explanations.push(exp);
+                }
+
+                const finalExplanation = explanations.join(', ');
 
                 if (!confirm('입력하신 사유를 제출하시겠습니까?')) return;
 

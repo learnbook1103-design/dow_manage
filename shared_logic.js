@@ -162,8 +162,38 @@ function calculateAnomalies(combinedData, config) {
         });
     }
 
+    // [추가] 기간 내 모든 지정된 요약 사원에 대해 모든 유효 날짜(평일 등) 검증 대상에 강제 포함 (기록이 하나도 없는 날짜도 포착)
+    if (employeeConfigList && employeeConfigList.length > 0 && typeof currentUniqueDates !== 'undefined' && currentUniqueDates && currentUniqueDates.size > 0) {
+        currentUniqueDates.forEach(fDate => {
+            employeeConfigList.forEach(emp => {
+                const nameVal = normalizeName(emp.name);
+                if (!nameVal) return;
+
+                // 입사일/퇴사일 범위 확인
+                if (emp.joinDate && fDate < emp.joinDate) return;
+                if (emp.leaveDate && fDate > emp.leaveDate) return;
+
+                const manualKey = `${nameVal}_${fDate}`;
+                if (!groupedMap[manualKey]) {
+                    groupedMap[manualKey] = {
+                        date: fDate,
+                        name: nameVal,
+                        in: "", out: "", minOut: "",
+                        shift: "0800-1700",
+                        originalDate: fDate,
+                        hasEarly: false,
+                        reason: manualReasons[manualKey] || ""
+                    };
+                }
+            });
+        });
+    }
+
     // 통합된 데이터를 바탕으로 검증 수행
     Object.values(groupedMap).forEach(group => {
+        // [특정 사용자 근무조 하드코딩]
+        if (group.name === "박주연") group.shift = "0900-1800";
+
         const dateVal = group.date;
         const nameVal = group.name;
         const inVal = group.in;
@@ -250,25 +280,35 @@ function calculateAnomalies(combinedData, config) {
         let inAnom = false;
         let outAnom = false;
 
-        // [수정] 출근/출입 체크 강화
         if (!isAMHalf) {
             if (!inVal) {
                 inAnom = true;
-                if (outVal) reasons.push("출근/출입 기록 없음 (퇴근만 존재)");
-                else reasons.push("출근/출입 기록 없음");
+                reasons.push("출근/출입 기록 없음");
             } else {
                 if (inVal > expIn && inVal.includes(':')) {
                     reasons.push(`지각 (${expIn})`);
                     inAnom = true;
                 }
 
-                // [추가] 출근 시간보다 먼저 찍힌 퇴근 기록이 있는지 체크 (새벽 퇴근 등)
+                // [추가] 출근 시간보다 먼저 찍힌 퇴근 기록이 있는지 체크 (오전 반차일 때 새벽/오전 기록 무시)
                 if (group.minOut && group.minOut < inVal) {
-                    reasons.push(`출근 시간 전 퇴근 기록 존재 (${group.minOut})`);
-                    inAnom = true;
+                    if (!(isAMHalf && group.minOut < '13:00')) {
+                        reasons.push(`출근 시간 전 퇴근 기록 존재 (${group.minOut})`);
+                        inAnom = true;
+                    }
                 }
             }
+        } else {
+            // 오전 반차일 때 (출근/출입 기록이 전혀 없다면 이상이 아님, 하지만 오후 퇴근만 찍혔을 수도 있음)
+            if (inVal && inVal > '14:00') {
+                // 지각 기준 재량껏 (오후 1시나 2시 기준 지각인지) 일단 생략
+            }
+            if (group.minOut && group.minOut < inVal && group.minOut > '12:00') {
+                reasons.push(`출근 시간 전 퇴근 기록 존재 (${group.minOut})`);
+                inAnom = true;
+            }
         }
+
         // 오후반차가 아닐 때
         if (!isPMHalf) {
             if (!outVal) {
@@ -278,20 +318,25 @@ function calculateAnomalies(combinedData, config) {
                 reasons.push(`조기 퇴근 (${expOut})`);
                 outAnom = true;
             }
+        } else {
+            // 오후 반차일 때 지각 체크? 출근은 이미 위에서 체크됨. 퇴근은 안 찍혀도 됨.
         }
 
         // [추가] 기록 순환 오류 체크 (출근 > 퇴근)
         if (inVal && outVal && inVal !== "반차" && outVal !== "반차") {
             if (inVal > outVal) {
-                reasons.push("기록 순서 오류 (출근 > 퇴근)");
-                inAnom = true;
-                outAnom = true;
+                // 오전 반차이면서 inVal이 오후고 outVal이 퇴근 기록이 아니라 점심시간 출입 기록일 경우 등 예외 처리
+                if (!(isAMHalf && outVal < '14:00')) {
+                    reasons.push("기록 순서 오류 (출근 > 퇴근)");
+                    inAnom = true;
+                    outAnom = true;
+                }
             }
         }
 
         if (isAMHalf || isPMHalf) {
-            if (!inVal && !outVal) {
-                reasons = ["반차 - 출퇴근 기록 없음"];
+            if (!inVal && !outVal && !group.minOut) {
+                reasons = ["결근"];
                 inAnom = true;
                 outAnom = true;
             }
