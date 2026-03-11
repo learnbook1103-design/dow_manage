@@ -1273,7 +1273,7 @@ Print Styles (@media print)
                 </datalist>
 
                 <div class="verify-table-container"
-                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #f9fafb; position: relative;">
+                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #f9fafb; position: relative;">
                     <table class="verify-table">
                         <thead>
                             <tr>
@@ -1934,27 +1934,25 @@ Print Styles (@media print)
                 names.forEach(name => {
                     const userRecs = recordsMap[name] || {};
                     uniqueDates.forEach(date => {
-                        const rec = userRecs[date];
-                        if (rec) {
-                            const corrKey = `${name}_${date}`;
-                            const corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
-                            toUpsert.push({
-                                manager_key: corrKey,
-                                name: name,
-                                date: date,
-                                shift: rec.shiftStart,
-                                in_time: rec.inTime,
-                                out_time: rec.outTime,
-                                status_in: !!corrData.in,
-                                status_out: !!corrData.out,
-                                status_leave: !!corrData.leave,
-                                manager_reason: manualReasons[corrKey] || "",
-                                employee_explanation: employeeExplanations[corrKey] || "",
-                                reason: rec.reason || "", // [추가] 휴가 사유 클라우드 저장
-                                early_punch_mode: manualEarlyPunches[corrKey] || "",
-                                is_anomalous: !!(unconfirmedAnomaliesMap[corrKey] && (unconfirmedAnomaliesMap[corrKey].in || unconfirmedAnomaliesMap[corrKey].out))
-                            });
-                        }
+                        const rec = userRecs[date] || {}; // Ensure rec is an object even if no record for date
+                        const corrKey = `${name}_${date}`;
+                        const corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
+                        toUpsert.push({
+                            manager_key: corrKey,
+                            name: name,
+                            date: date,
+                            shift: rec.shiftStart || null, // Use null if undefined
+                            in_time: rec.inTime || null,
+                            out_time: rec.outTime || null,
+                            status_in: !!corrData.in,
+                            status_out: !!corrData.out,
+                            status_leave: !!corrData.leave,
+                            manager_reason: manualReasons[corrKey] || "",
+                            employee_explanation: employeeExplanations[corrKey] || "",
+                            reason: rec.reason || "", // [추가] 휴가 사유 클라우드 저장
+                            early_punch_mode: manualEarlyPunches[corrKey] || "",
+                            is_anomalous: !!(unconfirmedAnomaliesMap[corrKey] && (unconfirmedAnomaliesMap[corrKey].in || unconfirmedAnomaliesMap[corrKey].out))
+                        });
                     });
                 });
                 if (toUpsert.length === 0) { alert("저장할 활동 데이터가 없습니다."); return; }
@@ -3281,7 +3279,6 @@ Print Styles (@media print)
                                         <input type="text" class="manual-reason-input" 
                                             value="${manualReasons[corrKey] || ''}" 
                                             placeholder="사유 입력..."
-                                            list="manual-reason-list"
                                             style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem;"
                                             data-key="${corrKey}">
                                     </td>

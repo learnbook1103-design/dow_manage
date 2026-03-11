@@ -305,7 +305,7 @@
                         .from('attendance_anomalies')
                         .select('*')
                         .eq('name', name)
-                        .order('date', { ascending: false });
+                        .order('date', { ascending: true });
 
                     if (error) throw error;
 
@@ -353,7 +353,7 @@
                                     customOptions.push('정상출근', '지각', '외근');
                                 }
                                 if (r.includes('퇴근 기록 없음') || r.includes('조기퇴근')) {
-                                    customOptions.push('정상퇴근', '조기퇴근', '외근');
+                                    customOptions.push('정상퇴근', '조기퇴근', '외근', '생일자 반차');
                                 }
 
                                 customOptions = [...new Set(customOptions)];
