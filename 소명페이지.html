@@ -435,7 +435,7 @@
                 try {
                     const { error } = await supabase
                         .from('attendance_anomalies')
-                        .update({ explanation: explanation, status: 'submitted' })
+                        .update({ explanation: finalExplanation, status: 'submitted' })
                         .eq('id', id);
 
                     if (error) throw error;
