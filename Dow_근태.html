@@ -412,7 +412,8 @@
             font-size: 0.9rem;
             outline: none;
             background-color: white;
-            flex: none; /* [변경] 고정 너비 사용을 위해 flex: 1 제거 */
+            flex: none;
+            /* [변경] 고정 너비 사용을 위해 flex: 1 제거 */
         }
 
         .employee-row input:focus,
@@ -658,7 +659,8 @@ Report Layout / Matrix View Layout
         }
 
         .not-employed {
-            background-color: #94a3b8 !important; /* 슬레이트 회색 */
+            background-color: #94a3b8 !important;
+            /* 슬레이트 회색 */
             color: transparent !important;
         }
 
@@ -1605,10 +1607,10 @@ Print Styles (@media print)
             // 사원 관리 UI 렌더링 (드래그 기능 포함)
             function renderEmployeeManager() {
                 if (!employeeListContainer) return;
-                
+
                 // 정렬 수행
                 sortEmployees(tempEmployeeConfigList);
-                
+
                 employeeListContainer.innerHTML = '';
 
                 tempEmployeeConfigList.forEach((emp, index) => {
@@ -2300,7 +2302,7 @@ Print Styles (@media print)
                 findAndMap('출근', [h => h === '출근', h => h === '출', h => h.includes('출근') && (h.includes('시간') || h.includes('시각')), h => h.includes('출입')]);
                 findAndMap('퇴근', [h => h === '퇴근', h => h === '퇴', h => h.includes('퇴근') && (h.includes('시간') || h.includes('시각'))]);
                 findAndMap('근무조', [h => h === '근무조', h => h.includes('근무조'), h => h === '조']);
-                
+
                 // [수정] 비고(사유) 컬럼은 여러 곳(부재, 예외 등)에서 특정 키워드만 추출
                 const reasonHeaders = headers.filter(h => ['비고', '부재', '예외', '사유'].some(k => h.includes(k)));
 
@@ -2868,7 +2870,7 @@ Print Styles (@media print)
                     filteredNames.forEach(name => {
                         const recs = recordsMap[name] || {};
                         const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
-                        
+
                         tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
@@ -2937,7 +2939,7 @@ Print Styles (@media print)
                                 while (r_idx + span < datesChunk.length) {
                                     const nextDt = datesChunk[r_idx + span];
                                     const nextIsOutRange = (empInfo.joinDate && nextDt < empInfo.joinDate) || (empInfo.leaveDate && nextDt > empInfo.leaveDate);
-                                    
+
                                     if (nextIsOutRange) break; // 다음 칸이 재직 기간 외면 병합 중단
 
                                     if (currentReason !== '') {
@@ -3163,34 +3165,63 @@ Print Styles (@media print)
                         attendanceFilesMap.forEach(data => combinedData.push(...data));
                         const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
 
-                        let successCount = 0;
-                        let missingEmailCount = 0;
-
+                        // [추가] 사원별로 데이터 그룹화
+                        const emailGroups = {};
                         selectedAnomalyKeys.forEach(key => {
                             const [name, date] = key.split('_');
                             const anomaly = anomalies.find(a => a.name === name && (a.originalDate || a.date) === date);
                             const empInfo = employeeConfigList.find(e => e.name === name);
 
-                            if (anomaly && empInfo) {
-                                if (empInfo.email) {
-                                    const subject = encodeURIComponent(`[소명 요청] ${date} 근태 이상 내역 안내`);
-
-                                    // Github Pages 경로 등 실제 소명 페이지 주소로 변경해주세요. (한글 주소의 하이퍼링크 끊김 현상때문에 영문 파일명으로 변경)
-                                    const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
-
-                                    const bodyText = `안녕하세요 ${name}님,\n\n아래 날짜의 근태 기록에 이상 사유가 발생하여 소명이 필요합니다.\n사유를 확인하시고 아래 소명 페이지 링크에 접속하여 부서/이름과 날짜를 입력 후 답변 부탁드립니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n- 발생 일자: ${date}\n- 이상 사유: ${anomaly.reason}\n\n감사합니다.`;
-                                    const body = encodeURIComponent(bodyText);
-
-                                    // 여러 명일 경우 새 창/탭으로 mailto 실행 (팝업 차단될 수 있으니 안내 필요 주의)
-                                    window.open(`mailto:${empInfo.email}?subject=${subject}&body=${body}`, '_blank');
-                                    successCount++;
-                                } else {
-                                    missingEmailCount++;
+                            if (anomaly && empInfo && empInfo.email) {
+                                if (!emailGroups[name]) {
+                                    emailGroups[name] = {
+                                        email: empInfo.email,
+                                        items: []
+                                    };
                                 }
+                                emailGroups[name].items.push({ date, reason: anomaly.reason });
                             }
                         });
 
-                        alert(`총 ${successCount}건의 메일 발송 창을 열었습니다.\n이메일 정보가 없는 사원: ${missingEmailCount}명`);
+                        const groupedNames = Object.keys(emailGroups);
+                        if (groupedNames.length === 0) {
+                            alert('선택한 항목 중 이메일 정보가 등록된 사원이 없습니다.');
+                            return;
+                        }
+
+                        // [추가] 순차 발송 처리기
+                        let currentIndex = 0;
+                        const sendNext = () => {
+                            if (currentIndex >= groupedNames.length) {
+                                alert('모든 메일 발송 대기열이 처리되었습니다.');
+                                return;
+                            }
+
+                            const name = groupedNames[currentIndex];
+                            const group = emailGroups[name];
+                            const subject = encodeURIComponent(`[근태 소명 요청] ${name}님, 근태 이상 내역 안내`);
+                            
+                            const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
+                            
+                            let itemsText = group.items.map(item => `- ${item.date}: ${item.reason}`).join('\n');
+                            const bodyText = `안녕하세요 ${name}님,\n\n아래 날짜들의 근태 기록에 이상 사유가 발생하여 소명이 필요합니다.\n내역을 확인하시고 아래 소명 페이지 링크에 접속하여 답변 부탁드립니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n[이상 내역 리스트]\n${itemsText}\n\n감사합니다.`;
+                            const body = encodeURIComponent(bodyText);
+
+                            window.open(`mailto:${group.email}?subject=${subject}&body=${body}`, '_blank');
+                            currentIndex++;
+
+                            if (currentIndex < groupedNames.length) {
+                                if (confirm(`${name}님 메일 창을 열었습니다.\n\n다음 발송 대상: ${groupedNames[currentIndex]} (${groupedNames.length - currentIndex}명 남음)\n확인을 누르면 다음 메일을 엽니다.`)) {
+                                    sendNext();
+                                }
+                            } else {
+                                alert('전체 발송이 완료되었습니다.');
+                            }
+                        };
+
+                        if (confirm(`총 ${groupedNames.length}명의 사원에게 소명 요청 메일을 보냅니다. (동일 사원은 합산됨)\n발송을 시작하시겠습니까?`)) {
+                            sendNext();
+                        }
                     };
                 }
 
@@ -3237,7 +3268,7 @@ Print Styles (@media print)
                 if (resetAllDataBtn) {
                     resetAllDataBtn.onclick = () => {
                         if (!confirm('주의: 모든 수동 확인 내역, 사유, 직원 소명 답변 및 전송 상태 기록이 삭제됩니다. 정말 초기화하시겠습니까?')) return;
-                        
+
                         manualCorrections = {};
                         manualReasons = {};
                         employeeExplanations = {};
