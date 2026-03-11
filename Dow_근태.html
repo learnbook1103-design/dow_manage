@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
@@ -3188,11 +3188,19 @@ Print Styles (@media print)
                 });
             }
 
+            // [모달 열고 닫기 관련 이벤트]
+            window.addEventListener('click', (e) => {
+                // 모달의 반투명 배경부분(모달 컨테이너 자체)을 클릭했을 때만 닫기
+                if (e.target === verifyModal) verifyModal.classList.add('hidden');
+                if (e.target === employeeModal) employeeModal.classList.add('hidden');
+                if (e.target === holidayModal) holidayModal.classList.add('hidden');
+            });
+
             // 공통 이벤트
             reportDateInput.addEventListener('change', (e) => {
                 document.querySelectorAll('.current-report-date-display').forEach(el => el.textContent = e.target.value);
             });
-            // [모달 열고 닫기 관련 이벤트]
+
             if (openManagerBtn) {
                 openManagerBtn.addEventListener('click', () => {
                     tempEmployeeConfigList = JSON.parse(JSON.stringify(employeeConfigList)); // 딥카피로 초기 상태 복원
