@@ -4,93 +4,1153 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Dow ê·¼íƒœ ë³´ê³ ì„œ</title>
+    <title> Dow ê·¼íƒœ ë³´ê³ ??/title>
     <!-- Use a modern Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <!-- Include SheetJS (xlsx) from CDN for in-browser Excel parsing -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Shared Logic Module -->
     <script src="shared_logic.js"></script>
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg-color: #F3F4F6;
+            --surface: #FFFFFF;
+            --text-main: #111827;
+            --text-muted: #6B7280;
+            --border-color: #E5E7EB;
+            --border-dark: #374151;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            padding: 2rem;
+        }
+
+        /* UI Container (Non-Printable) */
+        #ui-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--surface);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.025em;
+        }
+
+        header p {
+            color: var(--text-muted);
+        }
+
+        /* Drag and Drop Zone */
+        .drop-zone-container {
+            display: flex;
+            gap: 1.5rem;
+            /* ê°„ê²© ?´ì§ ?“í˜ */
+            margin-bottom: 1.5rem;
+            align-items: stretch;
+            /* [ì¶”ê?] ??ì¹´ë“œ???’ì´ë¥??‘ê°™??ë§ì¶¤ */
+        }
+
+        /* [ì¶”ê?] ?…ë¡œ??ì¹´ë“œ ?ì²´ë¥?flex ì»¨í…Œ?´ë„ˆë¡?ë§Œë“¤???´ë? ?”ì†Œ ?•ì¥ */
+        .upload-card {
+            flex: 1;
+            /* [ì¶”ê?] ??ì¹´ë“œê°€ ?™ì¼???ˆë¹„ë¥?ê°€ì§?*/
+            display: flex;
+            flex-direction: column;
+        }
+
+        .drop-zone {
+            border: 2px dashed var(--primary);
+            border-radius: 12px;
+            padding: 1.75rem 1rem;
+            text-align: center;
+            background: #EEF2FF;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            flex: 1;
+            /* [? ì?] ì¹´ë“œ ?´ì—???¨ì? ?’ì´ë¥?ëª¨ë‘ ì°¨ì???*/
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            background: #E0E7FF;
+            transform: scale(1.02);
+        }
+
+        .drop-zone.loaded {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .drop-zone-content svg {
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .drop-zone.loaded .drop-zone-content svg {
+            color: #10b981;
+        }
+
+        .drop-zone-content p {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .file-status {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #10b981;
+            min-height: 1.2em;
+        }
+
+        .drop-zone-content strong {
+            color: var(--primary);
+        }
+
+        /* Controls Container */
+        .controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            white-space: nowrap;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .middle-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        input[type="date"] {
+            font-family: inherit;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="date"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .primary-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: var(--primary);
+            color: white;
+            font-family: inherit;
+            font-weight: 600;
+            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+
+        .primary-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .year-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .fetch-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            background-color: #f0f4ff;
+            color: #4f46e5;
+            border: 1px solid #4f46e5;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .fetch-btn:hover {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .loader {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #4f46e5;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        .fetch-btn:hover .loader {
+            border-color: white;
+            border-bottom-color: transparent;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .modal-divider {
+            margin: 20px 0 10px;
+            font-size: 13px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-divider::before,
+        .modal-divider::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background-color: #eee;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 0;
+            /* [ë³€ê²? ?´ìš©???˜ëˆ„ê¸??„í•´ ?¨ë”© ?œê±° */
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+            /* [ì¶”ê?] ?¤ë” ë°°ê²½?‰ì´ ?¥ê·¼ ëª¨ì„œë¦¬ë? ?˜ì? ?Šë„ë¡?*/
+        }
+
+        /* [ì¶”ê?] ?¬ì› ëª…ë‹¨ ëª¨ë‹¬?€ ???¬ê²Œ */
+        #employee-modal .modal-content {
+            max-width: 1200px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f1f5f9;
+            /* [ì¶”ê?] ?¤ë” ë°°ê²½?‰ìœ¼ë¡??œë˜ê·??ì—­ ê°•ì¡° */
+            padding: 1rem 1.5rem;
+            /* [ì¶”ê?] ?¤ë” ?´ë? ?¨ë”© */
+            border-bottom: 1px solid #e2e8f0;
+            /* [ì¶”ê?] êµ¬ë¶„??*/
+            margin-bottom: 0;
+            cursor: grab;
+            /* [ì¶”ê?] ?œë˜ê·?ê°€???¸ë“¤ ?œì‹œ */
+        }
+
+        .modal-header:active {
+            cursor: grabbing;
+            background-color: #e2e8f0;
+        }
+
+        .modal-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+
+        .close-btn:hover {
+            color: var(--text-main);
+        }
+
+        /* [ì¶”ê?] ëª¨ë‹¬ ?´ë? ë³¸ë¬¸ ?¨ë”© ì²˜ë¦¬ */
+        .employee-manager-section,
+        .holiday-manager-section,
+        #verify-modal .modal-content>div:not(.modal-header) {
+            padding: 1.5rem;
+        }
+
+        /* Employee Manager UI Styles */
+        .employee-manager-section label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .employee-list-container {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 0.5rem;
+            max-height: 350px;
+            overflow-y: auto;
+            background: #f9fafb;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .employee-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            background-color: white;
+            padding: 4px;
+            border-radius: 6px;
+            cursor: grab;
+            transition: background-color 0.2s, border 0.2s;
+            border: 1px solid transparent;
+            /* ?„ì¹˜ ë³´ì •??*/
+        }
+
+        /* [ì¶”ê?] ?œë˜ê·?ì¤‘ì¸ ???¨ê³¼ */
+        .employee-row.dragging {
+            opacity: 0.5;
+            background-color: #e0e7ff;
+            border: 1px dashed var(--primary);
+        }
+
+        /* [ì¶”ê?] ?œë˜ê·???ë§ˆìš°?¤ê? ?„ì¹˜??ê³³ì— ì§€?œì„  ?œì‹œ */
+        .employee-row.dragover {
+            border-top: 3px solid var(--primary) !important;
+            background-color: #f0f4ff;
+        }
+
+        .employee-row input,
+        .employee-row select {
+            font-family: inherit;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            outline: none;
+            background-color: white;
+            flex: none;
+            /* [ë³€ê²? ê³ ì • ?ˆë¹„ ?¬ìš©???„í•´ flex: 1 ?œê±° */
+        }
+
+        .employee-row input:focus,
+        .employee-row select:focus {
+            border-color: var(--primary);
+        }
+
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0 0.25rem;
+            transition: color 0.2s;
+        }
+
+        .remove-btn:hover {
+            color: #b91c1c;
+        }
+
+        .secondary-btn {
+            background: white;
+            border: 1px solid var(--border-dark);
+            color: var(--text-main);
+            padding: 0.3rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .secondary-btn:hover {
+            background: #f3f4f6;
+        }
+
+        #verify-data-btn:hover {
+            background: #ffedd5 !important;
+        }
+
+        /* Verification Table styles */
+        .verify-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .verify-table th,
+        .verify-table td {
+            padding: 0.5rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .verify-table th {
+            background-color: #f9fafb;
+            border-bottom: 2px solid var(--border-color);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* -------------------------------------------
+Report Layout / Matrix View Layout
+------------------------------------------- */
+
+        #report-container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .report-page {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 10mm;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 0px;
+            margin: 0 auto 3rem auto;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+
+        .report-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .report-header h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding-top: 0.5rem;
+        }
+
+        .header-rightside {
+            display: flex;
+            align-items: flex-end;
+            gap: 2rem;
+        }
+
+        .approval-table {
+            border-collapse: collapse;
+            width: 200px;
+            table-layout: fixed;
+        }
+
+        .approval-table th,
+        .approval-table td {
+            border: 1px solid var(--border-dark);
+            text-align: center;
+            font-size: 0.60rem;
+        }
+
+        .approval-table th {
+            background-color: #f9fafb;
+            padding: 0.25rem 0;
+            font-weight: 500;
+        }
+
+        .approval-table .sign-space {
+            height: 35px;
+        }
+
+        .approval-table .sign-bottom {
+            height: 15px;
+        }
+
+        .report-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.3rem;
+            font-size: 0.45rem;
+            font-weight: 400;
+        }
+
+        .meta-item {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        /* Matrix Table Specifics */
+        .matrix-table {
+            width: auto;
+            border-collapse: collapse;
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            border: 1px solid var(--border-dark);
+            text-align: center;
+            padding: 1px !important;
+            font-size: 0.65rem;
+            line-height: 1.1;
+            white-space: nowrap;
+            width: 52px;
+            min-width: 52px;
+            max-width: 52px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .matrix-table thead th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+
+        .th-dategroup {
+            font-size: 0.65rem;
+            padding: 2px 0 !important;
+            line-height: 1.1;
+            width: 52px;
+            min-width: 52px;
+            max-width: 52px;
+        }
+
+        .time-cell {
+            width: 52px;
+            min-width: 52px;
+            max-width: 52px;
+            font-family: inherit;
+            font-size: 0.65rem;
+        }
+
+        /* Sticky Columns */
+        .sticky-col {
+            position: sticky;
+            background-color: #fff;
+            z-index: 10;
+        }
+
+        .td-name {
+            left: 0;
+            width: 40px;
+            font-weight: 600;
+            font-size: 0.65rem;
+            background-color: #f9fafb !important;
+            border-right: 1px solid var(--border-dark);
+        }
+
+        .td-label {
+            left: 40px;
+            width: 30px;
+            font-size: 0.55rem;
+            font-weight: bold;
+            /* [?˜ì •] ë³¼ë“œì²??ìš© */
+            border-right: 2px solid var(--border-dark);
+        }
+
+        .label-in,
+        .label-out {
+            background-color: #4b5563 !important;
+            /* [?˜ì •] ì§™ì? ?Œìƒ‰ */
+            color: white !important;
+            /* ?€ë¹„ë? ?„í•´ ?°ìƒ‰ ê¸€??*/
+        }
+
+        .label-reason {
+            background-color: #e5e7eb !important;
+            /* [?˜ì •] ?…ì? ?Œìƒ‰ */
+            color: #374151 !important;
+        }
+
+        /* [ì¶”ê?] ?´ê? ê°€?œì„± ?•ë³´ë¥??„í•œ ë°°ê²½??*/
+        .leave-annual {
+            background-color: #4ade80 !important;
+            /* ì´ˆë¡??*/
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+
+        .leave-half {
+            background-color: #fb923c !important;
+            /* ì£¼í™©??*/
+            color: #ffffff !important;
+            font-weight: bold;
+        }
+
+        .not-employed {
+            background-color: #94a3b8 !important;
+            /* ?¬ë ˆ?´íŠ¸ ?Œìƒ‰ */
+            color: transparent !important;
+        }
+
+        .corner-cell {
+            z-index: 20;
+            left: 0;
+            min-width: 70px;
+            border-right: 2px solid var(--border-dark);
+        }
+
+        /* --- ?Œë‘ë¦??œê±° ë°?êµ¬ë¶„???µì‹¬ ë¡œì§ --- */
+
+        .verify-action-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 0;
+        }
+
+        .confirmation-btn,
+        .shift-date-btn {
+            width: 90px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            background: white;
+        }
+
+        .confirmation-btn {
+            color: var(--text-muted);
+        }
+
+        .confirmation-btn.confirmed {
+            background-color: #f0fdf4;
+            border-color: #10b981;
+            color: #000;
+            font-weight: 600;
+        }
+
+        .shift-date-btn {
+            border: 1px solid #fcd34d;
+            background-color: #fff9db;
+            color: #92400e;
+        }
+
+        .shift-date-btn:hover {
+            background-color: #fefce8;
+        }
+
+        .shift-date-btn.active {
+            background-color: #fca5a5;
+            border-color: #ef4444;
+            color: #991b1b;
+            font-weight: bold;
+        }
+
+        /* 1. ì¶œê·¼?‰ê³¼ ?´ê·¼?‰ì˜ ?˜ë‹¨ ?Œë‘ë¦¬ë? ?œê±° (internal-row) */
+        .matrix-table tbody tr.internal-row td {
+            border-bottom: none !important;
+        }
+
+        .matrix-table tbody tr.internal-row+tr td {
+            border-top: none !important;
+        }
+
+        /* 2. ?´ë¦„ ì¹?td-name)?€ 3??ë³‘í•©?´ë?ë¡??˜ë‹¨ ?Œë‘ë¦¬ê? ?ˆì–´???¤ìŒ ?¬ëŒê³?êµ¬ë¶„??*/
+        .matrix-table td.td-name {
+            border-bottom: 1px solid var(--border-dark) !important;
+        }
+
+        /* 3. ?¬ìœ ???˜ë‹¨??êµµì? êµ¬ë¶„??ì¶”ê? (ì§ì› ?¨ìœ„ êµ¬ë¶„) */
+        .employee-border-bottom td {
+            border-bottom: 1px solid var(--border-dark) !important;
+        }
+
+        /* -------------------------------------------
+Holiday Modal Styles
+------------------------------------------- */
+        .year-select {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .fetch-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex: 1;
+            background-color: #f0f4ff;
+            color: #4f46e5;
+            border: 1px solid #4f46e5;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .fetch-btn:hover {
+            background-color: #4f46e5;
+            color: white;
+        }
+
+        .loader {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #4f46e5;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+
+        .fetch-btn:hover .loader {
+            border-color: white;
+            border-bottom-color: transparent;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .confirmed-cell {
+            color: #000 !important;
+            background-color: #ecfdf5 !important;
+        }
+
+        .anomaly-highlight {
+            background-color: #fca5a5 !important;
+            /* darker red */
+        }
+
+        .modal-divider {
+            margin: 20px 0 10px;
+            font-size: 13px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .modal-divider span {
+            background-color: white;
+            padding: 0 10px;
+        }
+
+        .holiday-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: white;
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 6px;
+        }
+
+        .holiday-item>div {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .holiday-date {
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .holiday-name {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .remove-holiday-btn {
+            background: none;
+            border: none;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0 0.25rem;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+
+        .remove-holiday-btn:hover {
+            color: #b91c1c;
+        }
+
+        /* -------------------------------------------
+Print Styles (@media print)
+------------------------------------------- */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+
+            body {
+                background-color: white;
+                padding: 0;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            #report-container {
+                max-width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+
+            .report-page {
+                width: 100%;
+                min-height: 100%;
+                padding: 10mm;
+                margin: 0;
+                box-shadow: none;
+                border-radius: 0;
+                page-break-after: always;
+                overflow: visible;
+            }
+
+            .report-page:last-child {
+                page-break-after: auto;
+            }
+
+            /* ?¸ì‡„ ???Œë‘ë¦?ê°•ì œ ?¤ì • */
+            .matrix-table {
+                border-bottom: 1px solid #333 !important;
+            }
+
+            .approval-table th,
+            .approval-table td,
+            .matrix-table th,
+            .matrix-table td {
+                border: 1px solid #333 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* ?¸ì‡„ ?œì—??ì¶œê·¼/?´ê·¼???¬ì´ ?Œë‘ë¦??œê±° ? ì? */
+            .matrix-table tbody tr.internal-row td {
+                border-bottom: none !important;
+            }
+
+            .matrix-table tbody tr.internal-row+tr td {
+                border-top: none !important;
+            }
+
+            /* ?¸ì‡„ ???´ë¦„ ì¹??˜ë‹¨ ?Œë‘ë¦?? ì? */
+            .matrix-table td.td-name {
+                border-bottom: 1px solid #333 !important;
+            }
+
+            .matrix-table th,
+            .td-name,
+            .approval-table th {
+                background-color: #f3f4f6 !important;
+            }
+        }
+
+        .shift-date-btn,
+        .force-in-btn {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .shift-date-btn:hover,
+        .force-in-btn:hover {
+            background-color: #e5e7eb;
+        }
+
+        .shift-date-btn.active,
+        .force-in-btn.active {
+            background-color: #374151;
+            color: white;
+            border-color: #374151;
+        }
+
+
+
+        /* [ìµœì¢…?˜ì •] ?°ì´??ê²€ì¦?ë°??¬ì› ëª…ë‹¨ ëª¨ë‹¬ ?“ì? ê³ ì • ?¬ê¸° ? ì? */
+        #verify-modal .modal-content,
+        #employee-modal .modal-content {
+            width: 1200px !important;
+            max-width: 95vw !important;
+            height: 80vh !important;
+            max-height: 90vh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important;
+        }
+
+        #verify-modal .modal-content>div:not(.modal-header),
+        #employee-modal .modal-content>div:not(.modal-header) {
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 1.5rem !important;
+            height: calc(100% - 60px) !important;
+            overflow: hidden !important;
+        }
+
+        #employee-modal .employee-manager-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #employee-modal .employee-list-container {
+            max-height: none !important;
+            flex: 1;
+            overflow-y: auto !important;
+        }
+
+        #verify-modal .verify-table-container {
+            max-height: none !important;
+            height: 100% !important;
+            flex: 1;
+            overflow-y: auto !important;
+            overflow-x: auto !important;
+        }
+
+        /* ???´ë? ê¸€?ë“¤???ˆë¬´ ì¢ì•„ ì°Œê·¸?¬ì?ì§€ ?Šë„ë¡??¼íŠ¼?˜ê²Œ ë³´í˜¸ */
+        .verify-table {
+            width: 100%;
+            table-layout: auto;
+            min-width: 1000px;
+        }
+
+        .verify-table th,
+        .verify-table td {
+            padding: 10px 8px;
+            word-break: keep-all;
+        }
+
+        .verify-table th:nth-child(4),
+        .verify-table td:nth-child(4) {
+            min-width: 110px;
+        }
+
+        .verify-table td.anomaly-reason {
+            min-width: 250px;
+            word-break: keep-all;
+        }
+
+        .verify-table td .manual-reason-input {
+            min-width: 200px;
+            width: 100%;
+        }
+    </style>
+    <!-- Include SheetJS (xlsx) from CDN for in-browser Excel parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body>
     <div id="ui-container" class="no-print">
         <header>
-            <h1>DOW ê·¼íƒœ ë³´ê³ ì„œ</h1>
-            <p>ì¶œí‡´ê·¼ ì—‘ì…€ ë°ì´í„°ë¥¼ ì˜¬ë ¤ í”„ë¦¬ë¯¸ì—„ ë§¤íŠ¸ë¦­ìŠ¤ ë³´ê³ ì„œë¥¼ ë§Œë“¤ì–´ ë³´ì„¸ìš”.</p>
+            <h1>DOW ê·¼íƒœ ë³´ê³ ??/h1>
+            <p>ì¶œí‡´ê·??‘ì? ?°ì´?°ë? ?¬ë ¤ ?„ë¦¬ë¯¸ì—„ ë§¤íŠ¸ë¦?Š¤ ë³´ê³ ?œë? ë§Œë“¤??ë³´ì„¸??</p>
         </header>
 
         <main>
             <div class="drop-zone-container">
-                <!-- ì¶œí‡´ê·¼ ê¸°ë¡ í†µí•© ì—…ë¡œë“œ -->
+                <!-- ì¶œí‡´ê·?ê¸°ë¡ ?µí•© ?…ë¡œ??-->
                 <div class="upload-card">
                     <div class="card-header">
                         <div class="step-badge">1</div>
-                        <div class="step-title">ì¶œí‡´ê·¼ ê¸°ë¡ (ì—¬ëŸ¬ ê°œ ê°€ëŠ¥)</div>
+                        <div class="step-title">ì¶œí‡´ê·?ê¸°ë¡ (?¬ëŸ¬ ê°?ê°€??</div>
                     </div>
                     <div id="drop-zone-attendance" class="drop-zone">
-                        <div class="drop-text">ì¶œí‡´ê·¼ ì—‘ì…€ íŒŒì¼ë“¤ì„ ë“œë˜ê·¸í•˜ê±°ë‚˜ í´ë¦­í•˜ì—¬ ì—…ë¡œë“œ</div>
-                        <div class="drop-subtext">ì—¬ëŸ¬ íŒŒì¼ì„ í•œ ë²ˆì— ì˜¬ë¦´ ìˆ˜ ìˆìŠµë‹ˆë‹¤</div>
+                        <div class="drop-text">ì¶œí‡´ê·??‘ì? ?Œì¼?¤ì„ ?œë˜ê·¸í•˜ê±°ë‚˜ ?´ë¦­?˜ì—¬ ?…ë¡œ??/div>
+                        <div class="drop-subtext">?¬ëŸ¬ ?Œì¼????ë²ˆì— ?¬ë¦´ ???ˆìŠµ?ˆë‹¤</div>
                         <input type="file" id="file-input-attendance" accept=".xlsx, .xls, .csv" multiple hidden>
                     </div>
                     <div id="file-list-attendance" class="file-list">
-                        <!-- ì—…ë¡œë“œëœ íŒŒì¼ ëª©ë¡ í‘œì‹œ -->
+                        <!-- ?…ë¡œ?œëœ ?Œì¼ ëª©ë¡ ?œì‹œ -->
                     </div>
                 </div>
 
-                <!-- íœ´ê°€/ì—°ì°¨ ë‚´ì—­ ì—…ë¡œë“œ -->
+                <!-- ?´ê?/?°ì°¨ ?´ì—­ ?…ë¡œ??-->
                 <div class="upload-card">
                     <div class="card-header">
                         <div class="step-badge">2</div>
-                        <div class="step-title">íœ´ê°€/ì—°ì°¨ ë‚´ì—­</div>
+                        <div class="step-title">?´ê?/?°ì°¨ ?´ì—­</div>
                     </div>
                     <div id="drop-zone-leave" class="drop-zone">
-                        <div class="drop-text">íœ´ê°€ ì‚¬ìš© ë‚´ì—­ ì—‘ì…€ ì—…ë¡œë“œ</div>
-                        <input type="file" id="file-input-leave" accept=".xlsx, .xls, .csv" hidden>
+                        <div class="drop-text">?´ê? ?¬ìš© ?´ì—­ ?‘ì? ?…ë¡œ??/div>
+                        <div class="drop-subtext">?¬ëŸ¬ ?Œì¼????ë²ˆì— ?¬ë¦´ ???ˆìŠµ?ˆë‹¤</div>
+                        <input type="file" id="file-input-leave" accept=".xlsx, .xls, .csv" multiple hidden>
+                    </div>
+                    <div id="file-list-leave" class="file-list">
+                        <!-- ?…ë¡œ?œëœ ?Œì¼ ëª©ë¡ ?œì‹œ -->
                     </div>
                 </div>
             </div>
 
             <div class="controls-container no-print">
-                <div class="control-group">
-                    <label for="report-date-input">ë³´ê³ ì¼ì</label>
-                    <input type="date" id="report-date-input">
+                <div class="control-group" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+                    <!-- Quick Select Group -->
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; width: 100%;">
+                        <input type="month" id="quick-month-select"
+                            style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1; min-width: 0;">
+                        <button id="quick-first-half-btn" type="button"
+                            style="padding: 0.45rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;">
+                            ?ë°˜??1~15)
+                        </button>
+                        <button id="quick-second-half-btn" type="button"
+                            style="padding: 0.45rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;">
+                            ?˜ë°˜??16~ë§?
+                        </button>
+                    </div>
+
+                    <!-- Date Inputs Group -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <label for="report-date-input" style="min-width: 60px; font-weight: 500;">ë³´ê³ ?¼ì</label>
+                            <input type="date" id="report-date-input" max="9999-12-31"
+                                style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <label for="report-period-start" style="min-width: 60px; font-weight: 500;">?œì‘?¼ì</label>
+                            <input type="date" id="report-period-start" max="9999-12-31"
+                                style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <label for="report-period-end" style="min-width: 60px; font-weight: 500;">ì¢…ë£Œ?¼ì</label>
+                            <input type="date" id="report-period-end" max="9999-12-31"
+                                style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                        </div>
+                    </div>
                 </div>
                 <div class="middle-controls">
                     <div class="settings-group">
                         <button id="open-manager-btn" class="secondary-btn">
-                            ì‚¬ì› ëª…ë‹¨
+                            ?¬ì› ëª…ë‹¨
                         </button>
                         <button id="open-holiday-btn" class="secondary-btn"
                             style="color: #6366f1; background: #f5f3ff; border-color: #ddd6fe;">
-                            ê³µíœ´ì¼ ì„¤ì •
+                            ê³µíœ´???¤ì •
+                        </button>
+                        <button id="highlight-anomaly-btn" class="secondary-btn"
+                            style="color: #e11d48; background: #fff1f2; border-color: #fecdd3;">
+                            ?´ìƒ ê·¼íƒœ ?œì‹œ
                         </button>
                     </div>
-                    <button id="highlight-anomaly-btn" class="secondary-btn"
-                        style="color: #ef4444; background: #fee2e2; border-color: #fca5a5; display: flex; flex-direction: column; justify-content: center; gap: 4px;">
-                        ì´ìƒ ê·¼íƒœ í‘œì‹œ
-                    </button>
                     <button id="verify-data-btn" class="secondary-btn"
                         style="color: #f97316; background: #fff7ed; border-color: #fed7aa; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
-                        ë°ì´í„° ê²€ì¦
-                    </button>
+                        ?°ì´??ê²€ì¦?                    </button>
                 </div>
-                <div style="display: flex; gap: 0.5rem; width: 100%;">
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     <button id="cloud-sync-all-btn" class="primary-btn"
-                        style="flex: 1; background: #059669; border-color: #059669;">
-                        â˜ï¸ ì „ì²´ ë°ì´í„° í´ë¼ìš°ë“œ ì €ì¥
-                    </button>
+                        style="background-color: #059669; font-size: 0.9rem; padding: 0.5rem 1rem;">
+                        ?„ì²´ ?°ì´???´ë¼?°ë“œ ?€??                    </button>
                     <button id="cloud-fetch-all-btn" class="primary-btn"
-                        style="flex: 1; background: #2563eb; border-color: #2563eb;">
-                        ğŸ“¥ í´ë¼ìš°ë“œ ë°ì´í„° ë¶ˆëŸ¬ì˜¤ê¸°
+                        style="background-color: #0d9488; font-size: 0.9rem; padding: 0.5rem 1rem;">
+                        ?´ë¼?°ë“œ ?°ì´??ë¶ˆëŸ¬?¤ê¸°
                     </button>
+                    <button id="print-btn" class="primary-btn"
+                        style="background-color: #0d5e94; font-size: 0.9rem; padding: 0.5rem 1rem;">
+                        ë³´ê³ ???¸ì‡„ ë°?PDF ?€??                    </button>
                 </div>
-                <button id="print-btn" class="primary-btn">
-                    ë³´ê³ ì„œ ì¸ì‡„ ë° PDF ì €ì¥
-                </button>
             </div>
         </main>
     </div>
@@ -104,21 +1164,46 @@
     <div id="employee-modal" class="modal hidden no-print">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>ì‚¬ì› ëª…ë‹¨ ê´€ë¦¬</h2>
-                <button id="close-modal-btn" class="close-btn">&times;</button>
+                <h2>?¬ì› ëª…ë‹¨ ê´€ë¦?/h2>
+                <div style="display: flex; gap: 8px;">
+                    <button id="fetch-employees-btn" class="secondary-btn"
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
+                        ?ï¸ ?´ë¼?°ë“œ ë¶ˆëŸ¬?¤ê¸°
+                    </button>
+                    <input type="file" id="upload-employee-file" accept=".xlsx,.xls,.csv" style="display: none;">
+                    <button id="upload-employee-btn" class="secondary-btn" type="button"
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #3b82f6; color: #3b82f6; background: #eff6ff;">
+                        ?“ ?‘ì? ?…ë¡œ??                    </button>
+                    <button id="add-employee-btn" class="secondary-btn" type="button"
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f5f3ff;">
+                        + ?¬ì› ì¶”ê?
+                    </button>
+                    <button id="close-modal-btn" class="close-btn" style="margin-left: 8px;">&times;</button>
+                </div>
             </div>
             <div class="employee-manager-section">
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 0.5rem;">
-                    <button id="add-employee-btn" class="secondary-btn" type="button">+ ì‚¬ì› ì¶”ê°€</button>
+                <div style="display: flex; align-items: center; margin-bottom: 0.5rem; padding: 0 13px;">
+                    <div style="font-size: 0.8rem; color: #6b7280; display: flex; gap: 8px; width: 100%;">
+                        <span style="flex: 0 0 120px;">ì¡°ì§</span>
+                        <span style="flex: 0 0 100px;">?¬ì›ëª?/span>
+                        <span style="flex: 0 0 100px;">ì§ê¸‰</span>
+                        <span style="flex: 1 1 150px;">?´ë©”??/span>
+                        <span style="flex: 0 0 130px;">?…ì‚¬??/span>
+                        <span style="flex: 0 0 130px;">?´ì‚¬??/span>
+                        <span style="flex: 0 0 60px; text-align: center;">?€??/span>
+                        <span style="flex: 0 0 40px; text-align: center;"></span>
+                    </div>
                 </div>
-                <div id="employee-list-container" class="employee-list-container">
+                <div id="employee-list-container" class="employee-list-container"
+                    style="display:flex; flex-direction:column; gap:8px;">
                     <!-- Rows injected via JS -->
                 </div>
-                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.5rem; display: block;">ìœ„ ìˆœì„œëŒ€ë¡œ ë³´ê³ ì„œì— ì¶œë ¥ë©ë‹ˆë‹¤
-                    (ì¡°ì§ì€ í™”ë©´ ê´€ë¦¬ìš©ì´ë©° ë³´ê³ ì„œ í‘œì—ëŠ” ì¸ì‡„ë˜ì§€ ì•ŠìŠµë‹ˆë‹¤).</small>
-                <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
-                    <button id="save-employee-btn" class="primary-btn" style="width: 100%; justify-content: center;">ëª…ë‹¨
-                        ì €ì¥ ë° ì ìš©</button>
+                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.5rem; display: block;">???œì„œ?€ë¡?ë³´ê³ ?œì— ì¶œë ¥?©ë‹ˆ??                    (ì¡°ì§, ???´ì‚¬?¼ì? ?”ë©´ ê´€ë¦¬ìš©?´ë©° ë³´ê³ ???œì—???¸ì‡„?˜ì? ?ŠìŠµ?ˆë‹¤).</small>
+                <div style="display: flex; justify-content: center; margin-top: 1.5rem; gap: 1rem;">
+                    <button id="save-employee-btn" class="primary-btn" style="flex: 1; justify-content: center;">ë¡œì»¬
+                        ?ìš©</button>
+                    <button id="sync-employees-btn" class="primary-btn"
+                        style="flex: 1; justify-content: center; background-color: #059669;">?´ë¼?°ë“œ ?€??ë°??ìš©</button>
                 </div>
             </div>
         </div>
@@ -126,45 +1211,80 @@
 
     <!-- Verification Modal -->
     <div id="verify-modal" class="modal hidden no-print">
-        <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-content">
             <div class="modal-header">
-                <h2>ê·¼íƒœ ë°ì´í„° ê²€ì¦ ê²°ê³¼</h2>
+                <h2>ê·¼íƒœ ?°ì´??ê²€ì¦?ê²°ê³¼</h2>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <button id="bulk-confirm-btn" class="secondary-btn"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #f97316; color: #f97316; background: #fff7ed;">
-                        ì„ íƒ í•­ëª© ì¼ê´„ í™•ì¸
+                        ? íƒ ??ª© ?¼ê´„ ?•ì¸
                     </button>
                     <button id="bulk-unconfirm-btn" class="secondary-btn"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #6b7280; color: #6b7280; background: #f3f4f6;">
-                        ì„ íƒ í•­ëª© í™•ì¸ í•´ì œ
+                        ? íƒ ??ª© ?•ì¸ ?´ì œ
                     </button>
                     <div style="width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px;"></div>
-                    <button id="sync-to-cloud-btn" class="secondary-btn" title="ì„ íƒí•œ ë‚´ì—­ì„ ì§ì› ì†Œëª… í˜ì´ì§€ë¡œ ì „ì†¡"
+                    <button id="sync-to-cloud-btn" class="secondary-btn" title="? íƒ???´ì—­??ì§ì› ?Œëª… ?˜ì´ì§€ë¡??„ì†¡"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f0f9ff;">
-                        â˜ï¸ ì†Œëª… ìš”ì²­ ì „ì†¡
+                        ?ï¸ ?Œëª… ?”ì²­ ?„ì†¡
                     </button>
-                    <button id="fetch-from-cloud-btn" class="secondary-btn" title="ì§ì›ì´ ì…ë ¥í•œ ì†Œëª… ë‚´ì—­ ê°€ì ¸ì˜¤ê¸°"
+                    <button id="send-mailto-btn" class="secondary-btn" title="ê¸°ë³¸ ë©”ì¼ ?´ë¼?´ì–¸?¸ë? ?´ì–´ ë°œì†¡?©ë‹ˆ??
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #8b5cf6; color: #8b5cf6; background: #f5f3ff;">
+                        ?“§ ë©”ì¼ ?„ì‹œ ë°œì†¡
+                    </button>
+                    <button id="fetch-from-cloud-btn" class="secondary-btn" title="ì§ì›???…ë ¥???Œëª… ?´ì—­ ê°€?¸ì˜¤ê¸?
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
-                        ğŸ“¥ ì†Œëª… ë‹µë³€ ì½ê¸°
+                        ?“¥ ?Œëª… ?µë? ?½ê¸°
                     </button>
+                    <button id="reset-all-data-btn" class="secondary-btn" title="ëª¨ë“  ?˜ë™ ì¡°ì¹˜ ë°??Œëª… ?´ì—­???? œ?©ë‹ˆ??
+                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: #fef2f2;">
+                        ?—‘ï¸??„ì²´ ì´ˆê¸°??                    </button>
                     <button id="close-verify-btn" class="close-btn">&times;</button>
                 </div>
             </div>
             <div>
-                <p style="font-size: 0.85rem; color: #6b7280; margin-top: -1rem; margin-bottom: 1rem;">ê·¼ë¬´ì¡° ê¸°ì¤€ ì‹œê°„ê³¼ ì‹¤ì œ ì¶œí‡´ê·¼
-                    ì‹œê°„ì„ ë¹„êµí•˜ì—¬ ì§€ê° ë° ì¡°ê¸° í‡´ê·¼ ë‚´ì—­ì„ ë³´ì—¬ì¤ë‹ˆë‹¤.</p>
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; margin-top: -0.5rem;">
+                    <p style="font-size: 0.85rem; color: #6b7280; margin: 0;">ê·¼ë¬´ì¡?ê¸°ì? ?œê°„ê³??¤ì œ ì¶œí‡´ê·??œê°„??ë¹„êµ?˜ì—¬ ì§€ê°?ë°?ì¡°ê¸° ?´ê·¼ ?´ì—­??                        ë³´ì—¬ì¤ë‹ˆ??</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <label for="verify-group-select" style="font-size: 0.85rem; color: #374151;">ëª¨ì•„ë³´ê¸°:</label>
+                        <select id="verify-group-select"
+                            style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; background: white;">
+                            <option value="none">?„ì²´ ë³´ê¸° (ê¸°ë³¸)</option>
+                            <option value="date">?¼ìë³?/option>
+                            <option value="name">?¬ì›ë³?/option>
+                            <option value="reason">?´ìƒ?¬ìœ ë³?/option>
+                        </select>
+                    </div>
+                </div>
+                <!-- ?˜ë™ ì¡°ì¹˜ ?¬ìœ  ì¶”ì²œ ëª©ë¡ -->
+                <datalist id="manual-reason-list">
+                    <option value="?ì¼??>
+                    <option value="?°ì°¨">
+                    <option value="ë°˜ì°¨">
+                    <option value="?¤ì „ë°˜ì°¨">
+                    <option value="?¤í›„ë°˜ì°¨">
+                    <option value="ê³µê?">
+                    <option value="ê²½ì¡°">
+                    <option value="ì¡°í‡´">
+                    <option value="?¸ê·¼">
+                    <option value="ì¶œì¥">
+                </datalist>
+
                 <div class="verify-table-container"
-                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; background: #f9fafb; position: relative;">
+                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #f9fafb; position: relative;">
                     <table class="verify-table">
                         <thead>
                             <tr>
-                                <th>ì¼ì</th>
-                                <th>ì´ë¦„</th>
-                                <th>ê·¼ë¬´ì¡°</th>
-                                <th>ì¶œê·¼/í‡´ê·¼</th>
-                                <th>ì´ìƒ ì‚¬ìœ </th>
-                                <th style="width: 150px;">ì¡°ì¹˜ ì‚¬ìœ </th>
-                                <th style="width: 100px;">í™•ì¸</th>
+                                <th style="width: 40px;"><input type="checkbox" id="verify-all-checkbox"></th>
+                                <th>?¼ì</th>
+                                <th>?´ë¦„</th>
+                                <th>ê·¼ë¬´ì¡?/th>
+                                <th>ì¶œê·¼/?´ê·¼</th>
+                                <th>?´ìƒ ?¬ìœ </th>
+                                <th style="width: 120px;">ì§ì› ?Œëª…</th>
+                                <th style="width: 150px;">ì¡°ì¹˜ ?¬ìœ </th>
+                                <th style="width: 100px;">?•ì¸</th>
                             </tr>
                         </thead>
                         <tbody id="verify-tbody">
@@ -173,7 +1293,7 @@
                     </table>
                     <div id="verify-empty-msg" class="hidden"
                         style="text-align: center; padding: 2.5rem; color: #10b981; font-weight: 600;">
-                        ëª¨ë“  ì§ì›ì˜ ì¶œí‡´ê·¼ ê¸°ë¡ì´ ì •ìƒì…ë‹ˆë‹¤!
+                        ëª¨ë“  ì§ì›??ì¶œí‡´ê·?ê¸°ë¡???•ìƒ?…ë‹ˆ??
                     </div>
                 </div>
             </div>
@@ -184,32 +1304,32 @@
     <div id="holiday-modal" class="modal hidden no-print">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>ê³µíœ´ì¼/íœ´ë¬´ì¼ ê´€ë¦¬</h2>
+                <h2>ê³µíœ´???´ë¬´??ê´€ë¦?/h2>
                 <button id="close-holiday-modal-btn" class="close-btn">&times;</button>
             </div>
             <div class="holiday-manager-section">
                 <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                     <input type="date" id="new-holiday-date"
                         style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                    <button id="add-holiday-btn" class="secondary-btn" style="padding: 0.4rem 0.8rem;">ìˆ˜ë™ ì¶”ê°€</button>
+                    <button id="add-holiday-btn" class="secondary-btn" style="padding: 0.4rem 0.8rem;">?˜ë™ ì¶”ê?</button>
                 </div>
                 <div class="modal-divider"
                     style="margin: 1rem 0; font-size: 0.85rem; color: #6b7280; text-align: center; border-bottom: 1px solid #eee; line-height: 0.1em;">
-                    <span style="background:#fff; padding:0 10px;">ë˜ëŠ” ê³µíœ´ì¼ ìë™ í˜¸ì¶œ</span>
+                    <span style="background:#fff; padding:0 10px;">?ëŠ” ê³µíœ´???ë™ ?¸ì¶œ</span>
                 </div>
                 <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                     <select id="holiday-year-select" class="year-select"
                         style="flex: 1; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                        <option value="2024">2024ë…„</option>
-                        <option value="2025">2025ë…„</option>
-                        <option value="2026" selected>2026ë…„</option>
-                        <option value="2027">2027ë…„</option>
-                        <option value="2028">2028ë…„</option>
-                        <option value="2029">2029ë…„</option>
-                        <option value="2030">2030ë…„</option>
+                        <option value="2024">2024??/option>
+                        <option value="2025">2025??/option>
+                        <option value="2026" selected>2026??/option>
+                        <option value="2027">2027??/option>
+                        <option value="2028">2028??/option>
+                        <option value="2029">2029??/option>
+                        <option value="2030">2030??/option>
                     </select>
                     <button id="auto-fetch-holiday-btn" class="fetch-btn" style="padding: 0.4rem 0.8rem;">
-                        <span class="btn-text">ë°ì´í„° ê°€ì ¸ì˜¤ê¸°</span>
+                        <span class="btn-text">?°ì´??ê°€?¸ì˜¤ê¸?/span>
                         <span class="loader hidden"></span>
                     </button>
                 </div>
@@ -217,17 +1337,2346 @@
                     style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #f9fafb;">
                     <!-- Holiday items injected via JS -->
                 </div>
-                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">ê°€ì ¸ì˜¤ê¸° ë²„íŠ¼ì„ ëˆ„ë¥´ë©´ 2024~2030ë…„ ë²•ì • ê³µíœ´ì¼ì„ ìë™ìœ¼ë¡œ
-                    ë¶ˆëŸ¬ì˜µë‹ˆë‹¤.</p>
+                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">ê°€?¸ì˜¤ê¸?ë²„íŠ¼???„ë¥´ë©?2024~2030??ë²•ì • ê³µíœ´?¼ì„ ?ë™?¼ë¡œ
+                    ë¶ˆëŸ¬?µë‹ˆ??</p>
                 <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
-                    <button id="save-holiday-btn" class="primary-btn" style="width: 100%; justify-content: center;">ê³µíœ´ì¼
-                        ì„¤ì • ì €ì¥</button>
+                    <button id="save-holiday-btn" class="primary-btn" style="width: 100%; justify-content: center;">ê³µíœ´??                        ?¤ì • ?€??/button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Mail Queue Modal -->
+    <div id="mail-queue-modal" class="modal hidden no-print">
+        <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+                <h2>ë©”ì¼ ë°œì†¡ ?€ê¸°ì—´</h2>
+                <div style="display: flex; gap: 8px;">
+                    <button id="close-mail-queue-btn" class="close-btn">&times;</button>
+                </div>
+            </div>
+            <div style="padding: 1rem;">
+                <div
+                    style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 12px; border-radius: 8px; margin-bottom: 1.5rem;">
+                    <p style="font-size: 0.85rem; color: #0369a1; margin-bottom: 8px; font-weight: 600;">??ë¹ ë¥¸ ?¼ê´„ ë°œì†¡ (ì¶”ì²œ)
+                    </p>
+                    <p style="font-size: 0.8rem; color: #0c4a6e; margin-bottom: 12px; line-height: 1.3;">
+                        ëª¨ë“  ?€?ì?ê²Œ <strong>ê³µí†µ ?ˆë‚´ ?´ìš©</strong>?¼ë¡œ ë©”ì¼????ë²ˆì— ë³´ëƒ…?ˆë‹¤.<br>
+                        ê°œë³„ ? ì§œ/?¬ìœ ???¬í•¨?˜ì? ?Šì?ë§?ê°€??ë¹ ë¦…?ˆë‹¤. (?¨ì? ì°¸ì¡° ?´ìš©)
+                    </p>
+                    <button id="mail-batch-bcc-btn" class="primary-btn"
+                        style="width: 100%; border-radius: 6px; background: #0ea5e9;">
+                        ?“§ ê³µí†µ ?´ìš©?¼ë¡œ ??ë²ˆì— ë°œì†¡
+                    </button>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
+                    <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
+                    <span style="font-size: 0.75rem; color: #9ca3af; white-space: nowrap;">?ëŠ” ê°œë³„ ?ì„¸ ë°œì†¡</span>
+                    <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
+                </div>
+
+                <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 1rem; line-height: 1.4;">
+                    ê°??¬ì›ë³„ë¡œ <strong>?ì„¸ ? ì§œ/?¬ìœ </strong>ë¥??¬í•¨?˜ë ¤ë©??„ë˜ ë²„íŠ¼??ê°ê° ?ŒëŸ¬ì£¼ì„¸??
+                </p>
+                <div id="mail-queue-list"
+                    style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
+                    <!-- Queue items injected here -->
+                </div>
+            </div>
+            <div
+                style="padding: 1.5rem; text-align: center; border-top: 1px solid var(--border-color); background: #f9fafb; border-radius: 0 0 16px 16px;">
+                <button id="mail-queue-done-btn" class="primary-btn" style="width: 100%; justify-content: center;">?„ë£Œ ë°?                    ?«ê¸°</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // [?¤ì •] Supabase ?°ë™ ?•ë³´ (?¬ìš©?ê? ì§ì ‘ ?…ë ¥ ?„ìš”)
+            const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
+            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
+            let supabase = null;
+
+            if (SUPABASE_URL && SUPABASE_KEY) {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            }
+
+            // ê¸°ë³¸ UI ?”ì†Œ
+            const dropZoneAttendance = document.getElementById('drop-zone-attendance');
+            const fileInputAttendance = document.getElementById('file-input-attendance');
+            const fileListAttendance = document.getElementById('file-list-attendance');
+
+            const dropZoneLeave = document.getElementById('drop-zone-leave');
+            const fileInputLeave = document.getElementById('file-input-leave');
+            const fileListLeave = document.getElementById('file-list-leave');
+            const reportContainer = document.getElementById('report-container');
+            const reportDateInput = document.getElementById('report-date-input');
+            const employeeListContainer = document.getElementById('employee-list-container');
+            const addEmployeeBtn = document.getElementById('add-employee-btn');
+            const employeeModal = document.getElementById('employee-modal');
+            const openManagerBtn = document.getElementById('open-manager-btn');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const saveEmployeeBtn = document.getElementById('save-employee-btn');
+            const fetchEmployeesBtn = document.getElementById('fetch-employees-btn');
+            const syncEmployeesBtn = document.getElementById('sync-employees-btn');
+            const printBtn = document.getElementById('print-btn');
+
+            // ê²€ì¦?Verification) ê¸°ëŠ¥ ?”ì†Œ
+            const verifyBtn = document.getElementById('verify-data-btn');
+            const verifyModal = document.getElementById('verify-modal');
+            const closeVerifyBtn = document.getElementById('close-verify-btn');
+            const verifyTbody = document.getElementById('verify-tbody');
+            const verifyEmptyMsg = document.getElementById('verify-empty-msg');
+            const bulkUnconfirmBtn = document.getElementById('bulk-unconfirm-btn');
+            const syncToCloudBtn = document.getElementById('sync-to-cloud-btn');
+            const fetchFromCloudBtn = document.getElementById('fetch-from-cloud-btn');
+
+            // ë©”ì¼ ?€ê¸°ì—´ ?”ì†Œ
+            const mailQueueModal = document.getElementById('mail-queue-modal');
+            const mailQueueList = document.getElementById('mail-queue-list');
+            const closeMailQueueBtn = document.getElementById('close-mail-queue-btn');
+            const mailQueueDoneBtn = document.getElementById('mail-queue-done-btn');
+            const mailBatchBccBtn = document.getElementById('mail-batch-bcc-btn');
+
+            // ê³µíœ´??ê´€ë¦??”ì†Œ
+            const openHolidayBtn = document.getElementById('open-holiday-btn');
+            const highlightAnomalyBtn = document.getElementById('highlight-anomaly-btn');
+            const cloudSyncAllBtn = document.getElementById('cloud-sync-all-btn');
+            const cloudFetchAllBtn = document.getElementById('cloud-fetch-all-btn');
+            const holidayModal = document.getElementById('holiday-modal');
+            const closeHolidayModalBtn = document.getElementById('close-holiday-modal-btn');
+            const holidayListContainer = document.getElementById('holiday-list-container');
+            const newHolidayDateInput = document.getElementById('new-holiday-date');
+            const addHolidayBtn = document.getElementById('add-holiday-btn');
+            const autoFetchHolidayBtn = document.getElementById('auto-fetch-holiday-btn');
+            const saveHolidayBtn = document.getElementById('save-holiday-btn');
+
+            // ?…ë¡œ?œëœ ì¶œí‡´ê·??‘ì? ?°ì´??ê´€ë¦?(?Œì¼ëª? ?°ì´??
+            let attendanceFilesMap = new Map();
+            let leaveFilesMap = new Map();
+            let currentLeaveData = null;
+            let currentUniqueDates = new Set();
+            let globalUnconfirmedAnomalies = false;
+            let unconfirmedAnomaliesMap = {};
+
+            // [ì¶”ê?] ?¬ì›_?¼ìë³?ë¯¸í™•???´ìƒ ? ë¬´ ë§?            let showAnomaliesHighlight = false;
+
+            // [ì¶”ê?] ëª¨ë‹¬ ?œë˜ê·?ê¸°ëŠ¥
+            function makeDraggable(modalEl) {
+                const content = modalEl.querySelector('.modal-content');
+                const header = modalEl.querySelector('.modal-header');
+                if (!content || !header) return;
+
+                let isDragging = false;
+                let startX, startY;
+                let transX = 0, transY = 0;
+
+                header.onmousedown = (e) => {
+                    if (e.target.closest('button')) return; // ë²„íŠ¼ ?´ë¦­?€ ë¬´ì‹œ
+                    isDragging = true;
+                    startX = e.clientX - transX;
+                    startY = e.clientY - transY;
+                    e.preventDefault();
+                };
+
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    transX = e.clientX - startX;
+                    transY = e.clientY - startY;
+                    content.style.transform = `translate(${transX}px, ${transY}px)`;
+                });
+
+                document.addEventListener('mouseup', () => {
+                    isDragging = false;
+                });
+            }
+
+            makeDraggable(employeeModal);
+            makeDraggable(verifyModal);
+            makeDraggable(holidayModal);
+            makeDraggable(mailQueueModal);
+
+            // [ì¶”ê?] ?˜ë™ ?•ì¸ ?°ì´??(localStorage)
+            const savedCorrections = localStorage.getItem('manualCorrections');
+            let manualCorrections = savedCorrections ? JSON.parse(savedCorrections) : {};
+
+            const savedReasons = localStorage.getItem('manualReasons');
+            let manualReasons = savedReasons ? JSON.parse(savedReasons) : {};
+            const savedExplanations = localStorage.getItem('employeeExplanations');
+            let employeeExplanations = savedExplanations ? JSON.parse(savedExplanations) : {};
+
+            let manualEarlyPunches = JSON.parse(localStorage.getItem('manualEarlyPunches')) || {};
+
+            // [ì¶”ê?] ?Œëª… ?”ì²­??ë³´ë‚¸ ??ª©?¤ì˜ ??ê´€ë¦¬ë? ?„í•œ Set (ë¡œì»¬ ?¤í† ë¦¬ì? ?°ë™)
+            const savedSentKeys = localStorage.getItem('sentAnomalyKeys');
+            let sentAnomalyKeys = new Set(savedSentKeys ? JSON.parse(savedSentKeys) : []);
+
+            // Migration from legacy keys if they exist
+            if (Object.keys(manualEarlyPunches).length === 0) {
+                const legacyOffsets = JSON.parse(localStorage.getItem('manualDateOffsets')) || {};
+                const legacyIn = JSON.parse(localStorage.getItem('manualInOverrides')) || {};
+                Object.keys(legacyOffsets).forEach(k => { if (legacyOffsets[k]) manualEarlyPunches[k] = "shift"; });
+                Object.keys(legacyIn).forEach(k => { if (legacyIn[k]) manualEarlyPunches[k] = "forceIn"; });
+                // Save migrated data to new key
+                if (Object.keys(manualEarlyPunches).length > 0) {
+                    localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
+                    // Optionally clear legacy keys
+                    localStorage.removeItem('manualDateOffsets');
+                    localStorage.removeItem('manualInOverrides');
+                }
+            }
+
+            // ?¬ì› ë¦¬ìŠ¤???°ì´??(localStorage?ì„œ ë¶ˆëŸ¬?¤ê¸°)
+            const savedEmployees = localStorage.getItem('employeeConfigList');
+            let employeeConfigList = savedEmployees ? JSON.parse(savedEmployees) : [
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "?•ë???, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "ê¹€?œì›", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "?´ë???, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "?´ì¬ê·?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "?œí˜„??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "ë°•ì£¼??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "ê¹€?„ìš±", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "ê°•ë???, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "ë°¸ë¸Œ?Œí¬", name: "ê³½ì •??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "?ˆíš¨ëª?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "ê¹€?ë?", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "?´ì¬ë£?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "?•ê´‘??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "?´ìˆ˜??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "?¥ê·¼??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "?©ë‚˜ê²?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "ë°¸ë¸Œ?Œí¬", name: "?´ë„??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "ë°¸ë¸Œ?Œí¬", name: "ì±„ì˜ˆ?€", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "?œì˜¥??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?¤ìš°ë°¸ë¸Œ", name: "ì±„ë?ì£?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "?¤ìš°ë°¸ë¸Œ", name: "?•ìƒë¯?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }
+            ];
+
+            // ê³µíœ´??ë¦¬ìŠ¤???°ì´??(localStorage?ì„œ ë¶ˆëŸ¬?¤ê¸°)
+            const savedHolidays = localStorage.getItem('holidayConfigList');
+            let holidayConfigList = savedHolidays ? JSON.parse(savedHolidays) : [];
+            let tempHolidayConfigList = [];
+
+            // ?¤ë…„??ë²•ì • ê³µíœ´???°ì´??(ë¯¸ë¦¬ ?•ì˜??ë¦¬ìŠ¤??
+            const PREDEFINED_HOLIDAYS = [
+                // 2024??                { date: "2024-01-01", name: "? ì •" }, { date: "2024-02-09", name: "?¤ë‚ " }, { date: "2024-02-10", name: "?¤ë‚ " }, { date: "2024-02-11", name: "?¤ë‚ " }, { date: "2024-02-12", name: "?€ì²´ê³µ?´ì¼" },
+                { date: "2024-03-01", name: "?¼ì¼?? }, { date: "2024-04-10", name: "êµ?šŒ?˜ì›? ê±°" }, { date: "2024-05-05", name: "?´ë¦°?´ë‚ " }, { date: "2024-05-06", name: "?€ì²´ê³µ?´ì¼" }, { date: "2024-05-15", name: "ë¶€ì²˜ë‹˜?¤ì‹ ?? },
+                { date: "2024-06-06", name: "?„ì¶©?? }, { date: "2024-08-15", name: "ê´‘ë³µ?? }, { date: "2024-09-16", name: "ì¶”ì„" }, { date: "2024-09-17", name: "ì¶”ì„" }, { date: "2024-09-18", name: "ì¶”ì„" },
+                { date: "2024-10-03", name: "ê°œì²œ?? }, { date: "2024-10-09", name: "?œê??? }, { date: "2024-12-25", name: "?¬ë¦¬?¤ë§ˆ?? },
+                // 2025??                { date: "2025-01-01", name: "? ì •" }, { date: "2025-01-28", name: "?¤ë‚ " }, { date: "2025-01-29", name: "?¤ë‚ " }, { date: "2025-01-30", name: "?¤ë‚ " }, { date: "2025-03-01", name: "?¼ì¼?? }, { date: "2025-03-03", name: "?€ì²´ê³µ?´ì¼" },
+                { date: "2025-05-05", name: "?´ë¦°?´ë‚ " }, { date: "2025-05-06", name: "ë¶€ì²˜ë‹˜?¤ì‹ ?? }, { date: "2025-06-06", name: "?„ì¶©?? }, { date: "2025-08-15", name: "ê´‘ë³µ?? }, { date: "2025-10-03", name: "ê°œì²œ?? },
+                { date: "2025-10-05", name: "ì¶”ì„" }, { date: "2025-10-06", name: "ì¶”ì„" }, { date: "2025-10-07", name: "ì¶”ì„" }, { date: "2025-10-08", name: "?€ì²´ê³µ?´ì¼" }, { date: "2025-10-09", name: "?œê??? }, { date: "2025-12-25", name: "?¬ë¦¬?¤ë§ˆ?? },
+                // 2026??                { date: "2026-01-01", name: "? ì •" }, { date: "2026-02-16", name: "?¤ë‚ " }, { date: "2026-02-17", name: "?¤ë‚ " }, { date: "2026-02-18", name: "?¤ë‚ " }, { date: "2026-03-01", name: "?¼ì¼?? }, { date: "2026-03-02", name: "?€ì²´ê³µ?´ì¼" },
+                { date: "2026-05-05", name: "?´ë¦°?´ë‚ " }, { date: "2026-05-24", name: "ë¶€ì²˜ë‹˜?¤ì‹ ?? }, { date: "2026-05-25", name: "?€ì²´ê³µ?´ì¼" }, { date: "2026-06-06", name: "?„ì¶©?? }, { date: "2026-08-15", name: "ê´‘ë³µ?? }, { date: "2026-10-03", name: "ê°œì²œ?? },
+                { date: "2026-09-24", name: "ì¶”ì„" }, { date: "2026-09-25", name: "ì¶”ì„" }, { date: "2026-09-26", name: "ì¶”ì„" }, { date: "2026-10-09", name: "?œê??? }, { date: "2026-12-25", name: "?¬ë¦¬?¤ë§ˆ?? },
+                // 2027??                { date: "2027-01-01", name: "? ì •" }, { date: "2027-02-06", name: "?¤ë‚ " }, { date: "2027-02-07", name: "?¤ë‚ " }, { date: "2027-02-08", name: "?¤ë‚ " }, { date: "2027-02-09", name: "?€ì²´ê³µ?´ì¼" },
+                { date: "2027-03-01", name: "?¼ì¼?? }, { date: "2027-05-05", name: "?´ë¦°?´ë‚ " }, { date: "2027-05-13", name: "ë¶€ì²˜ë‹˜?¤ì‹ ?? }, { date: "2027-06-06", name: "?„ì¶©?? }, { date: "2027-08-15", name: "ê´‘ë³µ?? }, { date: "2027-08-16", name: "?€ì²´ê³µ?´ì¼" },
+                { date: "2027-09-14", name: "ì¶”ì„" }, { date: "2027-09-15", name: "ì¶”ì„" }, { date: "2027-09-16", name: "ì¶”ì„" }, { date: "2027-10-03", name: "ê°œì²œ?? }, { date: "2027-10-04", name: "?€ì²´ê³µ?´ì¼" }, { date: "2027-10-09", name: "?œê??? }, { date: "2027-12-25", name: "?¬ë¦¬?¤ë§ˆ?? },
+                // 2028??                { date: "2028-01-01", name: "? ì •" }, { date: "2028-01-26", name: "?¤ë‚ " }, { date: "2028-01-27", name: "?¤ë‚ " }, { date: "2028-01-28", name: "?¤ë‚ " }, { date: "2028-03-01", name: "?¼ì¼?? },
+                { date: "2028-05-02", name: "ë¶€ì²˜ë‹˜?¤ì‹ ?? }, { date: "2028-05-05", name: "?´ë¦°?´ë‚ " }, { date: "2028-06-06", name: "?„ì¶©?? }, { date: "2028-08-15", name: "ê´‘ë³µ?? },
+                { date: "2028-10-03", name: "ê°œì²œ?? }, { date: "2028-10-03", name: "ì¶”ì„" }, { date: "2028-10-04", name: "ì¶”ì„" }, { date: "2028-10-05", name: "ì¶”ì„" }, { date: "2028-10-06", name: "?€ì²´ê³µ?´ì¼" }, { date: "2028-10-09", name: "?œê??? }, { date: "2028-12-25", name: "?¬ë¦¬?¤ë§ˆ?? },
+                // 2029??                { date: "2029-01-01", name: "? ì •" }, { date: "2029-02-12", name: "?¤ë‚ " }, { date: "2029-02-13", name: "?¤ë‚ " }, { date: "2029-02-14", name: "?¤ë‚ " }, { date: "2029-03-01", name: "?¼ì¼?? },
+                { date: "2029-05-05", name: "?´ë¦°?´ë‚ " }, { date: "2029-05-07", name: "?€ì²´ê³µ?´ì¼" }, { date: "2029-05-20", name: "ë¶€ì²˜ë‹˜?¤ì‹ ?? }, { date: "2029-05-21", name: "?€ì²´ê³µ?´ì¼" }, { date: "2029-06-06", name: "?„ì¶©?? },
+                { date: "2029-08-15", name: "ê´‘ë³µ?? }, { date: "2029-09-21", name: "ì¶”ì„" }, { date: "2029-09-22", name: "ì¶”ì„" }, { date: "2029-09-23", name: "ì¶”ì„" }, { date: "2029-09-24", name: "?€ì²´ê³µ?´ì¼" },
+                { date: "2029-10-03", name: "ê°œì²œ?? }, { date: "2029-10-09", name: "?œê??? }, { date: "2029-12-25", name: "?¬ë¦¬?¤ë§ˆ?? },
+                // 2030??                { date: "2030-01-01", name: "? ì •" }, { date: "2030-02-02", name: "?¤ë‚ " }, { date: "2030-02-03", name: "?¤ë‚ " }, { date: "2030-02-04", name: "?¤ë‚ " }, { date: "2030-03-01", name: "?¼ì¼?? },
+                { date: "2030-05-05", name: "?´ë¦°?´ë‚ " }, { date: "2030-05-06", name: "?€ì²´ê³µ?´ì¼" }, { date: "2030-05-09", name: "ë¶€ì²˜ë‹˜?¤ì‹ ?? }, { date: "2030-06-06", name: "?„ì¶©?? },
+                { date: "2030-08-15", name: "ê´‘ë³µ?? }, { date: "2030-09-11", name: "ì¶”ì„" }, { date: "2030-09-12", name: "ì¶”ì„" }, { date: "2030-09-13", name: "ì¶”ì„" },
+                { date: "2030-10-03", name: "ê°œì²œ?? }, { date: "2030-10-09", name: "?œê??? }, { date: "2030-12-25", name: "?¬ë¦¬?¤ë§ˆ?? }
+            ];
+
+            function isHoliday(dateStr) {
+                return holidayConfigList.some(h => h.date === dateStr);
+            }
+
+            // ê³µíœ´??ê´€ë¦?UI ?Œë”ë§?            function renderHolidayManager() {
+                if (!holidayListContainer) return;
+                holidayListContainer.innerHTML = '';
+
+                if (tempHolidayConfigList.length === 0) {
+                    holidayListContainer.innerHTML = '<div class="holiday-empty-msg">?±ë¡??ê³µíœ´?¼ì´ ?†ìŠµ?ˆë‹¤.</div>';
+                    return;
+                }
+
+                tempHolidayConfigList.sort((a, b) => a.date.localeCompare(b.date)).forEach((hol, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'holiday-item';
+                    item.innerHTML = `
+                <div>
+                    <span class="holiday-date">${hol.date}</span>
+                    <span class="holiday-name">${hol.name || ''}</span>
+                </div>
+                <button class="remove-holiday-btn" data-index="${index}">&times;</button>
+            `;
+                    item.querySelector('.remove-holiday-btn').onclick = () => {
+                        tempHolidayConfigList.splice(index, 1);
+                        renderHolidayManager();
+                    };
+                    holidayListContainer.appendChild(item);
+                });
+            }
+
+            // ----- [ì¶”ê?] ?¬ì› ê´€ë¦?ëª¨ë‹¬ ?„ì‹œ ?íƒœ ë³€??-----
+            let tempEmployeeConfigList = [];
+            let draggedItemIndex = null;
+
+            // ?¬ì› ?•ë ¬ ?¨ìˆ˜ (ê¸°ë³¸ ?ìš©)
+            function sortEmployees(list) {
+                const rankOrder = {
+                    '?€?œì´??: 1,
+                    '?„ë¬´': 2,
+                    'ë¶€??: 3,
+                    'ê³¼ì¥': 4,
+                    '?€ë¦?: 5,
+                    '? ì„': 6,
+                    '?¬ì›': 7,
+                    '': 99 // ì§ê¸‰ ?†ìŒ
+                };
+
+                return list.sort((a, b) => {
+                    const rankA = rankOrder[a.rank] || 99;
+                    const rankB = rankOrder[b.rank] || 99;
+
+                    if (rankA !== rankB) {
+                        return rankA - rankB;
+                    }
+
+                    // 2?œìœ„: ?…ì‚¬??(ë¹ ë¥¸ ??
+                    const dateA = a.joinDate || '9999-99-99';
+                    const dateB = b.joinDate || '9999-99-99';
+                    return dateA.localeCompare(dateB);
+                });
+            }
+
+            // ?¬ì› ê´€ë¦?UI ?Œë”ë§?(?œë˜ê·?ê¸°ëŠ¥ ?¬í•¨)
+            function renderEmployeeManager() {
+                if (!employeeListContainer) return;
+
+                // ?•ë ¬ ?˜í–‰
+                sortEmployees(tempEmployeeConfigList);
+
+                employeeListContainer.innerHTML = '';
+
+                tempEmployeeConfigList.forEach((emp, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'employee-row';
+                    row.draggable = true; // ?œë˜ê·?ê°€???¤ì •
+                    row.dataset.index = index;
+
+                    // ?œë˜ê·??´ë²¤??ë¦¬ìŠ¤??                    row.addEventListener('dragstart', (e) => {
+                        draggedItemIndex = index;
+                        row.classList.add('dragging');
+                        e.dataTransfer.effectAllowed = 'move';
+                    });
+
+                    row.addEventListener('dragover', (e) => {
+                        e.preventDefault(); // ?œë¡­ ?ˆìš©
+                        row.classList.add('dragover');
+                    });
+
+                    row.addEventListener('dragleave', () => {
+                        row.classList.remove('dragover');
+                    });
+
+                    row.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        row.classList.remove('dragover');
+                        const targetIndex = index;
+                        if (draggedItemIndex !== null && draggedItemIndex !== targetIndex) {
+                            // ?°ì´???œì„œ ë³€ê²?                            const movedItem = tempEmployeeConfigList.splice(draggedItemIndex, 1)[0];
+                            tempEmployeeConfigList.splice(targetIndex, 0, movedItem);
+                            renderEmployeeManager();
+                        }
+                    });
+
+                    row.addEventListener('dragend', () => {
+                        row.classList.remove('dragging');
+                        draggedItemIndex = null;
+                    });
+
+                    // ê¸°ì¡´ ?…ë ¥ì°?ë°?ë²„íŠ¼??                    const orgSelect = document.createElement('select');
+                    orgSelect.className = 'org-select';
+                    orgSelect.style.width = '100px';
+                    ['ì¡°ì§ ? íƒ', '?€?œì´??, 'êµ?‚´?¸ê?ë¦??ì—…?€', 'ë°˜ë„ì²??ì—…?€', 'ë°¸ë¸Œ?Œí¬?€', '?ì‚°ê¸°ìˆ ?€', '?”ì??ˆì–´ë§í?', '?´ì™¸?ì—…?€', '2ì°¨ì „ì§€ ?ì—…?€'].forEach(val => {
+                        const opt = document.createElement('option');
+                        opt.value = val === 'ì¡°ì§ ? íƒ' ? '' : val;
+                        opt.text = val;
+                        orgSelect.appendChild(opt);
+                    });
+                    orgSelect.value = emp.org || '';
+                    orgSelect.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].org = e.target.value;
+                    });
+
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.placeholder = '?¬ì›ëª?;
+                    nameInput.style.width = '100px';
+                    nameInput.value = emp.name;
+                    nameInput.addEventListener('change', (e) => {
+                        const norm = normalizeName(e.target.value);
+                        e.target.value = norm;
+                        tempEmployeeConfigList[index].name = norm;
+                    });
+
+                    const rankSelect = document.createElement('select');
+                    rankSelect.className = 'rank-select';
+                    rankSelect.style.width = '100px';
+                    ['ì§ê¸‰ ? íƒ', '?€?œì´??, '?„ë¬´', 'ë¶€??, 'ê³¼ì¥', '?€ë¦?, '? ì„', '?¬ì›'].forEach(val => {
+                        const opt = document.createElement('option');
+                        opt.value = val === 'ì§ê¸‰ ? íƒ' ? '' : val;
+                        opt.text = val;
+                        rankSelect.appendChild(opt);
+                    });
+                    rankSelect.value = emp.rank || '';
+                    rankSelect.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].rank = e.target.value;
+                    });
+
+                    const emailInput = document.createElement('input');
+                    emailInput.type = 'email';
+                    emailInput.placeholder = '?´ë©”??ì£¼ì†Œ';
+                    emailInput.style.width = '150px';
+                    emailInput.value = emp.email || '';
+                    emailInput.addEventListener('input', (e) => {
+                        tempEmployeeConfigList[index].email = e.target.value;
+                    });
+
+                    const joinInput = document.createElement('input');
+                    joinInput.type = 'date';
+                    joinInput.max = '9999-12-31';
+                    joinInput.title = '?…ì‚¬??;
+                    joinInput.style.width = '110px';
+                    joinInput.value = emp.joinDate || '';
+                    joinInput.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].joinDate = e.target.value;
+                    });
+
+                    const leaveInput = document.createElement('input');
+                    leaveInput.type = 'date';
+                    leaveInput.max = '9999-12-31';
+                    leaveInput.title = '?´ì‚¬??;
+                    leaveInput.style.width = '110px';
+                    leaveInput.value = emp.leaveDate || '';
+                    leaveInput.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].leaveDate = e.target.value;
+                    });
+
+                    const leaderCheckbox = document.createElement('input');
+                    leaderCheckbox.type = 'checkbox';
+                    leaderCheckbox.title = '?€???¬ë?';
+                    leaderCheckbox.style.width = '50px';
+                    leaderCheckbox.checked = emp.isLeader || false;
+                    leaderCheckbox.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].isLeader = e.target.checked;
+                    });
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = 'Ã—';
+                    removeBtn.type = 'button';
+                    removeBtn.addEventListener('click', () => {
+                        tempEmployeeConfigList.splice(index, 1);
+                        renderEmployeeManager();
+                    });
+
+                    // [ì¶”ê?] ?ˆë¹„ ë°?? ì—°??ëª…ì‹œ??ì§€??                    orgSelect.style.flex = '0 0 120px';
+                    nameInput.style.flex = '0 0 100px';
+                    rankSelect.style.flex = '0 0 100px';
+                    emailInput.style.flex = '1 1 150px';
+                    joinInput.style.flex = '0 0 130px';
+                    leaveInput.style.flex = '0 0 130px';
+                    leaderCheckbox.style.flex = '0 0 60px';
+                    removeBtn.style.flex = '0 0 40px';
+
+                    row.appendChild(orgSelect);
+                    row.appendChild(nameInput);
+                    row.appendChild(rankSelect);
+                    row.appendChild(emailInput);
+                    row.appendChild(joinInput);
+                    row.appendChild(leaveInput);
+                    row.appendChild(leaderCheckbox);
+                    row.appendChild(removeBtn);
+                    employeeListContainer.appendChild(row);
+                });
+            }
+
+            // ì´ˆê¸° ?¤í–‰
+            renderEmployeeManager();
+
+            if (addEmployeeBtn) {
+                addEmployeeBtn.addEventListener('click', () => {
+                    tempEmployeeConfigList.push({ org: "", name: "", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false });
+                    renderEmployeeManager();
+                    employeeListContainer.scrollTop = employeeListContainer.scrollHeight;
+                });
+            }
+
+            const uploadEmployeeBtn = document.getElementById('upload-employee-btn');
+            const uploadEmployeeFile = document.getElementById('upload-employee-file');
+
+            if (uploadEmployeeBtn && uploadEmployeeFile) {
+                uploadEmployeeBtn.addEventListener('click', () => {
+                    uploadEmployeeFile.click();
+                });
+
+                uploadEmployeeFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = function (evt) {
+                        try {
+                            const data = new Uint8Array(evt.target.result);
+                            const workbook = window.XLSX.read(data, { type: 'array' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            // { header: 1 } array of arrays
+                            const rawData = window.XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+
+                            if (rawData.length === 0) {
+                                alert("?‘ì? ?Œì¼???°ì´?°ê? ?†ìŠµ?ˆë‹¤.");
+                                return;
+                            }
+
+                            let addedCount = 0;
+                            const deptKeywords = ['?€?œì´??, 'êµ?‚´?¸ê?ë¦??ì—…?€', 'ë°˜ë„ì²??ì—…?€', 'ë°¸ë¸Œ?Œí¬?€', '?ì‚°ê¸°ìˆ ?€', '?”ì??ˆì–´ë§í?', '?´ì™¸?ì—…?€', '2ì°¨ì „ì§€ ?ì—…?€'];
+
+                            rawData.forEach(row => {
+                                if (!Array.isArray(row)) return;
+
+                                let orgVal = "";
+                                let nameVal = "";
+                                let emailVal = "";
+                                let dateCandidates = [];
+
+                                row.forEach(cell => {
+                                    if (typeof cell === 'string') {
+                                        const s = cell.trim();
+                                        if (!s) return;
+                                        // ë¶€???ë³„
+                                        if (deptKeywords.includes(s) || s.endsWith('?€') || s.endsWith('ë¶€') || s.endsWith('?ŒíŠ¸')) {
+                                            orgVal = s;
+                                        }
+                                        // ?´ë¦„ ?ë³„ (?¼ë°˜?ìœ¼ë¡?2~4ê¸€???œê?)
+                                        else if (/^[ê°€-??{2,4}$/.test(s) && !s.match(/ì¶œê·¼|?´ê·¼|?°ì°¨|ë°˜ì°¨|ê²°ì¬|?¹ì¸/)) {
+                                            nameVal = normalizeName(s);
+                                        }
+                                        // ? ì§œ ?ìŠ¤???ë³„
+                                        else if (/^\d{4}-\d{2}-\d{2}/.test(s) || /^\d{4}\.\d{2}\.\d{2}/.test(s) || /^\d{4}\/\d{2}\/\d{2}/.test(s)) {
+                                            dateCandidates.push(s);
+                                        }
+                                        // ?´ë©”??ì£¼ì†Œ ?ë³„
+                                        else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
+                                            emailVal = s;
+                                        }
+                                    } else if (typeof cell === 'number') {
+                                        // ?‘ì? ? ì§œ ?¼ë ¨ë²ˆí˜¸ (1900??ê¸°ì? ? ì§œ) ?€??2000??2050???¬ì´ê°?                                        if (cell > 36000 && cell < 60000) {
+                                            dateCandidates.push(cell);
+                                        }
+                                    }
+                                });
+
+                                if (nameVal) {
+                                    let joinVal = "";
+                                    let leaveVal = "";
+                                    let rankVal = "";
+                                    let isLeaderVal = false;
+
+                                    const parseDate = (val) => {
+                                        if (!val) return "";
+                                        if (typeof val === 'number') {
+                                            const jsDate = new Date(Math.round((val - 25569) * 86400 * 1000));
+                                            return jsDate.toISOString().split('T')[0];
+                                        }
+                                        const str = String(val).trim().replace(/\./g, '-').replace(/\//g, '-');
+                                        const match = str.match(/\d{4}-\d{2}-\d{2}/);
+                                        if (match) return match[0];
+                                        return "";
+                                    };
+
+                                    row.forEach(cell => {
+                                        if (typeof cell === 'string') {
+                                            const s = cell.trim();
+                                            if (s === '?€?? || s === 'O' || s === 'o' || s === 'Y' || s === 'y' || s === 'V' || s === 'v') {
+                                                isLeaderVal = true;
+                                            }
+                                            // ì§ê¸‰ ?ë³„ (ë¶€?? ì°¨ì¥, ê³¼ì¥, ?€ë¦? ?¬ì›, ì£¼ì„ ??
+                                            if (s.match(/ë¶€??ì°¨ì¥|ê³¼ì¥|?€ë¦??¬ì›|ì£¼ì„|? ì„|ì±…ì„|?˜ì„|?€???´ì‚¬/)) {
+                                                rankVal = s;
+                                            }
+                                        }
+                                    });
+
+                                    if (dateCandidates.length > 0) {
+                                        const parsedDates = dateCandidates.map(parseDate).filter(d => d).sort();
+                                        if (parsedDates.length > 0) {
+                                            joinVal = parsedDates[0];
+                                            if (parsedDates.length > 1) {
+                                                leaveVal = parsedDates[parsedDates.length - 1];
+                                            }
+                                        }
+                                    }
+
+                                    const existingInput = tempEmployeeConfigList.find(e => e.name === nameVal);
+                                    if (!existingInput) {
+                                        tempEmployeeConfigList.push({
+                                            org: orgVal,
+                                            name: nameVal,
+                                            rank: rankVal,
+                                            email: emailVal,
+                                            joinDate: joinVal,
+                                            leaveDate: leaveVal,
+                                            isLeader: isLeaderVal
+                                        });
+                                    } else {
+                                        if (orgVal) existingInput.org = orgVal;
+                                        if (rankVal) existingInput.rank = rankVal;
+                                        if (emailVal) existingInput.email = emailVal;
+                                        if (joinVal) existingInput.joinDate = joinVal;
+                                        if (leaveVal) existingInput.leaveDate = leaveVal;
+                                        if (isLeaderVal) existingInput.isLeader = isLeaderVal;
+                                    }
+                                    addedCount++;
+                                }
+                            });
+
+                            if (addedCount > 0) {
+                                renderEmployeeManager();
+                                employeeListContainer.scrollTop = employeeListContainer.scrollHeight;
+                                alert(`${addedCount}ëª…ì˜ ?¬ì› ?•ë³´ë¥??±ê³µ?ìœ¼ë¡?ë¡œë“œ?ˆìŠµ?ˆë‹¤.\n(?˜ì •???´ìš©???•ì¸?˜ê³  ?˜ë‹¨??'ë¡œì»¬ ?ìš©' ë°?'?´ë¼?°ë“œ ?€??ë°??ìš©' ë²„íŠ¼???ŒëŸ¬ì£¼ì„¸??`);
+                            } else {
+                                alert("?¬ì› ?•ë³´ë¥?ì°¾ì„ ???†ìŠµ?ˆë‹¤. (?‘ì? ?‰ì— ìµœì†Œ???¬ì› ?´ë¦„(2~4???œê?)??ê¸°ì¬?˜ì–´ ?ˆëŠ”ì§€ ?•ì¸?´ì£¼?¸ìš”)");
+                            }
+                        } catch (err) {
+                            alert("?‘ì? ?Œì¼ ?Œì‹± ì¤??¤ë¥˜ê°€ ë°œìƒ?ˆìŠµ?ˆë‹¤: " + err.message);
+                        } finally {
+                            uploadEmployeeFile.value = '';
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            // ? ì§œ ?¤ì •
+            const today = new Date();
+            reportDateInput.value = today.toISOString().split('T')[0];
+
+            if (highlightAnomalyBtn) {
+                highlightAnomalyBtn.addEventListener('click', () => {
+                    showAnomaliesHighlight = !showAnomaliesHighlight;
+                    if (showAnomaliesHighlight) {
+                        highlightAnomalyBtn.style.backgroundColor = '#e11d48';
+                        highlightAnomalyBtn.style.color = 'white';
+                    } else {
+                        highlightAnomalyBtn.style.backgroundColor = '#fff1f2';
+                        highlightAnomalyBtn.style.color = '#e11d48';
+                    }
+                    updateAndProcessData();
+                });
+            }
+
+            async function syncAllToCloud() {
+                if (!supabase) { alert("?œìŠ¤???°ê²° ì¤‘ì…?ˆë‹¤. ? ì‹œ ???œë„??ì£¼ì„¸??"); return; }
+                const currentMatrix = updateAndProcessData(true);
+                if (!currentMatrix) { alert("?€?¥í•  ?°ì´?°ê? ?†ìŠµ?ˆë‹¤. ë¨¼ì? ?‘ì? ?Œì¼???…ë¡œ?œí•´ì£¼ì„¸??"); return; }
+                const { recordsMap, names, uniqueDates } = currentMatrix;
+                const toUpsert = [];
+                names.forEach(name => {
+                    const userRecs = recordsMap[name] || {};
+                    uniqueDates.forEach(date => {
+                        const rec = userRecs[date] || {}; // Ensure rec is an object even if no record for date
+                        const corrKey = `${name}_${date}`;
+                        const corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
+                        toUpsert.push({
+                            manager_key: corrKey,
+                            name: name,
+                            date: date,
+                            shift: rec.shiftStart || null, // Use null if undefined
+                            in_time: rec.inTime || null,
+                            out_time: rec.outTime || null,
+                            status_in: !!corrData.in,
+                            status_out: !!corrData.out,
+                            status_leave: !!corrData.leave,
+                            manager_reason: manualReasons[corrKey] || "",
+                            employee_explanation: employeeExplanations[corrKey] || "",
+                            reason: rec.reason || "", // [ì¶”ê?] ?´ê? ?¬ìœ  ?´ë¼?°ë“œ ?€??                            early_punch_mode: manualEarlyPunches[corrKey] || "",
+                            is_anomalous: !!(unconfirmedAnomaliesMap[corrKey] && (unconfirmedAnomaliesMap[corrKey].in || unconfirmedAnomaliesMap[corrKey].out))
+                        });
+                    });
+                });
+                if (toUpsert.length === 0) { alert("?€?¥í•  ?œë™ ?°ì´?°ê? ?†ìŠµ?ˆë‹¤."); return; }
+                if (!confirm(`?„ì¬ ?”ë©´??ë¡œë“œ??${toUpsert.length}ê±´ì˜ ?°ì´?°ë? ?´ë¼?°ë“œ??ë°±ì—…?˜ì‹œê² ìŠµ?ˆê¹Œ?\n(ê¸°ì¡´ ?™ì¼ ? ì§œ ?°ì´?°ëŠ” ?…ë°?´íŠ¸?©ë‹ˆ??`)) return;
+                cloudSyncAllBtn.disabled = true;
+                cloudSyncAllBtn.textContent = "???€??ì¤?..";
+                const { error } = await supabase.from('attendance_records').upsert(toUpsert, { onConflict: 'manager_key' });
+                if (error) {
+                    console.error('Cloud Sync Error:', error);
+                    alert('?€??ì¤??¤ë¥˜ê°€ ë°œìƒ?ˆìŠµ?ˆë‹¤: ' + error.message);
+                } else {
+                    alert(`?±ê³µ?ìœ¼ë¡?${toUpsert.length}ê±´ì„ ?´ë¼?°ë“œ???€?¥í–ˆ?µë‹ˆ??`);
+                }
+                cloudSyncAllBtn.disabled = false;
+                cloudSyncAllBtn.textContent = "?„ì²´ ?°ì´???´ë¼?°ë“œ ?€??;
+            }
+
+            async function fetchAllFromCloud() {
+                if (!supabase) { alert("?œìŠ¤???°ê²° ì¤‘ì…?ˆë‹¤. ? ì‹œ ???œë„??ì£¼ì„¸??"); return; }
+                const start = document.getElementById('report-period-start')?.value;
+                const end = document.getElementById('report-period-end')?.value;
+                if (!start || !end) { alert("ë¶ˆëŸ¬?¤ê¸° ??'ê¸°ê°„ ?¤ì •'???œì‘?¼ê³¼ ì¢…ë£Œ?¼ì„ ?…ë ¥?´ì£¼?¸ìš”."); return; }
+                cloudFetchAllBtn.disabled = true;
+                cloudFetchAllBtn.textContent = "??ë¶ˆëŸ¬?¤ëŠ” ì¤?..";
+                const { data, error } = await supabase.from('attendance_records').select('*').gte('date', start).lte('date', end);
+                if (error) {
+                    console.error('Cloud Fetch Error:', error);
+                    alert('ë¶ˆëŸ¬?¤ê¸° ì¤??¤ë¥˜ê°€ ë°œìƒ?ˆìŠµ?ˆë‹¤: ' + error.message);
+                } else if (data && data.length > 0) {
+                    if (confirm(`?´ë¼?°ë“œ?ì„œ ${data.length}ê±´ì˜ ?°ì´?°ë? ê°€?¸ì™”?µë‹ˆ??\nê¸°ì¡´ ë¡œì»¬ ?˜ì • ?¬í•­????–´?Œì›Œì§????ˆìŠµ?ˆë‹¤. ê³„ì†?˜ì‹œê² ìŠµ?ˆê¹Œ?`)) {
+                        data.forEach(row => {
+                            const key = row.manager_key;
+                            manualCorrections[key] = { in: row.status_in, out: row.status_out, leave: row.status_leave };
+                            manualReasons[key] = row.manager_reason || "";
+                            employeeExplanations[key] = row.employee_explanation || "";
+                            if (row.early_punch_mode) manualEarlyPunches[key] = row.early_punch_mode;
+                            if (!attendanceFilesMap.has('Cloud_Data')) attendanceFilesMap.set('Cloud_Data', []);
+                            const cloudData = attendanceFilesMap.get('Cloud_Data');
+                            const existingIdx = cloudData.findIndex(d => `${d.?´ë¦„}_${d.? ì§œ}` === key);
+                            const newRow = {
+                                "? ì§œ": row.date,
+                                "?´ë¦„": row.name,
+                                "ê·¼ë¬´ì¡?: row.shift,
+                                "ì¶œê·¼": row.in_time,
+                                "?´ê·¼": row.out_time,
+                                "ë¹„ê³ ": row.reason || "" // [ì¶”ê?] ?´ê? ?¬ìœ  ë³µêµ¬
+                            };
+                            if (existingIdx > -1) cloudData[existingIdx] = newRow;
+                            else cloudData.push(newRow);
+                        });
+                        localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                        localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                        localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                        localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
+                        updateAndProcessData();
+                        alert('?´ë¼?°ë“œ ?°ì´?°ë? ?±ê³µ?ìœ¼ë¡?ë¶ˆëŸ¬?”ìŠµ?ˆë‹¤.');
+                    }
+                } else {
+                    alert('?´ë‹¹ ê¸°ê°„???´ë¼?°ë“œ???€?¥ëœ ?°ì´?°ê? ?†ìŠµ?ˆë‹¤.');
+                }
+                cloudFetchAllBtn.disabled = false;
+                cloudFetchAllBtn.textContent = "?´ë¼?°ë“œ ?°ì´??ë¶ˆëŸ¬?¤ê¸°";
+            }
+
+            async function syncEmployeesToCloud() {
+                if (!supabase) { alert("?œìŠ¤???°ê²° ì¤‘ì…?ˆë‹¤. ? ì‹œ ???œë„??ì£¼ì„¸??"); return; }
+
+                const validEmployees = tempEmployeeConfigList.filter(emp => emp.name.trim() !== "");
+                if (validEmployees.length === 0) { alert("?€?¥í•  ?¬ì› ?•ë³´ê°€ ?†ìŠµ?ˆë‹¤."); return; }
+
+                syncEmployeesBtn.disabled = true;
+                syncEmployeesBtn.textContent = "???€??ì¤?..";
+
+                const toUpsert = validEmployees.map(emp => ({
+                    name: normalizeName(emp.name),
+                    org: emp.org,
+                    rank: emp.rank || null,
+                    email: emp.email || null,
+                    join_date: emp.joinDate || null,
+                    leave_date: emp.leaveDate || null,
+                    is_leader: emp.isLeader || false
+                }));
+
+                try {
+                    const { error } = await supabase
+                        .from('employees')
+                        .upsert(toUpsert, { onConflict: 'name' });
+
+                    if (error) throw error;
+
+                    employeeConfigList = [...validEmployees];
+                    localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
+                    updateAndProcessData();
+                    alert("?¬ì› ëª…ë‹¨???´ë¼?°ë“œ???±ê³µ?ìœ¼ë¡??€?¥ë˜ê³?ë¡œì»¬???ìš©?˜ì—ˆ?µë‹ˆ??");
+                } catch (err) {
+                    console.error('Cloud Sync Employees Error:', err);
+                    alert('?´ë¼?°ë“œ ?€??ì¤??¤ë¥˜ê°€ ë°œìƒ?ˆìŠµ?ˆë‹¤: ' + err.message);
+                } finally {
+                    syncEmployeesBtn.disabled = false;
+                    syncEmployeesBtn.textContent = "?´ë¼?°ë“œ ?€??ë°??ìš©";
+                }
+            }
+
+            async function fetchEmployeesFromCloud() {
+                if (!supabase) { alert("?œìŠ¤???°ê²° ì¤‘ì…?ˆë‹¤. ? ì‹œ ???œë„??ì£¼ì„¸??"); return; }
+
+                fetchEmployeesBtn.disabled = true;
+                fetchEmployeesBtn.textContent = "??ë¶ˆëŸ¬?¤ëŠ” ì¤?..";
+
+                try {
+                    const { data, error } = await supabase
+                        .from('employees')
+                        .select('*')
+                        .order('name');
+
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        if (confirm(`?´ë¼?°ë“œ?ì„œ ${data.length}ëª…ì˜ ?¬ì› ?•ë³´ë¥?ê°€?¸ì™”?µë‹ˆ?? ?”ë©´??ë¶ˆëŸ¬?¤ì‹œê² ìŠµ?ˆê¹Œ?\n(?„ì§ ë¡œì»¬???ìš©?˜ì§„ ?Šìœ¼ë©? ?•ì¸ ??'ë¡œì»¬ ?ìš©'???ŒëŸ¬??ìµœì¢… ë°˜ì˜?©ë‹ˆ??`)) {
+                            tempEmployeeConfigList = data.map(row => ({
+                                org: row.org || "",
+                                name: normalizeName(row.name),
+                                rank: row.rank || "",
+                                email: row.email || "",
+                                joinDate: row.join_date || "",
+                                leaveDate: row.leave_date || "",
+                                isLeader: row.is_leader || false
+                            }));
+                            renderEmployeeManager();
+                        }
+                    } else {
+                        alert("?´ë¼?°ë“œ???€?¥ëœ ?¬ì› ?•ë³´ê°€ ?†ìŠµ?ˆë‹¤.");
+                    }
+                } catch (err) {
+                    console.error('Cloud Sync Error:', err);
+                    let msg = err.message;
+                    if (msg.includes("column") && msg.includes("not found")) {
+                        msg = "?¬ì› ?•ë³´ ?Œì´ë¸”ì— ?ˆë¡œ????ª©(email ????ì¶”ê??˜ì? ?Šì•˜?µë‹ˆ?? ê´€ë¦¬ì?ê²Œ ë¬¸ì˜?˜ê±°??SQL ?¤í‚¤ë§ˆë? ?…ë°?´íŠ¸??ì£¼ì„¸??";
+                    }
+                    alert('?´ë¼?°ë“œ ?€??ì¤??¤ë¥˜ê°€ ë°œìƒ?ˆìŠµ?ˆë‹¤: ' + msg);
+                } finally {
+                    fetchEmployeesBtn.disabled = false;
+                    fetchEmployeesBtn.textContent = "?ï¸ ?´ë¼?°ë“œ?ì„œ ë¶ˆëŸ¬?¤ê¸°";
+                }
+            }
+
+            function updateAndProcessData(returnMatrix = false) {
+                if (attendanceFilesMap.size === 0) {
+                    if (currentLeaveData || attendanceFilesMap.has('Cloud_Data')) {
+                        return processMatrixData([], returnMatrix);
+                    } else {
+                        reportContainer.innerHTML = '';
+                        reportContainer.classList.add('hidden');
+                        if (verifyTbody) verifyTbody.innerHTML = '';
+                        return null;
+                    }
+                }
+                const allData = [];
+                attendanceFilesMap.forEach(data => allData.push(...data));
+                return processMatrixData(allData, returnMatrix);
+            }
+
+            function renderFileList(fileMap, listContainer, dropZone) {
+                if (fileMap.size === 0) {
+                    listContainer.innerHTML = '';
+                    dropZone.classList.remove('loaded');
+                    return;
+                }
+                listContainer.innerHTML = Array.from(fileMap.keys())
+                    .map(name => `
+                        <div class="file-item" style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 6px;">
+                            <span class="file-name" style="font-size: 0.85rem; color: var(--text-main);">??${name}</span>
+                            <button class="remove-file-btn" data-name="${name}" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
+                        </div>
+                    `).join('');
+
+                listContainer.querySelectorAll('.remove-file-btn').forEach(btn => {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        const fileName = e.target.getAttribute('data-name');
+                        fileMap.delete(fileName);
+
+                        // ?Œì¼???? œ?????…ë ¥ ?„ë“œ(input)??value??ì´ˆê¸°?”í•˜??
+                        // ?‘ê°™?€ ?Œì¼???¤ì‹œ ?¬ë ¸????change ?´ë²¤?¸ê? ?•ìƒ?ìœ¼ë¡?ë°œìƒ?˜ë„ë¡???                        if (fileMap === attendanceFilesMap && fileInputAttendance) fileInputAttendance.value = '';
+                        if (fileMap === leaveFilesMap && fileInputLeave) fileInputLeave.value = '';
+
+                        renderFileList(fileMap, listContainer, dropZone);
+
+                        // ?´ê? ?°ì´??ê°±ì‹ 
+                        if (fileMap === leaveFilesMap) {
+                            currentLeaveData = [];
+                            leaveFilesMap.forEach(data => currentLeaveData.push(...data));
+                            if (currentLeaveData.length === 0) currentLeaveData = null;
+                        }
+
+                        updateAndProcessData();
+                    };
+                });
+            }
+
+            function handleFiles(files) {
+                let loadedCount = 0;
+                const fileArray = Array.from(files);
+                fileArray.forEach(file => {
+                    if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                        loadedCount++;
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const jsonData = normalizeRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" }));
+
+                        attendanceFilesMap.set(file.name, jsonData);
+                        loadedCount++;
+
+                        if (loadedCount === fileArray.length) {
+                            renderFileList(attendanceFilesMap, fileListAttendance, dropZoneAttendance);
+                            dropZoneAttendance.classList.add('loaded');
+                            updateAndProcessData();
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+            dropZoneAttendance.addEventListener('click', () => fileInputAttendance.click());
+            dropZoneAttendance.addEventListener('dragover', (e) => { e.preventDefault(); dropZoneAttendance.classList.add('dragover'); });
+            dropZoneAttendance.addEventListener('dragleave', () => dropZoneAttendance.classList.remove('dragover'));
+            dropZoneAttendance.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZoneAttendance.classList.remove('dragover');
+                if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+            });
+            fileInputAttendance.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFiles(e.target.files);
+                    // ?Œì¼ ì²˜ë¦¬ê°€ ?ë‚œ ?„ì—??input valueë¥?ì´ˆê¸°?”í•˜ì§€ ?ŠìŒ (?´ë¦„ ?œì‹œë¥??„í•´)
+                    // ?€???? œ ë²„íŠ¼???„ë? ??ì´ˆê¸°?”í•¨
+                }
+            });
+
+            const resetAllDataBtn = document.getElementById('reset-all-data-btn');
+            resetAllDataBtn.addEventListener('click', () => {
+                if (confirm("?•ë§ë¡?ëª¨ë“  ?˜ë™ ì¡°ì¹˜(?•ì¸ ?œì‹œ), ?¬ìœ (ì¡°ì¹˜ ?¬ìœ ), ê·¸ë¦¬ê³?ì§ì› ?Œëª… ?µë????„ë? ?? œ?˜ì‹œê² ìŠµ?ˆê¹Œ?\n(ë¡œì»¬ ?€?¥ì†Œ ?°ì´?°ê? ì´ˆê¸°?”ë©?ˆë‹¤)")) {
+                    manualCorrections = {};
+                    manualReasons = {};
+                    employeeExplanations = {};
+                    localStorage.removeItem('manualCorrections');
+                    localStorage.removeItem('manualReasons');
+                    localStorage.removeItem('employeeExplanations');
+                    localStorage.removeItem('manualEarlyPunches');
+                    manualEarlyPunches = {};
+                    alert("ëª¨ë“  ?°ì´?°ê? ì´ˆê¸°?”ë˜?ˆìŠµ?ˆë‹¤. ?”ë©´???ˆë¡œê³ ì¹¨?˜ê±°???°ì´?°ë? ?¤ì‹œ ë¶„ì„??ì£¼ì„¸??");
+                    updateAndProcessData();
+                }
+            });
+
+            // [NEW] ?Œì¼ 3: ?´ê? ?´ì—­ ì²˜ë¦¬ ?„ìš© ?‹ì—…
+            if (dropZoneLeave && fileInputLeave) {
+                dropZoneLeave.addEventListener('click', () => fileInputLeave.click());
+                dropZoneLeave.addEventListener('dragover', (e) => { e.preventDefault(); dropZoneLeave.classList.add('dragover'); });
+                dropZoneLeave.addEventListener('dragleave', () => dropZoneLeave.classList.remove('dragover'));
+                dropZoneLeave.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZoneLeave.classList.remove('dragover');
+                    if (e.dataTransfer.files.length > 0) handleLeaveFiles(e.dataTransfer.files);
+                });
+                fileInputLeave.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        handleLeaveFiles(e.target.files);
+                    }
+                });
+            }
+
+            function normalizeRows(rawData) {
+                if (!rawData || rawData.length === 0) return rawData;
+
+                const firstRow = rawData[0];
+                const headers = Object.keys(firstRow);
+
+                // [NEW] ë¡œê·¸ ?•íƒœ???°ì´??ì²˜ë¦¬ (ë°œìƒ?œê°, ?´ë¦„ ê¸°ë°˜)
+                if (headers.includes('ë°œìƒ?œê°') && !headers.includes('ì¶œê·¼')) {
+                    const results = [];
+                    rawData.forEach(row => {
+                        const name = normalizeName(row['?´ë¦„']);
+                        const fullTime = String(row['ë°œìƒ?œê°'] || "").trim();
+                        const shift = String(row['ê·¼ë¬´ì¡?] || "").trim();
+                        const status = String(row['?íƒœ'] || "").trim(); // ?íƒœ ?•ì¸
+
+                        if (!name || !fullTime) return;
+
+                        const [date, time] = fullTime.split(' ');
+                        if (date && time) {
+                            let inTimeParam = "";
+                            let outTimeParam = "";
+
+                            if (status.includes('?´ê·¼')) {
+                                outTimeParam = time;
+                            } else if (status.includes('ì¶œê·¼')) {
+                                inTimeParam = time;
+                            } else if (status.includes('ì¶œì…') || status.includes('??)) {
+                                inTimeParam = time;
+                            } else if (status.includes('??)) {
+                                outTimeParam = time;
+                            } else {
+                                inTimeParam = time;
+                            }
+
+                            results.push({
+                                '? ì§œ': date,
+                                '?´ë¦„': name,
+                                'ì¶œê·¼': inTimeParam,
+                                '?´ê·¼': outTimeParam,
+                                'ê·¼ë¬´ì¡?: shift
+                            });
+                        }
+                    });
+                    return results;
+                }
+
+                // ê¸°ì¡´ ??ê¸°ë°˜ ?°ì´??ì²˜ë¦¬ (Matrix Style)
+                const canonicalMap = {};
+                const findAndMap = (canonical, tests) => {
+                    const found = tests.find(t => headers.some(h => t(h)));
+                    if (found) {
+                        const src = headers.find(h => found(h));
+                        if (src && src !== canonical) canonicalMap[src] = canonical;
+                    }
+                };
+
+                findAndMap('? ì§œ', [h => h === '? ì§œ', h => h.includes('? ì§œ') || h.includes('?¼ì')]);
+                findAndMap('?´ë¦„', [h => h === '?´ë¦„', h => h.includes('?´ë¦„') || h.includes('?±ëª…') || h.includes('?¬ì›ëª?)]);
+                findAndMap('ì¶œê·¼', [h => h === 'ì¶œê·¼', h => h === 'ì¶?, h => h.includes('ì¶œê·¼') && (h.includes('?œê°„') || h.includes('?œê°')), h => h.includes('ì¶œì…')]);
+                findAndMap('?´ê·¼', [h => h === '?´ê·¼', h => h === '??, h => h.includes('?´ê·¼') && (h.includes('?œê°„') || h.includes('?œê°'))]);
+                findAndMap('ê·¼ë¬´ì¡?, [h => h === 'ê·¼ë¬´ì¡?, h => h.includes('ê·¼ë¬´ì¡?), h => h === 'ì¡?]);
+
+                // [?˜ì •] ë¹„ê³ (?¬ìœ ) ì»¬ëŸ¼?€ ?¬ëŸ¬ ê³?ë¶€?? ?ˆì™¸ ???ì„œ ?¹ì • ?¤ì›Œ?œë§Œ ì¶”ì¶œ
+                const reasonHeaders = headers.filter(h => ['ë¹„ê³ ', 'ë¶€??, '?ˆì™¸', '?¬ìœ '].some(k => h.includes(k)));
+
+                return rawData.map(row => {
+                    const newRow = Object.assign({}, row);
+                    Object.entries(canonicalMap).forEach(([src, dst]) => {
+                        if (src in newRow && !(dst in newRow)) newRow[dst] = newRow[src];
+                    });
+
+                    // [ì¶”ê?] ê·¼ë¬´ì¡??•ë³´ ?•ê·œ??(ì¶œê·¼ ?œê°„ë§??ˆëŠ” ê²½ìš° +9?œê°„)
+                    if (newRow['ê·¼ë¬´ì¡?]) {
+                        newRow['ê·¼ë¬´ì¡?] = expandShift(newRow['ê·¼ë¬´ì¡?]);
+                    }
+
+                    // [ì¶”ê?] ?¹ì • ?¤ì›Œ???¸ê·¼, ì¡°í‡´, ?ì¼??ë§?ì¶”ì¶œ?˜ì—¬ ë¹„ê³ ë¡??µí•©
+                    let combinedReason = "";
+                    const targetKeywords = [
+                        { key: '?¸ê·¼', label: '?¸ê·¼' },
+                        { key: '?ì¼??, label: '?ì¼' }
+                    ];
+
+                    reasonHeaders.forEach(h => {
+                        const val = String(newRow[h] || "");
+                        targetKeywords.forEach(t => {
+                            if (val.includes(t.key) && !combinedReason.includes(t.label)) {
+                                if (combinedReason) combinedReason += ", ";
+                                combinedReason += t.label;
+                            }
+                        });
+                    });
+                    newRow['ë¹„ê³ '] = combinedReason;
+
+                    return newRow;
+                });
+            }
+
+            function handleFileForSlot(file, slotIndex, dropZone, statusEl) {
+                if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                    alert('?‘ì? ?Œì¼???…ë¡œ?œí•´ì£¼ì„¸??');
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const jsonData = normalizeRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" }));
+
+                    if (slotIndex === 1) currentJsonData1 = jsonData;
+                    else currentJsonData2 = jsonData;
+
+                    dropZone.classList.add('loaded');
+                    if (statusEl) statusEl.textContent = `??${file.name}`;
+
+                    currentJsonData = [...(currentJsonData1 || []), ...(currentJsonData2 || [])];
+                    if (currentJsonData.length > 0) processMatrixData(currentJsonData);
+                };
+                reader.readAsArrayBuffer(file);
+            }
+
+            fileInputAttendance.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handleFiles(e.target.files);
+            });
+
+            if (cloudSyncAllBtn) cloudSyncAllBtn.onclick = syncAllToCloud;
+            if (cloudFetchAllBtn) cloudFetchAllBtn.onclick = fetchAllFromCloud;
+
+            function handleLeaveFiles(files) {
+                let loadedCount = 0;
+                const fileArray = Array.from(files);
+                fileArray.forEach(file => {
+                    if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                        loadedCount++;
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+                        // [Fix]: ?‘ì? ?´ì¥ !ref ë²”ìœ„ê°€ ?˜ëª»?˜ì–´(?? A5:K96) ?ë‹¨ ?¤ë”ê°€ ë¬´ì‹œ?˜ëŠ” ?„ìƒ ë°©ì?. ë¬´ì¡°ê±?A1ë¶€???½ë„ë¡?ê°•ì œ ë²”ìœ„ë¥?ì§€?•í•©?ˆë‹¤.
+                        let range = sheet['!ref'];
+                        if (range) {
+                            const parts = range.split(':');
+                            if (parts.length === 2) {
+                                // ê°•ì œë¡?A1ë¶€???œì‘?˜ë„ë¡??˜ì •
+                                range = 'A1:' + parts[1];
+                            }
+                        }
+
+                        // header: 1ë¡?ê°€?¸ì? ?¤ë”ê°€ ë°€ë¦¬ê±°???†ëŠ” ê²½ìš°?ë„ ? ì—°?˜ê²Œ ?€ì²?                        const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", range: range || undefined });
+
+                        // 1. ?¤ë” ??ì°¾ê¸° (?ìœ„ 10ê°????€??
+                        let bestHeaderIdx = -1;
+                        let maxMatches = 0; // ìµœì†Œ 1ê°??´ìƒ ?¤ì›Œ?œê? ?ˆì–´???¤ë”ë¡??¸ì •
+                        const keyKeywords = ['?´ë¦„', '?±ëª…', '?œì‘', 'ì¢…ë£Œ', '?íƒœ', 'ê²°ì¬'];
+
+                        for (let i = 0; i < Math.min(10, rawData.length); i++) {
+                            const row = rawData[i];
+                            if (!Array.isArray(row)) continue;
+                            const matches = row.filter(v => keyKeywords.some(k => String(v).includes(k))).length;
+                            if (matches > maxMatches) {
+                                maxMatches = matches;
+                                bestHeaderIdx = i;
+                            }
+                        }
+                        const headerRow = bestHeaderIdx !== -1 ? rawData[bestHeaderIdx] : [];
+                        const findColIndex = (keywords) => headerRow.findIndex(v => keywords.some(k => String(v).includes(k)));
+
+                        const nameIdx = findColIndex(['?´ë¦„', '?±ëª…', '?¬ì›ëª?]);
+                        const startIdx = findColIndex(['?´ê? ?œì‘??, '?œì‘??, '?œì‘']);
+                        const endIdx = findColIndex(['?´ê? ì¢…ë£Œ??, 'ì¢…ë£Œ??, 'ì¢…ë£Œ']);
+                        const typeIdx = findColIndex(['??ª©', 'ì¢…ë¥˜', 'êµ¬ë¶„', '?´ê?êµ¬ë¶„']);
+                        const daysIdx = findColIndex(['?¬ìš©?œê°„(??', '?¼ìˆ˜', '?¬ìš©??]);
+                        const statusIdx = findColIndex(['ì²˜ë¦¬?íƒœ', 'ë¬¸ì„œ?íƒœ', 'ê²°ì¬', '?íƒœ', 'ê²°ì¬?íƒœ']);
+
+                        // ?‘ì? ?Œì‹±
+                        const parsedLeaveData = rawData.map((row, rowIndex) => {
+                            if (!Array.isArray(row) || rowIndex <= bestHeaderIdx) return null;
+
+                            const rowValues = row.map(v => String(v).trim());
+
+                            // 2ì¤??„í„°ë§? ?íƒœ ?•ì¸ ë¡œì§ ê°•í™”
+                            let status = (statusIdx !== -1) ? rowValues[statusIdx] : "";
+
+                            // ë§Œì•½ ëª…ì‹œ?ì¸ ?íƒœ ì»¬ëŸ¼???†ì„ ê²½ìš°, ???„ì²´?ì„œ ?íƒœ ?¤ì›Œ?œë? ?´ë¦¬?¤í‹±?¼ë¡œ ì¶”ì¶œ
+                            if (status === "") {
+                                const statusKeywords = ['?¹ì¸', '?„ë£Œ', '?€ê¸?, 'ì·¨ì†Œ', 'ë°˜ë ¤', '?? œ', '?íƒœ'];
+                                const foundStatus = rowValues.find(v => statusKeywords.some(k => v.includes(k)));
+                                if (foundStatus) status = foundStatus;
+                            }
+
+                            if (status !== "") {
+                                // ?íƒœ ì»¬ëŸ¼???ˆì„ ?? '?€ê¸???ê²€ì¦?ëª©ì ?¼ë¡œ ?´ë ¤?ê³ , ì·¨ì†Œ/ë°˜ë ¤/?? œë§??„ì „ ?Œì‹± ?œì™¸
+                                if (status !== "") {
+                                    const isRejected = status.includes("ì·¨ì†Œ") || status.includes("ë°˜ë ¤") || status.includes("?? œ");
+                                    if (isRejected) return null;
+                                }
+
+                                // ëª…ì‹œ?ìœ¼ë¡??¹ì¸/?„ë£Œê°€ ?„ë‹ˆê³? ê¸°í? ?¤ë¥¸ ?ìŠ¤?¸ë¼ë©??¨ìŠ¤?˜ì?ë§? ë³´í†µ ?„ì—??ê±¸ëŸ¬ì§?                            }
+
+                            // 1. ?´ë¦„ ì°¾ê¸°
+                            let rawName = (nameIdx !== -1) ? rowValues[nameIdx] : rowValues.find(v => {
+                                const isHangul = /^[ê°€-??{2,4}$/.test(v);
+                                const isDept = v.endsWith('?€') || v.endsWith('ë¶€') || v.endsWith('ê³?) || v.endsWith('??);
+                                return isHangul && !isDept;
+                            });
+                            let name = normalizeName(rawName);
+
+                            // 2. ?œì‘??ì¢…ë£Œ??ì°¾ê¸°
+                            let start = "";
+                            let end = "";
+
+                            if (startIdx !== -1 && row[startIdx] && rowIndex > bestHeaderIdx) {
+                                start = row[startIdx];
+                                end = (endIdx !== -1 && row[endIdx]) ? row[endIdx] : start;
+                            } else {
+                                // ?¤ë”ë¡?ëª?ì°¾ìœ¼ë©????„ì²´?ì„œ ? ì§œ ?„ë³´????ì°¾ê¸°
+                                const dateCandidates = [];
+                                row.forEach((v, idx) => {
+                                    if (typeof v === 'number' && v > 40000 && v < 60000) dateCandidates.push(v);
+                                    else if (typeof v === 'string' && (/^\d{4}-\d{2}-\d{2}$/.test(v) || /^\d{4}\.\d{2}\.\d{2}$/.test(v))) dateCandidates.push(v);
+                                });
+
+                                if (dateCandidates.length > 0) {
+                                    // ?•ë ¬?˜ì—¬ ê°€??ë¹ ë¥¸ ? ì„ ?œì‘, ê°€????? ? ì„ ì¢…ë£Œë¡?                                    const timeValues = dateCandidates.map(v => (typeof v === 'number') ? v : new Date(v.replace(/\./g, '-')).getTime() / 86400000 + 25569);
+                                    const minIdx = timeValues.indexOf(Math.min(...timeValues));
+                                    const maxIdx = timeValues.indexOf(Math.max(...timeValues));
+                                    start = dateCandidates[minIdx];
+                                    end = dateCandidates[maxIdx];
+                                }
+                            }
+
+                            // 3. ?´ê? ì¢…ë¥˜ ì°¾ê¸°
+                            const typeKeywords = ['?°ì°¨', 'ë°˜ì°¨', '?¤ì „ë°˜ì°¨', '?¤í›„ë°˜ì°¨', 'ì¡°í‡´', '?¸ì¶œ', 'ê²½ì¡°', '?´ê?', 'ê³µê?', 'ë³‘ê?', 'ì²?›', '?€ì²?, '?¬ìƒ', 'ì¶œì¥'];
+                            let type = (typeIdx !== -1) ? rowValues[typeIdx] : "";
+
+                            // ì°¾ì? ?€?…ê°’???¤ì œ ?´ê? ?¤ì›Œ??ì¤??˜ë‚˜ë¥??¬í•¨?˜ëŠ”ì§€ ?•ì¸ (?˜ëª»??ì»¬ëŸ¼ ë°©ì?), ?„ë‹ˆë©??´ë¦¬?¤í‹± ?¬ê???                            if (!typeKeywords.some(k => type.includes(k))) {
+                                const fallbackType = rowValues.find(v => typeKeywords.some(k => v.includes(k)));
+                                if (fallbackType) type = fallbackType;
+                            }
+
+                            // 4. ?¼ìˆ˜ ì°¾ê¸° (ê¸°ë³¸ 1)
+                            let days = 1;
+                            const dayVal = (daysIdx !== -1) ? rowValues[daysIdx] : rowValues.find(v => /^\d+(\.\d+)?$/.test(v) && parseFloat(v) > 0 && parseFloat(v) <= 1.5);
+                            if (dayVal) days = parseFloat(dayVal);
+
+                            if (name && start) {
+                                return {
+                                    name: name,
+                                    start: start,
+                                    end: end,
+                                    type: type,
+                                    days: days,
+                                    status: status, // ?íƒœ ì¶”ê?
+                                    raw: JSON.stringify(row)
+                                };
+                            }
+                            return null;
+                        }).filter(d => d !== null);
+
+                        leaveFilesMap.set(file.name, parsedLeaveData);
+                        loadedCount++;
+
+                        if (loadedCount === fileArray.length) {
+                            currentLeaveData = [];
+                            leaveFilesMap.forEach(data => currentLeaveData.push(...data));
+
+                            renderFileList(leaveFilesMap, fileListLeave, dropZoneLeave);
+                            dropZoneLeave.classList.add('loaded');
+
+                            updateAndProcessData();
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            }
+
+
+            function processMatrixData(rows, returnMatrix = false) {
+                const recordsMap = {};
+                const uniqueDates = new Set();
+
+                // [?˜ë™] ? ì§œ ?¤í”„?‹ì„ ?ìš©??ê°€???°ì´???ì„±
+                const effectiveRows = rows.map(row => {
+                    let jsDate = null;
+                    if (typeof row["? ì§œ"] === 'number') jsDate = new Date(Math.round((row["? ì§œ"] - 25569) * 86400 * 1000));
+                    else if (row["? ì§œ"]) jsDate = new Date(String(row["? ì§œ"]).split(' ')[0]);
+
+                    if (!jsDate || isNaN(jsDate)) return row;
+
+                    const fDate = jsDate.toISOString().split('T')[0];
+                    const name = normalizeName(row["?´ë¦„"]);
+                    const key = `${name}_${fDate}`;
+                    const mode = manualEarlyPunches[key] || "";
+
+                    if (mode === "shift") {
+                        const inTimeRaw = cleanTime(row["ì¶œê·¼"]);
+                        const outTimeRaw = cleanTime(row["?´ê·¼"]);
+
+                        // ?ˆë²½ ?œê°„(06:00 ?´ì „)??ê²½ìš°ë§?? ì§œë¥??œí”„?…í•¨
+                        if ((inTimeRaw && inTimeRaw < '06:00') || (outTimeRaw && outTimeRaw < '06:00')) {
+                            const prevDate = new Date(jsDate);
+                            prevDate.setDate(prevDate.getDate() - 1);
+                            const newRow = Object.assign({}, row);
+                            newRow["? ì§œ"] = prevDate.toISOString().split('T')[0];
+
+                            // [ì¶”ê?] 01:00 -> 25:00 ?•íƒœë¡?ë³€??(24?œê°„ ?©ì‚° ì²˜ë¦¬)
+                            const expandTime = (t) => {
+                                if (t && t < '06:00') {
+                                    const [h, m] = t.split(':');
+                                    return (parseInt(h) + 24) + ":" + m;
+                                }
+                                return t;
+                            };
+                            if (inTimeRaw && inTimeRaw < '06:00') newRow["ì¶œê·¼"] = expandTime(inTimeRaw);
+                            if (outTimeRaw && outTimeRaw < '06:00') newRow["?´ê·¼"] = expandTime(outTimeRaw);
+
+                            return newRow;
+                        }
+                    } else if (mode === "forceIn") {
+                        const inTimeRaw = cleanTime(row["ì¶œê·¼"]);
+                        const outTimeRaw = cleanTime(row["?´ê·¼"]);
+                        if (outTimeRaw && outTimeRaw < '06:00') {
+                            const newRow = Object.assign({}, row);
+                            newRow["ì¶œê·¼"] = outTimeRaw;
+                            newRow["?´ê·¼"] = "";
+                            return newRow;
+                        }
+                    }
+                    return row;
+                });
+
+                effectiveRows.forEach(row => {
+                    let jsDate = null;
+                    if (typeof row["? ì§œ"] === 'number') jsDate = new Date(Math.round((row["? ì§œ"] - 25569) * 86400 * 1000));
+                    else if (row["? ì§œ"]) jsDate = new Date(String(row["? ì§œ"]).split(' ')[0]);
+
+                    if (jsDate && !isNaN(jsDate)) {
+                        const fDate = jsDate.toISOString().split('T')[0];
+                        // ì£¼ë§ ?ëŠ” ê³µíœ´???œì™¸
+                        if (jsDate.getDay() !== 0 && jsDate.getDay() !== 6 && !isHoliday(fDate)) {
+                            const name = normalizeName(row["?´ë¦„"]);
+                            const inTime = cleanTime(row["ì¶œê·¼"]);
+                            const outTime = cleanTime(row["?´ê·¼"]);
+                            let shiftStr = String(row["ê·¼ë¬´ì¡?] || "");
+                            if (name === "ë°•ì£¼??) shiftStr = "0900-1800";
+                            const cloudReason = row["ë¹„ê³ "] || row["reason"] || ""; // [ì¶”ê?] ?´ë¼?°ë“œ ?¬ìœ  ë³µêµ¬
+
+                            // [?˜ì •] ì¶œí‡´ê·?ê¸°ë¡???†ë”?¼ë„ ?¬ìœ (?¼ë°˜ ?´ê? ??ê°€ ?ˆìœ¼ë©??°ì´?°ì— ?¬í•¨
+                            if (name && (inTime || outTime || cloudReason)) {
+                                uniqueDates.add(fDate);
+                                if (!recordsMap[name]) recordsMap[name] = {};
+
+                                const existing = recordsMap[name][fDate] || { inTime: "", outTime: "", shiftStart: "" };
+
+                                const mergedIn = (inTime && (!existing.inTime || inTime < existing.inTime)) ? inTime : existing.inTime;
+                                const mergedOut = (outTime && (!existing.outTime || outTime > existing.outTime)) ? outTime : existing.outTime;
+
+                                let shiftStart = existing.shiftStart;
+                                if (shiftStr.includes('-')) {
+                                    shiftStart = shiftStr.split('-')[0].trim();
+                                }
+
+                                // [ì¶”ê?] ?´ë¼?°ë“œ?ì„œ ë³µêµ¬???¬ìœ ê°€ ?ˆìœ¼ë©??ìš©
+                                const mergedReason = existing.reason || cloudReason;
+
+                                recordsMap[name][fDate] = { inTime: mergedIn, outTime: mergedOut, shiftStart, reason: mergedReason };
+                            }
+                        }
+                    }
+                });
+
+                // [NEW] ?´ê? ?°ì´??ê²°í•© ë¡œì§
+                if (currentLeaveData && currentLeaveData.length > 0) {
+                    currentLeaveData.forEach(lv => {
+                        const name = normalizeName(lv.name);
+                        const startNum = lv.start;
+                        const endNum = lv.end || startNum;
+
+                        if (!name || isNaN(startNum)) return;
+
+                        const getJsDate = (num) => new Date(Math.round((num - 25569) * 86400 * 1000));
+                        const startDate = getJsDate(startNum);
+                        const endDate = getJsDate(endNum);
+
+                        let curDay = new Date(startDate);
+                        while (curDay <= endDate) {
+                            const fDate = curDay.toISOString().split('T')[0];
+
+                            const corrKey = `${name}_${fDate}`;
+                            let corrData = manualCorrections[corrKey];
+                            if (corrData === true) corrData = { in: true, out: true, leave: true };
+                            else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false, leave: false };
+
+                            const status = lv.status || "";
+                            const isManuallyApplied = status.includes("?€ê¸?) && corrData.leave === true;
+
+                            // ê¸°ë³¸ ?¹ì¸ ì¡°ê±´: (ë¹„ì–´?ˆê±°??(?¹ì¸/?„ë£Œ ?¬í•¨ & ?€ê¸?ë°˜ë ¤/ì·¨ì†Œ ?¬í•¨ ?ˆí•¨))
+                            const isDefaultApproved = status === "" || ((status.includes("?¹ì¸") || status.includes("?„ë£Œ")) && !status.includes("?€ê¸?) && !status.includes("ì·¨ì†Œ") && !status.includes("ë°˜ë ¤") && !status.includes("?? œ"));
+                            const isApproved = isDefaultApproved || isManuallyApplied;
+
+                            if (curDay.getDay() !== 0 && curDay.getDay() !== 6 && !isHoliday(fDate) && isApproved) {
+                                uniqueDates.add(fDate);
+
+                                if (!recordsMap[name]) recordsMap[name] = {};
+                                if (!recordsMap[name][fDate]) recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: "" };
+
+                                const type = lv.type || "";
+                                const isHalfDay = lv.days < 1 || type.includes("ë°˜ì°¨");
+                                const raw = lv.raw || "";
+
+                                if (isHalfDay) {
+                                    const rec = recordsMap[name][fDate];
+                                    const actualIn = rec.inTime;
+                                    const shiftStart = rec.shiftStart;
+
+                                    let detectedAM = !raw.includes("?¤í›„"); // ê¸°ë³¸ê°?
+                                    const parseToMin = (t) => {
+                                        if (!t) return null;
+                                        const cleaned = t.replace(':', '').trim();
+                                        if (cleaned.length >= 4) {
+                                            return parseInt(cleaned.substring(0, 2)) * 60 + parseInt(cleaned.substring(2, 4));
+                                        }
+                                        return null;
+                                    };
+
+                                    const inMin = parseToMin(actualIn);
+                                    const outMin = parseToMin(rec.outTime);
+
+                                    // [ê°œì„ ] ì¶œê·¼/?´ê·¼ ?œê°??ëª¨ë‘ ê³ ë ¤?˜ì—¬ ?¤ì „/?¤í›„ ë°˜ì°¨ ?¬ë? ?ë‹¨ (Heuristic)
+                                    if (inMin !== null) {
+                                        // 11???´í›„??ì¶œê·¼?ˆë‹¤ë©??¤ì „ ë°˜ì°¨(?¤ì „???¬ê³  ?¤í›„ ì¶œê·¼)ë¡?ê°„ì£¼
+                                        if (inMin >= 660) detectedAM = true;
+                                        else detectedAM = false;
+                                    } else if (outMin !== null) {
+                                        // 14???´ì „???´ê·¼?ˆë‹¤ë©??¤í›„ ë°˜ì°¨(?¤ì „???¼í•˜ê³??¤í›„ ?´ì‚¬)ë¡?ê°„ì£¼
+                                        if (outMin <= 840) detectedAM = false;
+                                        else detectedAM = true;
+                                    }
+
+                                    if (detectedAM) {
+                                        recordsMap[name][fDate].inTime = "ë°˜ì°¨";
+                                    } else {
+                                        recordsMap[name][fDate].outTime = "ë°˜ì°¨";
+                                    }
+                                } else if (type.includes("?°ì°¨")) {
+                                    recordsMap[name][fDate].inTime = "?°ì°¨";
+                                } else {
+                                    // ?°ì°¨, ë°˜ì°¨ë¥??œì™¸???´ê? ?¬í•­?€ ?¬ìœ ?€?ë§Œ ?…ë ¥ (?¬ìš©???”ì²­: ì¶œí‡´ê·¼ë? ê³µë?)
+                                    let displayType = type;
+                                    if (type.includes("?ì¼??)) displayType = "?ì¼";
+                                    recordsMap[name][fDate].reason = displayType;
+                                }
+                            }
+                            curDay.setDate(curDay.getDate() + 1);
+                        }
+                    });
+                }
+
+                // [NEW] ?˜ë™?¼ë¡œ ?…ë ¥??ì¡°ì¹˜ ?¬ìœ  ë°˜ì˜
+                Object.entries(manualReasons).forEach(([key, reason]) => {
+                    const [name, fDate] = key.split('_');
+                    if (name && fDate && reason) {
+                        if (!recordsMap[name]) recordsMap[name] = {};
+                        if (!recordsMap[name][fDate]) recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: "" };
+                        recordsMap[name][fDate].reason = reason;
+                    }
+                });
+                // [NEW] ê¸°ê°„ ??ëª¨ë“  ?‰ì¼??ê¸°ë³¸ ? ì§œ?‹ìœ¼ë¡?êµ¬ì„± (ê¸°ë¡???˜ë‚˜???†ëŠ” ? ì§œ???´ìƒê·¼íƒœë¡??¡ê¸° ?„í•´)
+                const startInput = document.getElementById('report-period-start');
+                const endInput = document.getElementById('report-period-end');
+                const startBound = startInput ? startInput.value : "";
+                const endBound = endInput ? endInput.value : "";
+
+                if (startBound && endBound) {
+                    let cur = new Date(startBound);
+                    const last = new Date(endBound);
+                    while (cur <= last) {
+                        const fDate = cur.toISOString().split('T')[0];
+                        if (cur.getDay() !== 0 && cur.getDay() !== 6 && !isHoliday(fDate)) {
+                            uniqueDates.add(fDate);
+                        }
+                        cur.setDate(cur.getDate() + 1);
+                    }
+                }
+
+                let sortedDates = Array.from(uniqueDates).sort();
+
+                if (startBound && endBound) {
+                    sortedDates = sortedDates.filter(d => d >= startBound && d <= endBound);
+                }
+
+                currentUniqueDates = new Set(sortedDates); // [ì¶”ê?] ê²€ì¦?ë¡œì§?ì„œ ?¬ìš©?˜ê¸° ?„í•´ ?„ì—­ ë³€?˜ì— ?€??
+                // [?˜ì •] ?…ì‚¬???´ì‚¬??ê¸°ì? ë³´ê³ ???œì™¸ ë¡œì§ ì¶”ê?
+                const manualNames = employeeConfigList
+                    .filter(e => {
+                        // [ì¶”ê?] ?€?œì´???œì™¸ ë¡œì§
+                        if (e.org === "?€?œì´??) return false;
+
+                        // ?…ì‚¬???´ì‚¬???„í„°ë§?                        if (startBound && endBound) {
+                            if (e.joinDate) {
+                                // ?…ì‚¬?¼ì´ ë³´ê³  ì¢…ë£Œ?¼ë³´????œ¼ë©??œì™¸
+                                if (e.joinDate > endBound) return false;
+                            }
+                            if (e.leaveDate) {
+                                // ?´ì‚¬?¼ì´ ë³´ê³  ?œì‘?¼ë³´??ë¹ ë¥´ë©??œì™¸
+                                if (e.leaveDate < startBound) return false;
+                            }
+                        }
+                        return true;
+                    })
+                    .map(e => e.name.trim());
+
+                const finalNames = manualNames.length > 0 ? manualNames : Object.keys(recordsMap).sort();
+
+                const chunks = [];
+                sortedDates.forEach(dt => {
+                    const jsDt = new Date(dt);
+                    const key = `${jsDt.getFullYear()}-${jsDt.getMonth() + 1}-P${jsDt.getDate() <= 15 ? 1 : 2}`;
+                    if (!chunks.length || chunks[chunks.length - 1].key !== key) chunks.push({ key, dates: [] });
+                    chunks[chunks.length - 1].dates.push(dt);
+                });
+
+                // --- ?´ìƒ ê·¼íƒœ ê¸€ë¡œë²Œ ê³„ì‚° (ë²„íŠ¼ ?œì„±???? ---
+                // [?˜ì •] ê¸€ë¡œë²Œ ?Œë˜ê·??€??ê°œë³„ ë§?unconfirmedAnomaliesMap) ?¬ìš©
+                unconfirmedAnomaliesMap = {};
+                if (showAnomaliesHighlight) {
+                    const allData = [];
+                    attendanceFilesMap.forEach(data => allData.push(...data));
+                    const anomalies = calculateAnomalies(allData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
+                    anomalies.forEach(a => {
+                        const corrKey = `${a.name}_${a.date}`;
+                        // ?„í„°ë§ëœ ? ì§œ???¬í•¨?˜ëŠ” ê²½ìš°?ë§Œ ?˜ì´?¼ì´??ë§µì— ì¶”ê?
+                        if (!currentUniqueDates.has(a.date)) return;
+
+                        let corrData = manualCorrections[corrKey];
+                        if (corrData === true) corrData = { in: true, out: true, leave: true };
+                        else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false, leave: false };
+
+                        const hasInAnom = a.inAnom;
+                        const hasOutAnom = a.outAnom;
+                        const isPendingLeave = a.reason && a.reason.includes("?¹ì¸?€ê¸?);
+
+                        if ((hasInAnom && !corrData.in) || (hasOutAnom && !corrData.out) || (isPendingLeave && !corrData.leave)) {
+                            unconfirmedAnomaliesMap[corrKey] = {
+                                in: hasInAnom && !corrData.in,
+                                out: hasOutAnom && !corrData.out,
+                                leave: isPendingLeave && !corrData.leave
+                            };
+                        }
+                    });
+                }
+
+                return renderMatrixReport(chunks.map(c => c.dates), finalNames, recordsMap, returnMatrix);
+            }
+
+            function renderMatrixReport(dateChunks, names, recordsMap, returnMatrix = false) {
+                if (returnMatrix) return { recordsMap, names, uniqueDates: Array.from(currentUniqueDates).sort() };
+                reportContainer.innerHTML = '';
+                const reportDate = reportDateInput.value;
+                const weekdaysMap = ["??, "??, "??, "??, "ëª?, "ê¸?, "??];
+
+                dateChunks.forEach((datesChunk) => {
+                    const chunkStart = datesChunk[0];
+                    const chunkEnd = datesChunk[datesChunk.length - 1];
+
+                    // [ì¶”ê?] ?„ì¬ ë³´ê³  ?˜ì´ì§€(ì²?¬) ê¸°ê°„???¬ì§?˜ì? ?ŠëŠ” ?¬ì›?€ ?´ë‹¹ ?˜ì´ì§€ ëª©ë¡?ì„œ ?œì™¸
+                    const filteredNames = names.filter(name => {
+                        const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
+                        if (!empInfo.name) return true; // ?•ë³´ê°€ ?†ìœ¼ë©??¼ë‹¨ ?œì‹œ
+                        if (empInfo.joinDate && empInfo.joinDate > chunkEnd) return false;
+                        if (empInfo.leaveDate && empInfo.leaveDate < chunkStart) return false;
+                        return true;
+                    });
+
+                    const pageDiv = document.createElement('div');
+                    pageDiv.className = 'report-page';
+                    const refDate = new Date(datesChunk[0]);
+                    const yStr = refDate.getFullYear();
+                    const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
+                    const isP1 = refDate.getDate() <= 15;
+                    const startDay = isP1 ? '01' : '16';
+                    const endDayStr = isP1 ? '15' : String(new Date(yStr, refDate.getMonth() + 1, 0).getDate()).padStart(2, '0');
+                    const autoPeriod = `${yStr}-${mStr}-${startDay} ~ ${yStr}-${mStr}-${endDayStr}`;
+                    const periodText = autoPeriod;
+
+
+                    pageDiv.innerHTML = `
+        <div class="report-header">
+            <h2>ê·¼íƒœ ë³´ê³ ??/h2>
+            <div class="header-rightside">
+                <div class="report-meta">
+                    <div class="meta-item"><span class="meta-label">ë³´ê³ ?¼ì</span><span class="meta-value current-report-date-display"><u>${reportDate}</u></span></div>
+                    <div class="meta-item"><span class="meta-label">ì¢…í•©ê¸°ê°„</span><span class="meta-value"><u>${periodText}</u></span></div>
+                </div>
+                <table class="approval-table">
+                    <tr><th>?´ë‹¹</th><th>ë¶€??/th><th>?„ë¬´</th><th>?€?œì´??/th><th>?Œì¥</th></tr>
+                    <tr><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td></tr>
+                    <tr><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td></tr>
+                </table>
+            </div>
+        </div>
+    `;
+
+                    const table = document.createElement('table');
+                    table.className = 'matrix-table';
+                    let theadHtml = `<thead><tr><th colspan="2" class="sticky-col corner-cell">?¼ì</th>`;
+
+                    // [?˜ì •] ?¤ì œ ?°ì´?°ê? ?ˆëŠ” ? ì§œë§??Œë”ë§í•˜?„ë¡ ë£¨í”„ ë³€ê²?(ë¹????? œ)
+                    datesChunk.forEach(dt => {
+                        const d = new Date(dt);
+                        theadHtml += `<th class="th-dategroup">${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}<br>(${weekdaysMap[d.getDay()]})</th>`;
+                    });
+                    theadHtml += `</tr></thead>`;
+
+                    let tbodyHtml = `<tbody>`;
+                    filteredNames.forEach(name => {
+                        const recs = recordsMap[name] || {};
+                        const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
+
+                        tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name"><strong>${name}</strong></td><td class="sticky-col td-label label-in">ì¶œê·¼</td>`;
+                        datesChunk.forEach(dt => {
+                            const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
+                            const corrKey = `${name}_${dt}`;
+                            let corrData = manualCorrections[corrKey];
+                            if (corrData === true) corrData = { in: true, out: true };
+                            else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
+
+                            const isConfirmedIn = corrData.in === true;
+                            let val = (recs[dt] || {}).inTime || '';
+
+                            let displayVal = val;
+                            if (val !== '?°ì°¨' && val !== 'ë°˜ì°¨' && isConfirmedIn) {
+                                displayVal = val ? val : `??;
+                            }
+
+                            let cls = '';
+                            if (isOutRange) cls = 'not-employed';
+                            else if (val === '?°ì°¨') cls = 'leave-annual';
+                            else if (val === 'ë°˜ì°¨') cls = 'leave-half';
+                            else if (isConfirmedIn) cls = 'confirmed-cell';
+
+                            let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
+                            tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
+                        });
+                        tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">?´ê·¼</td>`;
+                        datesChunk.forEach(dt => {
+                            const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
+                            const corrKey = `${name}_${dt}`;
+                            let corrData = manualCorrections[corrKey];
+                            if (corrData === true) corrData = { in: true, out: true };
+                            else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
+
+                            const isConfirmedOut = corrData.out === true;
+                            let val = (recs[dt] || {}).outTime || '';
+
+                            let displayVal = val;
+                            if (val !== '?°ì°¨' && val !== 'ë°˜ì°¨' && isConfirmedOut) {
+                                displayVal = val ? val : `??;
+                            }
+
+                            let cls = '';
+                            if (isOutRange) cls = 'not-employed';
+                            else if (val === '?°ì°¨') cls = 'leave-annual';
+                            else if (val === 'ë°˜ì°¨') cls = 'leave-half';
+                            else if (isConfirmedOut) cls = 'confirmed-cell';
+
+                            let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
+                            tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
+                        });
+                        tbodyHtml += `</tr><tr class="employee-border-bottom"><td class="sticky-col td-label label-reason">?¬ìœ </td>`;
+                        let r_idx = 0;
+                        while (r_idx < datesChunk.length) {
+                            const dt = datesChunk[r_idx];
+                            const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
+                            const currentReason = isOutRange ? '' : (recs[dt] || {}).reason || '';
+                            let span = 1;
+
+                            // [?˜ì •] ?¬ì§ ê¸°ê°„ ?¸ì¸ ê²½ìš°(isOutRange)???µí•©?˜ì? ?Šê³  ê°œë³„ ?€ë¡?ì¶œë ¥ (?¬ìš©???”ì²­)
+                            if (isOutRange) {
+                                const cls = 'time-cell reason-cell not-employed';
+                                tbodyHtml += `<td class="${cls}">${currentReason}</td>`;
+                                r_idx++;
+                            } else {
+                                // ë¹??¬ìœ ê°€ ?„ë‹ˆê³??°ì†??ê°€ì¹˜ê? ?ˆëŠ” ê²½ìš°) ?¤ìŒ ? ì§œ?¤ê³¼ ?¬ìœ ê°€ ê°™ì?ì§€ ?•ì¸
+                                while (r_idx + span < datesChunk.length) {
+                                    const nextDt = datesChunk[r_idx + span];
+                                    const nextIsOutRange = (empInfo.joinDate && nextDt < empInfo.joinDate) || (empInfo.leaveDate && nextDt > empInfo.leaveDate);
+
+                                    if (nextIsOutRange) break; // ?¤ìŒ ì¹¸ì´ ?¬ì§ ê¸°ê°„ ?¸ë©´ ë³‘í•© ì¤‘ë‹¨
+
+                                    if (currentReason !== '') {
+                                        const nextReason = (recs[nextDt] || {}).reason || '';
+                                        if (nextReason === currentReason) {
+                                            span++;
+                                        } else {
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+
+                                const cls = 'time-cell reason-cell';
+                                if (span > 1) {
+                                    tbodyHtml += `<td class="${cls}" colspan="${span}">${currentReason}</td>`;
+                                    r_idx += span;
+                                } else {
+                                    tbodyHtml += `<td class="${cls}">${currentReason}</td>`;
+                                    r_idx++;
+                                }
+                            }
+                        }
+                        tbodyHtml += `</tr>`;
+                    });
+                    tbodyHtml += `</tbody>`;
+
+                    table.innerHTML = theadHtml + tbodyHtml;
+                    pageDiv.appendChild(table);
+                    reportContainer.appendChild(pageDiv);
+                });
+                reportContainer.classList.remove('hidden');
+            }
+
+            const startInput = document.getElementById('report-period-start');
+            const endInput = document.getElementById('report-period-end');
+
+            // [ì¶”ê?] ë¹ ë¥¸ ê¸°ê°„ ? íƒ ë¡œì§
+            const quickMonthSelect = document.getElementById('quick-month-select');
+            const quickFirstHalfBtn = document.getElementById('quick-first-half-btn');
+            const quickSecondHalfBtn = document.getElementById('quick-second-half-btn');
+
+            if (quickMonthSelect) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                quickMonthSelect.value = `${yyyy}-${mm}`;
+            }
+
+            const triggerDateChange = () => {
+                if (startInput) startInput.dispatchEvent(new Event('change'));
+            };
+
+            if (quickFirstHalfBtn && quickMonthSelect && startInput && endInput) {
+                quickFirstHalfBtn.onclick = () => {
+                    const ym = quickMonthSelect.value;
+                    if (!ym) { alert('ê¸°ì? ?”ì„ ? íƒ?´ì£¼?¸ìš”.'); return; }
+                    startInput.value = `${ym}-01`;
+                    endInput.value = `${ym}-15`;
+                    triggerDateChange();
+                };
+            }
+
+            if (quickSecondHalfBtn && quickMonthSelect && startInput && endInput) {
+                quickSecondHalfBtn.onclick = () => {
+                    const ym = quickMonthSelect.value;
+                    if (!ym) { alert('ê¸°ì? ?”ì„ ? íƒ?´ì£¼?¸ìš”.'); return; }
+                    const [year, month] = ym.split('-');
+                    const lastDay = new Date(year, month, 0).getDate(); // ?´ë‹¹ ?”ì˜ ë§ˆì?ë§?? ì§œ ê³„ì‚°
+                    startInput.value = `${ym}-16`;
+                    endInput.value = `${ym}-${lastDay}`;
+                    triggerDateChange();
+                };
+            }
+
+            if (startInput && endInput) {
+                const handler = () => updateAndProcessData();
+                startInput.addEventListener('change', handler);
+                endInput.addEventListener('change', handler);
+            }
+
+
+            // ----- ê²€ì¦?Verification) ë¡œì§ (ê·¸ë£¹??ë°??¼ê´„ ?•ì¸ ì¶”ê?) -----
+            let selectedAnomalyKeys = new Set();
+            let foldedGroups = new Set();
+            if (verifyBtn) {
+                const groupSelect = document.getElementById('verify-group-select');
+                const bulkConfirmBtn = document.getElementById('bulk-confirm-btn');
+                const allCheckbox = document.getElementById('verify-all-checkbox');
+
+                if (groupSelect) {
+                    groupSelect.onchange = () => {
+                        foldedGroups.clear();
+                        verifyBtn.click();
+                    };
+                }
+
+                if (allCheckbox) {
+                    allCheckbox.onchange = (e) => {
+                        const isChecked = e.target.checked;
+                        const rowCheckboxes = verifyTbody.querySelectorAll('.row-checkbox');
+                        rowCheckboxes.forEach(cb => {
+                            cb.checked = isChecked;
+                            const key = cb.getAttribute('data-key');
+                            if (isChecked) selectedAnomalyKeys.add(key);
+                            else selectedAnomalyKeys.delete(key);
+                        });
+                    };
+                }
+
+                if (bulkConfirmBtn) {
+                    bulkConfirmBtn.onclick = () => {
+                        if (selectedAnomalyKeys.size === 0) {
+                            alert('?•ì¸????ª©??ë¨¼ì? ? íƒ?´ì£¼?¸ìš”.');
+                            return;
+                        }
+                        if (!confirm(`? íƒ??${selectedAnomalyKeys.size}ê±´ì„ ?¼ê´„ ?•ì¸ ì²˜ë¦¬?˜ì‹œê² ìŠµ?ˆê¹Œ?`)) return;
+
+                        selectedAnomalyKeys.forEach(key => {
+                            if (!manualCorrections[key] || typeof manualCorrections[key] !== 'object') {
+                                manualCorrections[key] = { in: false, out: false, leave: false };
+                            }
+                            manualCorrections[key].in = true;
+                            manualCorrections[key].out = true;
+                            manualCorrections[key].leave = true;
+                        });
+
+                        localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                        selectedAnomalyKeys.clear();
+                        if (allCheckbox) allCheckbox.checked = false;
+                        verifyBtn.click();
+                        updateAndProcessData();
+                        alert('?¼ê´„ ?•ì¸ ì²˜ë¦¬ê°€ ?„ë£Œ?˜ì—ˆ?µë‹ˆ??');
+                    };
+                }
+
+                if (bulkUnconfirmBtn) {
+                    bulkUnconfirmBtn.onclick = () => {
+                        if (selectedAnomalyKeys.size === 0) {
+                            alert('?´ì œ????ª©??ë¨¼ì? ? íƒ?´ì£¼?¸ìš”.');
+                            return;
+                        }
+                        if (!confirm(`? íƒ??${selectedAnomalyKeys.size}ê±´ì„ ?¼ê´„ ?•ì¸ ?´ì œ?˜ì‹œê² ìŠµ?ˆê¹Œ?`)) return;
+
+                        selectedAnomalyKeys.forEach(key => {
+                            if (manualCorrections[key]) {
+                                manualCorrections[key] = { in: false, out: false, leave: false };
+                            }
+                        });
+
+                        localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                        selectedAnomalyKeys.clear();
+                        if (allCheckbox) allCheckbox.checked = false;
+                        verifyBtn.click();
+                        updateAndProcessData();
+                        alert('?¼ê´„ ?•ì¸ ?´ì œê°€ ?„ë£Œ?˜ì—ˆ?µë‹ˆ??');
+                    };
+                }
+
+                // [ì¶”ê?] Supabase ?™ê¸°??ë²„íŠ¼ ?¸ë“¤??                if (syncToCloudBtn) {
+                    syncToCloudBtn.onclick = async () => {
+                        if (!supabase) {
+                            alert('Supabase ?¤ì •(URL, Key)???„ìš”?©ë‹ˆ?? ì½”ë“œ ?ë‹¨??SUPABASE_URLê³?SUPABASE_KEYë¥??…ë ¥?´ì£¼?¸ìš”.');
+                            return;
+                        }
+                        if (selectedAnomalyKeys.size === 0) {
+                            alert('?Œëª… ?”ì²­??ë³´ë‚¼ ??ª©??ë¨¼ì? ? íƒ?´ì£¼?¸ìš”.');
+                            return;
+                        }
+
+                        const combinedData = [];
+                        attendanceFilesMap.forEach(data => combinedData.push(...data));
+                        const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
+
+                        const toSync = [];
+                        selectedAnomalyKeys.forEach(key => {
+                            const [name, date] = key.split('_');
+                            const anomaly = anomalies.find(a => a.name === name && (a.originalDate || a.date) === date);
+                            if (anomaly) {
+                                toSync.push({
+                                    manager_key: key,
+                                    name: name,
+                                    date: date,
+                                    reason: anomaly.reason,
+                                    status: 'requested'
+                                });
+                            }
+                        });
+
+                        if (toSync.length === 0) return;
+
+                        if (!confirm(`? íƒ??${toSync.length}ê±´ì„ ì§ì› ?Œëª… ?˜ì´ì§€ë¡??„ì†¡?˜ì‹œê² ìŠµ?ˆê¹Œ?`)) return;
+
+                        const { data, error } = await supabase
+                            .from('attendance_anomalies')
+                            .upsert(toSync, { onConflict: 'manager_key' });
+
+                        if (error) {
+                            console.error('Sync Error:', error);
+                            alert('?„ì†¡ ì¤??¤ë¥˜ê°€ ë°œìƒ?ˆìŠµ?ˆë‹¤: ' + error.message);
+                        } else {
+                            // [ì¶”ê?] ?±ê³µ ??ë°œì†¡ ?íƒœ ì¦‰ì‹œ ?…ë°?´íŠ¸
+                            toSync.forEach(item => sentAnomalyKeys.add(item.manager_key));
+                            localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
+                            verifyBtn.click(); // ?”ë©´ ê°±ì‹ 
+                            alert('? íƒ????ª©???±ê³µ?ìœ¼ë¡??„ì†¡?˜ì—ˆ?µë‹ˆ??');
+                        }
+                    };
+                }
+
+                // [ì¶”ê?] Mailto ë°œì†¡ ?¸ë“¤??                const sendMailtoBtn = document.getElementById('send-mailto-btn');
+                if (sendMailtoBtn) {
+                    sendMailtoBtn.onclick = () => {
+                        if (selectedAnomalyKeys.size === 0) {
+                            alert('ë©”ì¼??ë°œì†¡????ª©??ë¨¼ì? ? íƒ?´ì£¼?¸ìš”.');
+                            return;
+                        }
+
+                        const combinedData = [];
+                        attendanceFilesMap.forEach(data => combinedData.push(...data));
+                        const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
+
+                        const emailGroups = {};
+                        selectedAnomalyKeys.forEach(key => {
+                            const [name, date] = key.split('_');
+                            const anomaly = anomalies.find(a => a.name === name && (a.originalDate || a.date) === date);
+                            const empInfo = employeeConfigList.find(e => e.name === name);
+
+                            if (anomaly && empInfo && empInfo.email) {
+                                if (!emailGroups[name]) {
+                                    emailGroups[name] = { email: empInfo.email, items: [] };
+                                }
+                                emailGroups[name].items.push({ date, reason: anomaly.reason });
+                            }
+                        });
+
+                        const groupedNames = Object.keys(emailGroups);
+                        if (groupedNames.length === 0) {
+                            alert('? íƒ????ª© ì¤??´ë©”???•ë³´ê°€ ?±ë¡???¬ì›???†ìŠµ?ˆë‹¤.');
+                            return;
+                        }
+
+                        // ?€ê¸°ì—´ ë¦¬ìŠ¤???ì„±
+                        mailQueueList.innerHTML = '';
+                        groupedNames.forEach((name, idx) => {
+                            const group = emailGroups[name];
+                            const div = document.createElement('div');
+                            div.style = "display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;";
+
+                            const subject = `[ê·¼íƒœ ?Œëª… ?”ì²­] ${name}?? ê·¼íƒœ ?´ìƒ ?´ì—­ ?ˆë‚´`;
+                            const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
+                            let itemsText = group.items.map(item => `- ${item.date}: ${item.reason}`).join('\n');
+                            const bodyText = `?ˆë…•?˜ì„¸??${name}??\n\n?„ë˜ ? ì§œ?¤ì˜ ê·¼íƒœ ê¸°ë¡???´ìƒ ?¬ìœ ê°€ ë°œìƒ?˜ì—¬ ?Œëª…???„ìš”?©ë‹ˆ??\n?´ì—­???•ì¸?˜ì‹œê³??„ë˜ ?Œëª… ?˜ì´ì§€ ë§í¬???‘ì†?˜ì—¬ ?µë? ë¶€?ë“œë¦½ë‹ˆ??\n\n???Œëª… ?˜ì´ì§€ ë°”ë¡œê°€ê¸?\n${EXPLANATION_PAGE_URL}\n\n[?´ìƒ ?´ì—­ ë¦¬ìŠ¤??\n${itemsText}\n\nê°ì‚¬?©ë‹ˆ??`;
+                            const mailtoUrl = `mailto:${group.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+
+                            div.innerHTML = `
+                                <div style="display: flex; flex-direction: column;">
+                                    <span style="font-weight: 600; font-size: 0.95rem;">${name} <small style="color:#6b7280; font-weight:normal;">(${group.email})</small></span>
+                                    <span style="font-size: 0.8rem; color: #10b981;">?´ì—­ ${group.items.length}ê±?/span>
+                                </div>
+                                <a href="${mailtoUrl}" class="secondary-btn send-item-btn" 
+                                   style="padding: 6px 12px; font-size: 0.85rem; background: #4f46e5; color: white; border: none; text-decoration: none; border-radius: 4px;"
+                                   onclick="this.style.opacity='0.5'; this.innerText='ë°œì†¡??; this.style.pointerEvents='none';">
+                                   ë°œì†¡
+                                </a>
+                            `;
+                            mailQueueList.appendChild(div);
+                        });
+
+                        mailQueueModal.classList.remove('hidden');
+
+                        // [ì¶”ê?] ?¼ê´„ ë°œì†¡(BCC) ?¸ë“¤??                        if (mailBatchBccBtn) {
+                            mailBatchBccBtn.onclick = () => {
+                                const bccList = groupedNames.map(name => emailGroups[name].email).join(',');
+                                const subject = encodeURIComponent(`[?Œë¦¼] ê·¼íƒœ ?´ìƒ ?´ì—­ ?Œëª… ?”ì²­ ?ˆë‚´`);
+                                const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
+
+                                const bodyText = `?ˆë…•?˜ì„¸??\n\nìµœê·¼ ê·¼íƒœ ê¸°ë¡???´ìƒ ?´ì—­??ë°œìƒ??ë¶„ë“¤ê»??ˆë‚´?œë¦½?ˆë‹¤.\n?„ë˜ ë§í¬???Œëª… ?˜ì´ì§€???‘ì†?˜ì—¬ ë³¸ì¸???±ëª…ê³?? ì§œë¥??…ë ¥ ???´ìƒ ?¬ìœ ë¥??•ì¸?˜ì‹œê³??Œëª… ?µë????‘ì„±??ì£¼ì‹œê¸?ë°”ë?ˆë‹¤.\n\n???Œëª… ?˜ì´ì§€ ë°”ë¡œê°€ê¸?\n${EXPLANATION_PAGE_URL}\n\nê°ì‚¬?©ë‹ˆ??`;
+                                const body = encodeURIComponent(bodyText);
+
+                                // ?¨ì? ì°¸ì¡°(bcc)ë¡?ë°œì†¡?˜ì—¬ ?˜ì‹ ??ê°??•ë³´ ?¸ì¶œ ë°©ì?
+                                window.open(`mailto:?bcc=${bccList}&subject=${subject}&body=${body}`, '_blank');
+                                mailQueueModal.classList.add('hidden');
+                            };
+                        }
+                    };
+                }
+
+                if (closeMailQueueBtn) closeMailQueueBtn.onclick = () => mailQueueModal.classList.add('hidden');
+                if (mailQueueDoneBtn) mailQueueDoneBtn.onclick = () => mailQueueModal.classList.add('hidden');
+
+                if (fetchFromCloudBtn) {
+                    fetchFromCloudBtn.onclick = async () => {
+                        if (!supabase) {
+                            alert('Supabase ?¤ì •(URL, Key)???„ìš”?©ë‹ˆ??');
+                            return;
+                        }
+
+                        if (!confirm('ì§ì›?¤ì´ ?…ë ¥???Œëª… ?µë????´ë¼?°ë“œ?ì„œ ê°€?¸ì˜¤?œê² ?µë‹ˆê¹?')) return;
+
+                        const { data, error } = await supabase
+                            .from('attendance_anomalies')
+                            .select('manager_key, explanation');
+
+                        if (error) {
+                            alert('?°ì´?°ë? ê°€?¸ì˜¤??ì¤??¤ë¥˜ê°€ ë°œìƒ?ˆìŠµ?ˆë‹¤: ' + error.message);
+                            return;
+                        }
+
+                        let updateCount = 0;
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                // ëª¨ë“  ?„ì†¡????ëª©ë¡ ?…ë°?´íŠ¸
+                                sentAnomalyKeys.add(item.manager_key);
+                                if (item.explanation) {
+                                    employeeExplanations[item.manager_key] = item.explanation;
+                                    updateCount++;
+                                }
+                            });
+                            localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
+                            localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                            updateAndProcessData();
+                            verifyBtn.click();
+                            alert(`${updateCount}ê±´ì˜ ?Œëª… ?µë????±ê³µ?ìœ¼ë¡?ê°€?¸ì™”?µë‹ˆ??\n(ê²€ì¦?ì°½ì˜ 'ì§ì› ?Œëª…' ?´ì—???•ì¸ ê°€?¥í•©?ˆë‹¤)`);
+                        } else {
+                            alert('ê°€?¸ì˜¬ ?ˆë¡œ???Œëª… ?µë????†ìŠµ?ˆë‹¤.');
+                        }
+                    };
+                }
+
+                const resetAllDataBtn = document.getElementById('reset-all-data-btn');
+                if (resetAllDataBtn) {
+                    resetAllDataBtn.onclick = () => {
+                        if (!confirm('ì£¼ì˜: ëª¨ë“  ?˜ë™ ?•ì¸ ?´ì—­, ?¬ìœ , ì§ì› ?Œëª… ?µë? ë°??„ì†¡ ?íƒœ ê¸°ë¡???? œ?©ë‹ˆ?? ?•ë§ ì´ˆê¸°?”í•˜?œê² ?µë‹ˆê¹?')) return;
+
+                        manualCorrections = {};
+                        manualReasons = {};
+                        employeeExplanations = {};
+                        sentAnomalyKeys.clear();
+                        manualEarlyPunches = {};
+
+                        localStorage.removeItem('manualCorrections');
+                        localStorage.removeItem('manualReasons');
+                        localStorage.removeItem('employeeExplanations');
+                        localStorage.removeItem('sentAnomalyKeys');
+                        localStorage.removeItem('manualEarlyPunches');
+
+                        updateAndProcessData();
+                        verifyBtn.click();
+                        alert('ëª¨ë“  ?°ì´?°ê? ì´ˆê¸°?”ë˜?ˆìŠµ?ˆë‹¤.');
+                    };
+                }
+
+                verifyBtn.addEventListener('click', () => {
+                    const combinedData = [];
+                    attendanceFilesMap.forEach(data => combinedData.push(...data));
+
+                    if (combinedData.length === 0) {
+                        alert('?°ì´?°ë? ë¨¼ì? ?…ë¡œ?œí•´ì£¼ì„¸??');
+                        return;
+                    }
+
+                    const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
+                    const mode = groupSelect ? groupSelect.value : 'none';
+
+                    verifyTbody.innerHTML = '';
+                    if (allCheckbox) allCheckbox.checked = false;
+
+                    if (anomalies.length === 0) {
+                        verifyTbody.parentElement.classList.add('hidden');
+                        verifyEmptyMsg.classList.remove('hidden');
+                    } else {
+                        verifyTbody.parentElement.classList.remove('hidden');
+                        verifyEmptyMsg.classList.add('hidden');
+
+                        // ?°ì´??ê·¸ë£¹??                        let groupedAnomalies = [];
+                        if (mode === 'none') {
+                            groupedAnomalies = [{ groupTitle: null, items: anomalies.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)) }];
+                        } else {
+                            const map = {};
+                            anomalies.forEach(a => {
+                                let gKey = "";
+                                if (mode === 'date') gKey = a.date;
+                                else if (mode === 'name') gKey = a.name;
+                                else if (mode === 'reason') gKey = a.reason.replace(/\s*\(.*\)/, '').trim();
+
+                                if (!map[gKey]) map[gKey] = [];
+                                map[gKey].push(a);
+                            });
+                            Object.keys(map).sort().forEach(k => {
+                                groupedAnomalies.push({ groupTitle: k, items: map[k] });
+                            });
+                        }
+
+                        groupedAnomalies.forEach(group => {
+                            const groupId = group.groupTitle ? `group-${group.groupTitle.replace(/\s+/g, '-')}` : null;
+                            if (group.groupTitle) {
+                                const groupHeader = document.createElement('tr');
+                                groupHeader.className = 'verify-group-header';
+                                groupHeader.style.backgroundColor = '#f3f4f6';
+                                groupHeader.style.fontWeight = 'bold';
+                                groupHeader.style.cursor = 'pointer';
+                                const isGroupFolded = foldedGroups.has(group.groupTitle);
+                                groupHeader.innerHTML = `
+                                    <td style="padding: 8px;"><input type="checkbox" class="group-checkbox" data-group="${group.groupTitle}"></td>
+                                    <td colspan="7" style="padding: 8px; font-size: 0.9rem;">
+                                        <span class="fold-icon" style="margin-right: 8px;">${isGroupFolded ? '?? : '??}</span>
+                                        ${group.groupTitle} (${group.items.length}ê±?
+                                    </td>
+                                `;
+                                verifyTbody.appendChild(groupHeader);
+
+                                // ì²´í¬ë°•ìŠ¤ ?´ë¦­?œëŠ” ?„íŒŒ ì¤‘ì? (?´ë”© ë°©ì?)
+                                groupHeader.querySelector('.group-checkbox').onclick = (e) => e.stopPropagation();
+                                groupHeader.querySelector('.group-checkbox').onchange = (e) => {
+                                    const isChecked = e.target.checked;
+                                    const rowCbs = verifyTbody.querySelectorAll(`.row-checkbox[data-group="${group.groupTitle}"]`);
+                                    rowCbs.forEach(cb => {
+                                        cb.checked = isChecked;
+                                        const k = cb.getAttribute('data-key');
+                                        if (isChecked) selectedAnomalyKeys.add(k);
+                                        else selectedAnomalyKeys.delete(k);
+                                    });
+                                };
+
+                                // ?¤ë” ?´ë¦­???´ë”© ? ê?
+                                groupHeader.onclick = () => {
+                                    const icon = groupHeader.querySelector('.fold-icon');
+                                    const isNowExpanding = icon.textContent === '??;
+                                    icon.textContent = isNowExpanding ? '?? : '??;
+
+                                    if (isNowExpanding) foldedGroups.delete(group.groupTitle);
+                                    else foldedGroups.add(group.groupTitle);
+
+                                    const rows = verifyTbody.querySelectorAll(`tr[data-group-row="${group.groupTitle}"]`);
+                                    rows.forEach(r => r.style.display = isNowExpanding ? '' : 'none');
+                                };
+                            }
+
+                            group.items.forEach(a => {
+                                const tr = document.createElement('tr');
+                                const corrKey = `${a.name}_${a.originalDate || a.date}`;
+
+                                if (!manualCorrections[corrKey] || typeof manualCorrections[corrKey] !== 'object') {
+                                    manualCorrections[corrKey] = (manualCorrections[corrKey] === true) ? { in: true, out: true, leave: true } : { in: false, out: false, leave: false };
+                                }
+                                const corrData = manualCorrections[corrKey];
+                                const hasInAnom = a.inAnom;
+                                const hasOutAnom = a.outAnom;
+                                const isPendingLeave = a.reason.includes("?¹ì¸?€ê¸?);
+
+                                const isFullyConfirmed = (hasInAnom ? corrData.in : true) && (hasOutAnom ? corrData.out : true) && (isPendingLeave ? corrData.leave : true);
+                                const isPartiallyConfirmed = (hasInAnom && corrData.in) || (hasOutAnom && corrData.out) || (isPendingLeave && corrData.leave);
+
+                                if (isFullyConfirmed) tr.classList.add('row-confirmed');
+
+                                const isGroupFolded = foldedGroups.has(group.groupTitle);
+                                tr.style.display = isGroupFolded ? 'none' : '';
+                                tr.setAttribute('data-group-row', group.groupTitle || "");
+                                let groupAttr = group.groupTitle ? `data-group="${group.groupTitle}"` : "";
+
+                                tr.innerHTML = `
+                                    <td><input type="checkbox" class="row-checkbox" data-key="${corrKey}" ${groupAttr} ${selectedAnomalyKeys.has(corrKey) ? 'checked' : ''}></td>
+                                    <td>${a.date}</td>
+                                    <td><strong>${a.name}</strong></td>
+                                    <td>${a.shift}</td>
+                                    <td>${(a.inTime || a.outTime) ? `${a.inTime} ~ ${a.outTime}` : '<span style="color:#999">(ê¸°ë¡ ?†ìŒ)</span>'}</td>
+                                    <td class="anomaly-reason" style="${isFullyConfirmed ? '' : 'color:#ef4444'}">${a.reason}</td>
+                                    <td class="employee-explanation" style="font-size: 0.82rem; color: #4F46E5; background-color: #f0f4ff; border: 1px solid #e0e7ff; border-radius: 4px; padding: 4px; line-height: 1.2;">
+                                        ${employeeExplanations[corrKey] || (sentAnomalyKeys.has(corrKey) ? '<span style="color: #6b7280; font-weight: 500;">???”ì²­??/span>' : '-')}
+                                    </td>
+                                    <td>
+                                        <input type="text" class="manual-reason-input" 
+                                            value="${manualReasons[corrKey] || ''}" 
+                                            placeholder="?¬ìœ  ?…ë ¥..."
+                                            style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem;"
+                                            data-key="${corrKey}">
+                                    </td>
+                                    <td>
+                                        <div class="verify-action-group">
+                                            <button class="confirmation-btn ${isPendingLeave ? (corrData.leave ? 'confirmed' : '') : (isFullyConfirmed || isPartiallyConfirmed ? 'confirmed' : '')}" data-key="${corrKey}">
+                                                ${isPendingLeave ? (corrData.leave ? '???ìš©?? : '?ìš©?˜ê¸°') : (isFullyConfirmed ? '???•ì¸?? : (isPartiallyConfirmed ? '???¼ë??•ì¸' : 'ë¯¸í™•??))}
+                                            </button>
+                                            ${a.hasEarly ? `
+                                                <select class="early-mode-select" data-key="${corrKey}" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.8rem; cursor: pointer;">
+                                                    <option value="" ${(manualEarlyPunches[corrKey] || "") === "" ? 'selected' : ''}>ë¯¸ì²˜ë¦?/option>
+                                                    <option value="shift" ${(manualEarlyPunches[corrKey] || "") === "shift" ? 'selected' : ''}>?„ë‚ ë¡?/option>
+                                                    <option value="forceIn" ${(manualEarlyPunches[corrKey] || "") === "forceIn" ? 'selected' : ''}>ì¶œê·¼?¼ë¡œ</option>
+                                                </select>
+                                            ` : ''}
+                                        </div>
+                                    </td>
+                                `;
+
+                                const cb = tr.querySelector('.row-checkbox');
+                                cb.onchange = (e) => {
+                                    if (e.target.checked) selectedAnomalyKeys.add(corrKey);
+                                    else selectedAnomalyKeys.delete(corrKey);
+                                };
+
+                                const confirmBtn = tr.querySelector('.confirmation-btn');
+                                confirmBtn.onclick = () => {
+                                    const key = confirmBtn.getAttribute('data-key');
+                                    const wasFullyConfirmed = isFullyConfirmed;
+
+                                    if (isPendingLeave) {
+                                        manualCorrections[key].leave = !manualCorrections[key].leave;
+                                    } else {
+                                        if (wasFullyConfirmed) {
+                                            manualCorrections[key].in = false;
+                                            manualCorrections[key].out = false;
+                                        } else {
+                                            if (hasInAnom) manualCorrections[key].in = true;
+                                            if (hasOutAnom) manualCorrections[key].out = true;
+
+                                            // [ì¶”ê?] ?Œëª… ?µë? ?ë™ ?¬ìœ  ë°˜ì˜ ë¡œì§
+                                            const rawExp = employeeExplanations[key];
+                                            if (rawExp) {
+                                                const exps = rawExp.split(',').map(s => s.trim()).filter(s => s);
+                                                if (exps.length === 1) {
+                                                    manualReasons[key] = exps[0];
+                                                } else if (exps.length >= 2) {
+                                                    const abnormalExps = exps.filter(s => s !== '?•ìƒì¶œê·¼' && s !== '?•ìƒ?´ê·¼');
+                                                    if (abnormalExps.length === 0) {
+                                                        manualReasons[key] = '?•ìƒê·¼ë¬´';
+                                                    } else if (abnormalExps.length === 1) {
+                                                        manualReasons[key] = abnormalExps[0];
+                                                    } else {
+                                                        alert('ë³µí•©?ì¸ ?Œëª… ?¬ìœ ê°€ ?ˆìŠµ?ˆë‹¤. ì§ì ‘ ?•ì¸ ???…ë ¥?´ì£¼?¸ìš”.');
+                                                    }
+                                                }
+                                                localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                                            }
+                                        }
+                                    }
+                                    localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                                    verifyBtn.click();
+                                    updateAndProcessData();
+                                };
+
+                                const modeSelect = tr.querySelector('.early-mode-select');
+                                if (modeSelect) {
+                                    modeSelect.onchange = (e) => {
+                                        const key = modeSelect.getAttribute('data-key');
+                                        const val = e.target.value;
+                                        if (val === "") delete manualEarlyPunches[key];
+                                        else manualEarlyPunches[key] = val;
+                                        localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
+                                        verifyBtn.click();
+                                        updateAndProcessData();
+                                    };
+                                }
+
+                                const reasonInput = tr.querySelector('.manual-reason-input');
+                                reasonInput.oninput = (e) => {
+                                    const key = reasonInput.getAttribute('data-key');
+                                    manualReasons[key] = e.target.value;
+                                    localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                                    updateAndProcessData();
+                                };
+
+                                verifyTbody.appendChild(tr);
+                            });
+                        });
+                    }
+                    verifyModal.classList.remove('hidden');
+                });
+            }
+
+            // [ëª¨ë‹¬ ?´ê³  ?«ê¸° ê´€???´ë²¤??
+            window.addEventListener('click', (e) => {
+                // ëª¨ë‹¬??ë°˜íˆ¬ëª?ë°°ê²½ë¶€ë¶?ëª¨ë‹¬ ì»¨í…Œ?´ë„ˆ ?ì²´)???´ë¦­?ˆì„ ?Œë§Œ ?«ê¸°
+                if (e.target === verifyModal) verifyModal.classList.add('hidden');
+                if (e.target === employeeModal) employeeModal.classList.add('hidden');
+                if (e.target === holidayModal) holidayModal.classList.add('hidden');
+            });
+
+            // ê³µí†µ ?´ë²¤??            reportDateInput.addEventListener('change', (e) => {
+                document.querySelectorAll('.current-report-date-display').forEach(el => el.textContent = e.target.value);
+            });
+
+            if (openManagerBtn) {
+                openManagerBtn.addEventListener('click', () => {
+                    tempEmployeeConfigList = JSON.parse(JSON.stringify(employeeConfigList)); // ?¥ì¹´?¼ë¡œ ì´ˆê¸° ?íƒœ ë³µì›
+                    renderEmployeeManager();
+                    employeeModal.classList.remove('hidden');
+                });
+            }
+
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', () => {
+                    employeeModal.classList.add('hidden');
+                });
+            }
+
+            if (saveEmployeeBtn) {
+                saveEmployeeBtn.addEventListener('click', () => {
+                    employeeConfigList = tempEmployeeConfigList.map(e => ({ ...e })); // ?¥ì¹´??ê°œë…?¼ë¡œ ?„ì²´ ?„ë“œ ë³µì‚¬
+                    localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
+                    updateAndProcessData();
+                    alert('ëª…ë‹¨??ë¡œì»¬ ?˜ê²½???€??ë°??ìš©?˜ì—ˆ?µë‹ˆ??');
+                });
+            }
+
+            if (fetchEmployeesBtn) fetchEmployeesBtn.onclick = fetchEmployeesFromCloud;
+            if (syncEmployeesBtn) syncEmployeesBtn.onclick = syncEmployeesToCloud;
+            // ê³µíœ´???´ë²¤??            openHolidayBtn.onclick = () => {
+                tempHolidayConfigList = JSON.parse(JSON.stringify(holidayConfigList));
+                renderHolidayManager();
+                holidayModal.classList.remove('hidden');
+            };
+            closeHolidayModalBtn.onclick = () => holidayModal.classList.add('hidden');
+
+            addHolidayBtn.onclick = () => {
+                const date = newHolidayDateInput.value;
+                if (!date) return;
+                if (tempHolidayConfigList.some(h => h.date === date)) {
+                    alert('?´ë? ?±ë¡??? ì§œ?…ë‹ˆ??');
+                    return;
+                }
+                tempHolidayConfigList.push({ date, name: "?¬ìš©??ì§€?? });
+                renderHolidayManager();
+            };
+
+            autoFetchHolidayBtn.onclick = async () => {
+                const selectedYear = document.getElementById('holiday-year-select').value;
+                if (!selectedYear) return;
+
+                const loader = autoFetchHolidayBtn.querySelector('.loader');
+                const btnText = autoFetchHolidayBtn.querySelector('.btn-text');
+
+                // ë¡œë”© ?œì‹œ
+                loader.classList.remove('hidden');
+                btnText.textContent = `${selectedYear}???°ì´???•ì¸ ì¤?..`;
+                autoFetchHolidayBtn.disabled = true;
+
+                try {
+                    // 1. ?¸ë? ?ê²© ?°ì´???œë„ (hyunbinseo/holidays-kr)
+                    const response = await fetch('https://holidays.hyunbin.page/basic.json');
+                    if (!response.ok) throw new Error('Network response was not ok');
+
+                    const remoteData = await response.json();
+                    const yearData = remoteData[selectedYear];
+                    let fetchedCount = 0;
+
+                    if (yearData) {
+                        Object.entries(yearData).forEach(([date, names]) => {
+                            const name = Array.isArray(names) ? names[0] : names;
+                            if (!tempHolidayConfigList.some(h => h.date === date)) {
+                                tempHolidayConfigList.push({ date, name });
+                                fetchedCount++;
+                            }
+                        });
+                    }
+
+                    if (fetchedCount > 0) {
+                        alert(`${selectedYear}??ê³µíœ´??${fetchedCount}ê±´ì„ ?¸ë??ì„œ ?±ê³µ?ìœ¼ë¡?ê°€?¸ì™”?µë‹ˆ??`);
+                    } else {
+                        // ?¸ë? ?°ì´?°ì— ?´ë‹¹ ?°ë„ê°€ ?†ëŠ” ê²½ìš° ?´ì¥ ?°ì´???œìš© (Fallback)
+                        const internalMatches = PREDEFINED_HOLIDAYS.filter(h => h.date.startsWith(selectedYear));
+                        let internalCount = 0;
+                        internalMatches.forEach(pre => {
+                            if (!tempHolidayConfigList.some(h => h.date === pre.date)) {
+                                tempHolidayConfigList.push(pre);
+                                internalCount++;
+                            }
+                        });
+
+                        if (internalCount > 0) {
+                            alert(`?¸ë? ?œë²„??${selectedYear}???°ì´?°ê? ?†ì–´ ?´ì¥???°ì´?°ë? ?œìš©??${internalCount}ê±´ì„ ì¶”ê??ˆìŠµ?ˆë‹¤.`);
+                        } else {
+                            alert(`${selectedYear}?„ì— ?€??ê³µíœ´???°ì´?°ê? ì½”ë“œ???œë²„??ì¡´ì¬?˜ì? ?ŠìŠµ?ˆë‹¤.`);
+                        }
+                    }
+                    renderHolidayManager();
+                } catch (error) {
+                    console.error('Holiday fetch error:', error);
+                    // ?ëŸ¬ ë°œìƒ ???´ì¥ ?°ì´?°ë¡œ Fallback
+                    const internalMatches = PREDEFINED_HOLIDAYS.filter(h => h.date.startsWith(selectedYear));
+                    let internalCount = 0;
+                    internalMatches.forEach(pre => {
+                        if (!tempHolidayConfigList.some(h => h.date === pre.date)) {
+                            tempHolidayConfigList.push(pre);
+                            internalCount++;
+                        }
+                    });
+
+                    if (internalCount > 0) {
+                        alert(`?¸í„°???°ê²° ?¤ë¥˜ë¡??´ì¥ ?°ì´??${selectedYear}??ë¥?${internalCount}ê±?ë¶ˆëŸ¬?”ìŠµ?ˆë‹¤.`);
+                    } else {
+                        alert('ê³µíœ´???•ë³´ë¥?ê°€?¸ì˜¤ì§€ ëª»í–ˆ?µë‹ˆ?? ?¸í„°???°ê²°???•ì¸?˜ê±°???˜ì¤‘???¤ì‹œ ?œë„?´ì£¼?¸ìš”.');
+                    }
+                    renderHolidayManager();
+                } finally {
+                    loader.classList.add('hidden');
+                    btnText.textContent = 'ê³µíœ´??ê°€?¸ì˜¤ê¸?;
+                    autoFetchHolidayBtn.disabled = false;
+                }
+            };
+
+            saveHolidayBtn.onclick = () => {
+                holidayConfigList = JSON.parse(JSON.stringify(tempHolidayConfigList));
+                localStorage.setItem('holidayConfigList', JSON.stringify(holidayConfigList));
+                holidayModal.classList.add('hidden');
+                updateAndProcessData();
+            };
+
+            closeVerifyBtn.onclick = () => verifyModal.classList.add('hidden');
+            window.onclick = (e) => {
+                if (e.target === employeeModal) employeeModal.classList.add('hidden');
+                if (e.target === verifyModal) verifyModal.classList.add('hidden');
+                if (e.target === holidayModal) holidayModal.classList.add('hidden');
+            };
+            printBtn.onclick = () => window.print();
+        });
+    </script>
 </body>
 
 </html>
