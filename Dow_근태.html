@@ -1547,9 +1547,41 @@ Print Styles (@media print)
             let tempEmployeeConfigList = [];
             let draggedItemIndex = null;
 
+            // 사원 정렬 함수 (기본 적용)
+            function sortEmployees(list) {
+                const rankOrder = {
+                    '대표이사': 1,
+                    '전무': 2,
+                    '부장': 3,
+                    '과장': 4,
+                    '대리': 5,
+                    '선임': 6,
+                    '사원': 7,
+                    '': 99 // 직급 없음
+                };
+
+                return list.sort((a, b) => {
+                    const rankA = rankOrder[a.rank] || 99;
+                    const rankB = rankOrder[b.rank] || 99;
+
+                    if (rankA !== rankB) {
+                        return rankA - rankB;
+                    }
+
+                    // 2순위: 입사일 (빠른 순)
+                    const dateA = a.joinDate || '9999-99-99';
+                    const dateB = b.joinDate || '9999-99-99';
+                    return dateA.localeCompare(dateB);
+                });
+            }
+
             // 사원 관리 UI 렌더링 (드래그 기능 포함)
             function renderEmployeeManager() {
                 if (!employeeListContainer) return;
+                
+                // 정렬 수행
+                sortEmployees(tempEmployeeConfigList);
+                
                 employeeListContainer.innerHTML = '';
 
                 tempEmployeeConfigList.forEach((emp, index) => {
@@ -1620,7 +1652,7 @@ Print Styles (@media print)
                     const rankSelect = document.createElement('select');
                     rankSelect.className = 'rank-select';
                     rankSelect.style.width = '100px';
-                    ['직급 선택', '상무', '부장', '과장', '대리', '선임', '사원'].forEach(val => {
+                    ['직급 선택', '대표이사', '전무', '부장', '과장', '대리', '선임', '사원'].forEach(val => {
                         const opt = document.createElement('option');
                         opt.value = val === '직급 선택' ? '' : val;
                         opt.text = val;
