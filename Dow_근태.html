@@ -962,25 +962,38 @@ Print Styles (@media print)
 
 
 
-        /* [최종수정] 데이터 검증 모달 넓은 고정 크기 유지 (리사이즈 기능 제거) */
-        #verify-modal .modal-content {
+        /* [최종수정] 데이터 검증 및 사원 명단 모달 넓은 고정 크기 유지 */
+        #verify-modal .modal-content,
+        #employee-modal .modal-content {
             width: 1200px !important;
             max-width: 95vw !important;
             height: 80vh !important;
             max-height: 90vh !important;
             display: flex !important;
             flex-direction: column !important;
-            /* resize: both 기능 완전 제거 */
             overflow: hidden !important;
-            /* 바깥 창 스크롤 제거 */
         }
 
-        #verify-modal .modal-content>div:not(.modal-header) {
+        #verify-modal .modal-content>div:not(.modal-header),
+        #employee-modal .modal-content>div:not(.modal-header) {
+            display: flex !important;
+            flex-direction: column !important;
+            padding: 1.5rem !important;
+            height: calc(100% - 60px) !important;
+            overflow: hidden !important;
+        }
+
+        #employee-modal .employee-manager-section {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 1.5rem;
-            height: calc(100% - 60px);
-            overflow: hidden !important;
+            overflow: hidden;
+        }
+
+        #employee-modal .employee-list-container {
+            max-height: none !important;
+            flex: 1;
+            overflow-y: auto !important;
         }
 
         #verify-modal .verify-table-container {
@@ -988,9 +1001,7 @@ Print Styles (@media print)
             height: 100% !important;
             flex: 1;
             overflow-y: auto !important;
-            /* 테이블 영역만 깔끔하게 상하 스크롤 */
             overflow-x: auto !important;
-            /* 가로 스크롤 허용 */
         }
 
         /* 표 내부 글자들이 너무 좁아 찌그러지지 않도록 튼튼하게 보호 */
@@ -1146,7 +1157,7 @@ Print Styles (@media print)
 
     <!-- Employee Manager Modal -->
     <div id="employee-modal" class="modal hidden no-print">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2>사원 명단 관리</h2>
                 <div style="display: flex; gap: 8px;">
@@ -1193,7 +1204,7 @@ Print Styles (@media print)
 
     <!-- Verification Modal -->
     <div id="verify-modal" class="modal hidden no-print">
-        <div class="modal-content" style="max-width: 650px;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h2>근태 데이터 검증 결과</h2>
                 <div style="display: flex; gap: 8px; align-items: center;">
@@ -1967,8 +1978,12 @@ Print Styles (@media print)
                         alert("클라우드에 저장된 사원 정보가 없습니다.");
                     }
                 } catch (err) {
-                    console.error('Cloud Fetch Employees Error:', err);
-                    alert('클라우드 불러오기 중 오류가 발생했습니다: ' + err.message);
+                    console.error('Cloud Sync Error:', err);
+                    let msg = err.message;
+                    if (msg.includes("column") && msg.includes("not found")) {
+                        msg = "사원 정보 테이블에 새로운 항목(email 등)이 추가되지 않았습니다. 관리자에게 문의하거나 SQL 스키마를 업데이트해 주세요.";
+                    }
+                    alert('클라우드 저장 중 오류가 발생했습니다: ' + msg);
                 } finally {
                     fetchEmployeesBtn.disabled = false;
                     fetchEmployeesBtn.textContent = "☁️ 클라우드에서 불러오기";
