@@ -2575,7 +2575,28 @@ Print Styles (@media print)
                 }
 
                 currentUniqueDates = new Set(sortedDates); // [추가] 검증 로직에서 사용하기 위해 전역 변수에 저장
-                const manualNames = employeeConfigList.map(e => e.name.trim()).filter(n => n.length > 0);
+
+                // [수정] 입사일/퇴사일 기준 보고서 제외 로직 추가
+                const manualNames = employeeConfigList
+                    .filter(e => {
+                        const name = e.name.trim();
+                        if (name.length === 0) return false;
+
+                        // 입사일/퇴사일 필터링
+                        if (startBound && endBound) {
+                            if (e.joinDate) {
+                                // 입사일이 보고 종료일보다 늦으면 제외
+                                if (e.joinDate > endBound) return false;
+                            }
+                            if (e.leaveDate) {
+                                // 퇴사일이 보고 시작일보다 빠르면 제외
+                                if (e.leaveDate < startBound) return false;
+                            }
+                        }
+                        return true;
+                    })
+                    .map(e => e.name.trim());
+
                 const finalNames = manualNames.length > 0 ? manualNames : Object.keys(recordsMap).sort();
 
                 const chunks = [];
