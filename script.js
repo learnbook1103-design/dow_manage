@@ -155,7 +155,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        if (toUpsert.length === 0) return;
+        if (toUpsert.length === 0) {
+            console.log('Sync skipped: No data to upsert.');
+            return;
+        }
+
+        console.log(`Syncing ${toUpsert.length} records to Supabase...`, toUpsert.slice(0, 3));
 
         const { error } = await supabase
             .from('attendance_records')
@@ -596,7 +601,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .join('');
                     dropZoneAttendance.classList.add('loaded');
                     const matrix = updateAndProcessData(true);
-                    
+
                     // [추가] 클라우드 자동 저장 및 데이터 동기화
                     fileArray.forEach(f => uploadFileToStorage(f, 'attendance'));
                     await autoSyncToCloud(matrix);
@@ -637,12 +642,21 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!rawData || rawData.length === 0) return rawData;
 
         const firstRow = rawData[0];
-        const headers = Object.keys(firstRow);
+        const headers = Object.keys(firstRow).map(h => String(h).trim());
+
+        // Create a cleaned row map to use trimmed headers
+        const cleanedRawData = rawData.map(row => {
+            const newRow = {};
+            Object.keys(row).forEach(k => {
+                newRow[String(k).trim()] = row[k];
+            });
+            return newRow;
+        });
 
         // [NEW] 로그 형태의 데이터 처리 (발생시각, 이름 기반)
         if (headers.includes('발생시각') && !headers.includes('출근')) {
             const results = [];
-            rawData.forEach(row => {
+            cleanedRawData.forEach(row => {
                 const name = String(row['이름'] || "").trim();
                 const fullTime = String(row['발생시각'] || "").trim();
                 const shift = String(row['근무조'] || "").trim();
@@ -691,15 +705,19 @@ document.addEventListener('DOMContentLoaded', () => {
         findAndMap('출근', [h => h === '출근', h => h === '출', h => h.includes('출근') && (h.includes('시간') || h.includes('시각')), h => h.includes('출근(지문)')]);
         findAndMap('퇴근', [h => h === '퇴근', h => h === '퇴', h => h.includes('퇴근') && (h.includes('시간') || h.includes('시각')), h => h.includes('퇴근(지문)')]);
         findAndMap('근무조', [h => h === '근무조', h => h.includes('근무조'), h => h === '조']);
+        findAndMap('비고', [h => h === '비고', h => h === '사유', h => h === '예외', h => h === '부재', h => h === '항목', h => h === '구분']);
 
         // [추가] '출입(지문)' 컬럼 처리
         const fingerprintEnterKey = headers.find(h => h.includes('출입(지문)'));
 
-        return rawData.map(row => {
+        return cleanedRawData.map(row => {
             const newRow = Object.assign({}, row);
             Object.entries(canonicalMap).forEach(([src, dst]) => {
                 if (src in newRow && !(dst in newRow)) newRow[dst] = newRow[src];
             });
+            // '비고'를 'reason'으로도 보장
+            if (newRow['비고'] && !newRow['reason']) newRow['reason'] = newRow['비고'];
+
             // '출입(지문)' 보조 처리: 출근이 비어있을 때만 지문 기록으로 채워줌
             if (fingerprintEnterKey && row[fingerprintEnterKey]) {
                 if (!newRow['출근']) newRow['출근'] = row[fingerprintEnterKey];
@@ -728,7 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
             currentJsonData = [...(currentJsonData1 || []), ...(currentJsonData2 || [])];
             if (currentJsonData.length > 0) {
                 const matrix = updateAndProcessData(true);
-                
+
                 // [추가] 클라우드 자동 저장 및 데이터 동기화
                 uploadFileToStorage(file, 'attendance');
                 await autoSyncToCloud(matrix);
@@ -865,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (attendanceFilesMap.size > 0 || (currentJsonData && currentJsonData.length > 0)) {
                 const matrix = updateAndProcessData(true);
-                
+
                 // [추가] 클라우드 자동 저장 및 데이터 동기화
                 uploadFileToStorage(file, 'leave');
                 await autoSyncToCloud(matrix);
