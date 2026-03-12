@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Dow 근태 보고??/title>
+    <title> Dow 근태 보고서</title>
     <!-- Use a modern Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Supabase Client Library -->
@@ -68,16 +68,16 @@
         .drop-zone-container {
             display: flex;
             gap: 1.5rem;
-            /* 간격 ?�짝 ?�힘 */
+            /* 간격 살짝 넓힘 */
             margin-bottom: 1.5rem;
             align-items: stretch;
-            /* [추�?] ??카드???�이�??�같??맞춤 */
+            /* [추가] 두 카드의 높이를 똑같이 맞춤 */
         }
 
-        /* [추�?] ?�로??카드 ?�체�?flex 컨테?�너�?만들???��? ?�소 ?�장 */
+        /* [추가] 업로드 카드 자체를 flex 컨테이너로 만들어 내부 요소 확장 */
         .upload-card {
             flex: 1;
-            /* [추�?] ??카드가 ?�일???�비�?가�?*/
+            /* [추가] 두 카드가 동일한 너비를 가짐 */
             display: flex;
             flex-direction: column;
         }
@@ -91,7 +91,7 @@
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             flex: 1;
-            /* [?��?] 카드 ?�에???��? ?�이�?모두 차�???*/
+            /* [유지] 카드 내에서 남은 높이를 모두 차지함 */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -300,16 +300,16 @@
         .modal-content {
             background: white;
             padding: 0;
-            /* [변�? ?�용???�누�??�해 ?�딩 ?�거 */
+            /* [변경] 내용을 나누기 위해 패딩 제거 */
             border-radius: 12px;
             width: 90%;
             max-width: 500px;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
             overflow: hidden;
-            /* [추�?] ?�더 배경?�이 ?�근 모서리�? ?��? ?�도�?*/
+            /* [추가] 헤더 배경색이 둥근 모서리를 넘지 않도록 */
         }
 
-        /* [추�?] ?�원 명단 모달?� ???�게 */
+        /* [추가] 사원 명단 모달은 더 크게 */
         #employee-modal .modal-content {
             max-width: 1200px;
         }
@@ -319,14 +319,14 @@
             justify-content: space-between;
             align-items: center;
             background-color: #f1f5f9;
-            /* [추�?] ?�더 배경?�으�??�래�??�역 강조 */
+            /* [추가] 헤더 배경색으로 드래그 영역 강조 */
             padding: 1rem 1.5rem;
-            /* [추�?] ?�더 ?��? ?�딩 */
+            /* [추가] 헤더 내부 패딩 */
             border-bottom: 1px solid #e2e8f0;
-            /* [추�?] 구분??*/
+            /* [추가] 구분선 */
             margin-bottom: 0;
             cursor: grab;
-            /* [추�?] ?�래�?가???�들 ?�시 */
+            /* [추가] 드래그 가능 핸들 표시 */
         }
 
         .modal-header:active {
@@ -352,7 +352,7 @@
             color: var(--text-main);
         }
 
-        /* [추�?] 모달 ?��? 본문 ?�딩 처리 */
+        /* [추가] 모달 내부 본문 패딩 처리 */
         .employee-manager-section,
         .holiday-manager-section,
         #verify-modal .modal-content>div:not(.modal-header) {
@@ -387,17 +387,17 @@
             cursor: grab;
             transition: background-color 0.2s, border 0.2s;
             border: 1px solid transparent;
-            /* ?�치 보정??*/
+            /* 위치 보정용 */
         }
 
-        /* [추�?] ?�래�?중인 ???�과 */
+        /* [추가] 드래그 중인 행 효과 */
         .employee-row.dragging {
             opacity: 0.5;
             background-color: #e0e7ff;
             border: 1px dashed var(--primary);
         }
 
-        /* [추�?] ?�래�???마우?��? ?�치??곳에 지?�선 ?�시 */
+        /* [추가] 드래그 시 마우스가 위치한 곳에 지시선 표시 */
         .employee-row.dragover {
             border-top: 3px solid var(--primary) !important;
             background-color: #f0f4ff;
@@ -413,7 +413,7 @@
             outline: none;
             background-color: white;
             flex: none;
-            /* [변�? 고정 ?�비 ?�용???�해 flex: 1 ?�거 */
+            /* [변경] 고정 너비 사용을 위해 flex: 1 제거 */
         }
 
         .employee-row input:focus,
@@ -625,42 +625,42 @@ Report Layout / Matrix View Layout
             width: 30px;
             font-size: 0.55rem;
             font-weight: bold;
-            /* [?�정] 볼드�??�용 */
+            /* [수정] 볼드체 적용 */
             border-right: 2px solid var(--border-dark);
         }
 
         .label-in,
         .label-out {
             background-color: #4b5563 !important;
-            /* [?�정] 짙�? ?�색 */
+            /* [수정] 짙은 회색 */
             color: white !important;
-            /* ?�비�? ?�해 ?�색 글??*/
+            /* 대비를 위해 흰색 글자 */
         }
 
         .label-reason {
             background-color: #e5e7eb !important;
-            /* [?�정] ?��? ?�색 */
+            /* [수정] 옅은 회색 */
             color: #374151 !important;
         }
 
-        /* [추�?] ?��? 가?�성 ?�보�??�한 배경??*/
+        /* [추가] 휴가 가시성 확보를 위한 배경색 */
         .leave-annual {
             background-color: #4ade80 !important;
-            /* 초록??*/
+            /* 초록색 */
             color: #ffffff !important;
             font-weight: bold;
         }
 
         .leave-half {
             background-color: #fb923c !important;
-            /* 주황??*/
+            /* 주황색 */
             color: #ffffff !important;
             font-weight: bold;
         }
 
         .not-employed {
             background-color: #94a3b8 !important;
-            /* ?�레?�트 ?�색 */
+            /* 슬레이트 회색 */
             color: transparent !important;
         }
 
@@ -671,7 +671,7 @@ Report Layout / Matrix View Layout
             border-right: 2px solid var(--border-dark);
         }
 
-        /* --- ?�두�??�거 �?구분???�심 로직 --- */
+        /* --- 테두리 제거 및 구분선 핵심 로직 --- */
 
         .verify-action-group {
             display: flex;
@@ -725,7 +725,7 @@ Report Layout / Matrix View Layout
             font-weight: bold;
         }
 
-        /* 1. 출근?�과 ?�근?�의 ?�단 ?�두리�? ?�거 (internal-row) */
+        /* 1. 출근행과 퇴근행의 하단 테두리를 제거 (internal-row) */
         .matrix-table tbody tr.internal-row td {
             border-bottom: none !important;
         }
@@ -734,12 +734,12 @@ Report Layout / Matrix View Layout
             border-top: none !important;
         }
 
-        /* 2. ?�름 �?td-name)?� 3??병합?��?�??�단 ?�두리�? ?�어???�음 ?�람�?구분??*/
+        /* 2. 이름 칸(td-name)은 3행 병합이므로 하단 테두리가 있어야 다음 사람과 구분됨 */
         .matrix-table td.td-name {
             border-bottom: 1px solid var(--border-dark) !important;
         }
 
-        /* 3. ?�유???�단??굵�? 구분??추�? (직원 ?�위 구분) */
+        /* 3. 사유행 하단에 굵은 구분선 추가 (직원 단위 구분) */
         .employee-border-bottom td {
             border-bottom: 1px solid var(--border-dark) !important;
         }
@@ -909,7 +909,7 @@ Print Styles (@media print)
                 page-break-after: auto;
             }
 
-            /* ?�쇄 ???�두�?강제 ?�정 */
+            /* 인쇄 시 테두리 강제 설정 */
             .matrix-table {
                 border-bottom: 1px solid #333 !important;
             }
@@ -923,7 +923,7 @@ Print Styles (@media print)
                 print-color-adjust: exact;
             }
 
-            /* ?�쇄 ?�에??출근/?�근???�이 ?�두�??�거 ?��? */
+            /* 인쇄 시에도 출근/퇴근행 사이 테두리 제거 유지 */
             .matrix-table tbody tr.internal-row td {
                 border-bottom: none !important;
             }
@@ -932,7 +932,7 @@ Print Styles (@media print)
                 border-top: none !important;
             }
 
-            /* ?�쇄 ???�름 �??�단 ?�두�??��? */
+            /* 인쇄 시 이름 칸 하단 테두리 유지 */
             .matrix-table td.td-name {
                 border-bottom: 1px solid #333 !important;
             }
@@ -970,7 +970,7 @@ Print Styles (@media print)
 
 
 
-        /* [최종?�정] ?�이??검�?�??�원 명단 모달 ?��? 고정 ?�기 ?��? */
+        /* [최종수정] 데이터 검증 및 사원 명단 모달 넓은 고정 크기 유지 */
         #verify-modal .modal-content,
         #employee-modal .modal-content {
             width: 1200px !important;
@@ -1012,7 +1012,7 @@ Print Styles (@media print)
             overflow-x: auto !important;
         }
 
-        /* ???��? 글?�들???�무 좁아 찌그?��?지 ?�도�??�튼?�게 보호 */
+        /* 표 내부 글자들이 너무 좁아 찌그러지지 않도록 튼튼하게 보호 */
         .verify-table {
             width: 100%;
             table-layout: auto;
@@ -1047,41 +1047,41 @@ Print Styles (@media print)
 <body>
     <div id="ui-container" class="no-print">
         <header>
-            <h1>DOW 근태 보고??/h1>
-            <p>출퇴�??��? ?�이?��? ?�려 ?�리미엄 매트�?�� 보고?��? 만들??보세??</p>
+            <h1>DOW 근태 보고서</h1>
+            <p>출퇴근 엑셀 데이터를 올려 프리미엄 매트릭스 보고서를 만들어 보세요.</p>
         </header>
 
         <main>
             <div class="drop-zone-container">
-                <!-- 출퇴�?기록 ?�합 ?�로??-->
+                <!-- 출퇴근 기록 통합 업로드 -->
                 <div class="upload-card">
                     <div class="card-header">
                         <div class="step-badge">1</div>
-                        <div class="step-title">출퇴�?기록 (?�러 �?가??</div>
+                        <div class="step-title">출퇴근 기록 (여러 개 가능)</div>
                     </div>
                     <div id="drop-zone-attendance" class="drop-zone">
-                        <div class="drop-text">출퇴�??��? ?�일?�을 ?�래그하거나 ?�릭?�여 ?�로??/div>
-                        <div class="drop-subtext">?�러 ?�일????번에 ?�릴 ???�습?�다</div>
+                        <div class="drop-text">출퇴근 엑셀 파일들을 드래그하거나 클릭하여 업로드</div>
+                        <div class="drop-subtext">여러 파일을 한 번에 올릴 수 있습니다</div>
                         <input type="file" id="file-input-attendance" accept=".xlsx, .xls, .csv" multiple hidden>
                     </div>
                     <div id="file-list-attendance" class="file-list">
-                        <!-- ?�로?�된 ?�일 목록 ?�시 -->
+                        <!-- 업로드된 파일 목록 표시 -->
                     </div>
                 </div>
 
-                <!-- ?��?/?�차 ?�역 ?�로??-->
+                <!-- 휴가/연차 내역 업로드 -->
                 <div class="upload-card">
                     <div class="card-header">
                         <div class="step-badge">2</div>
-                        <div class="step-title">?��?/?�차 ?�역</div>
+                        <div class="step-title">휴가/연차 내역</div>
                     </div>
                     <div id="drop-zone-leave" class="drop-zone">
-                        <div class="drop-text">?��? ?�용 ?�역 ?��? ?�로??/div>
-                        <div class="drop-subtext">?�러 ?�일????번에 ?�릴 ???�습?�다</div>
+                        <div class="drop-text">휴가 사용 내역 엑셀 업로드</div>
+                        <div class="drop-subtext">여러 파일을 한 번에 올릴 수 있습니다</div>
                         <input type="file" id="file-input-leave" accept=".xlsx, .xls, .csv" multiple hidden>
                     </div>
                     <div id="file-list-leave" class="file-list">
-                        <!-- ?�로?�된 ?�일 목록 ?�시 -->
+                        <!-- 업로드된 파일 목록 표시 -->
                     </div>
                 </div>
             </div>
@@ -1094,28 +1094,28 @@ Print Styles (@media print)
                             style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1; min-width: 0;">
                         <button id="quick-first-half-btn" type="button"
                             style="padding: 0.45rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;">
-                            ?�반??1~15)
+                            상반월(1~15)
                         </button>
                         <button id="quick-second-half-btn" type="button"
                             style="padding: 0.45rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;">
-                            ?�반??16~�?
+                            하반월(16~말)
                         </button>
                     </div>
 
                     <!-- Date Inputs Group -->
                     <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <label for="report-date-input" style="min-width: 60px; font-weight: 500;">보고?�자</label>
+                            <label for="report-date-input" style="min-width: 60px; font-weight: 500;">보고일자</label>
                             <input type="date" id="report-date-input" max="9999-12-31"
                                 style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <label for="report-period-start" style="min-width: 60px; font-weight: 500;">?�작?�자</label>
+                            <label for="report-period-start" style="min-width: 60px; font-weight: 500;">시작일자</label>
                             <input type="date" id="report-period-start" max="9999-12-31"
                                 style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <label for="report-period-end" style="min-width: 60px; font-weight: 500;">종료?�자</label>
+                            <label for="report-period-end" style="min-width: 60px; font-weight: 500;">종료일자</label>
                             <input type="date" id="report-period-end" max="9999-12-31"
                                 style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
                         </div>
@@ -1124,32 +1124,35 @@ Print Styles (@media print)
                 <div class="middle-controls">
                     <div class="settings-group">
                         <button id="open-manager-btn" class="secondary-btn">
-                            ?�원 명단
+                            사원 명단
                         </button>
                         <button id="open-holiday-btn" class="secondary-btn"
                             style="color: #6366f1; background: #f5f3ff; border-color: #ddd6fe;">
-                            공휴???�정
+                            공휴일 설정
                         </button>
                         <button id="highlight-anomaly-btn" class="secondary-btn"
                             style="color: #e11d48; background: #fff1f2; border-color: #fecdd3;">
-                            ?�상 근태 ?�시
+                            이상 근태 표시
                         </button>
                     </div>
                     <button id="verify-data-btn" class="secondary-btn"
                         style="color: #f97316; background: #fff7ed; border-color: #fed7aa; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
-                        ?�이??검�?                    </button>
+                        데이터 검증
+                    </button>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                     <button id="cloud-sync-all-btn" class="primary-btn"
                         style="background-color: #059669; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                        ?�체 ?�이???�라?�드 ?�??                    </button>
+                        전체 데이터 클라우드 저장
+                    </button>
                     <button id="cloud-fetch-all-btn" class="primary-btn"
                         style="background-color: #0d9488; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                        ?�라?�드 ?�이??불러?�기
+                        클라우드 데이터 불러오기
                     </button>
                     <button id="print-btn" class="primary-btn"
                         style="background-color: #0d5e94; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                        보고???�쇄 �?PDF ?�??                    </button>
+                        보고서 인쇄 및 PDF 저장
+                    </button>
                 </div>
             </div>
         </main>
@@ -1164,19 +1167,20 @@ Print Styles (@media print)
     <div id="employee-modal" class="modal hidden no-print">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>?�원 명단 관�?/h2>
+                <h2>사원 명단 관리</h2>
                 <div style="display: flex; gap: 8px;">
                     <button id="fetch-employees-btn" class="secondary-btn"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
-                        ?�️ ?�라?�드 불러?�기
+                        ☁️ 클라우드 불러오기
                     </button>
                     <input type="file" id="upload-employee-file" accept=".xlsx,.xls,.csv" style="display: none;">
                     <button id="upload-employee-btn" class="secondary-btn" type="button"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #3b82f6; color: #3b82f6; background: #eff6ff;">
-                        ?�� ?��? ?�로??                    </button>
+                        📁 엑셀 업로드
+                    </button>
                     <button id="add-employee-btn" class="secondary-btn" type="button"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f5f3ff;">
-                        + ?�원 추�?
+                        + 사원 추가
                     </button>
                     <button id="close-modal-btn" class="close-btn" style="margin-left: 8px;">&times;</button>
                 </div>
@@ -1185,12 +1189,12 @@ Print Styles (@media print)
                 <div style="display: flex; align-items: center; margin-bottom: 0.5rem; padding: 0 13px;">
                     <div style="font-size: 0.8rem; color: #6b7280; display: flex; gap: 8px; width: 100%;">
                         <span style="flex: 0 0 120px;">조직</span>
-                        <span style="flex: 0 0 100px;">?�원�?/span>
+                        <span style="flex: 0 0 100px;">사원명</span>
                         <span style="flex: 0 0 100px;">직급</span>
-                        <span style="flex: 1 1 150px;">?�메??/span>
-                        <span style="flex: 0 0 130px;">?�사??/span>
-                        <span style="flex: 0 0 130px;">?�사??/span>
-                        <span style="flex: 0 0 60px; text-align: center;">?�??/span>
+                        <span style="flex: 1 1 150px;">이메일</span>
+                        <span style="flex: 0 0 130px;">입사일</span>
+                        <span style="flex: 0 0 130px;">퇴사일</span>
+                        <span style="flex: 0 0 60px; text-align: center;">팀장</span>
                         <span style="flex: 0 0 40px; text-align: center;"></span>
                     </div>
                 </div>
@@ -1198,12 +1202,13 @@ Print Styles (@media print)
                     style="display:flex; flex-direction:column; gap:8px;">
                     <!-- Rows injected via JS -->
                 </div>
-                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.5rem; display: block;">???�서?��?보고?�에 출력?�니??                    (조직, ???�사?��? ?�면 관리용?�며 보고???�에???�쇄?��? ?�습?�다).</small>
+                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.5rem; display: block;">위 순서대로 보고서에 출력됩니다
+                    (조직, 입/퇴사일은 화면 관리용이며 보고서 표에는 인쇄되지 않습니다).</small>
                 <div style="display: flex; justify-content: center; margin-top: 1.5rem; gap: 1rem;">
                     <button id="save-employee-btn" class="primary-btn" style="flex: 1; justify-content: center;">로컬
-                        ?�용</button>
+                        적용</button>
                     <button id="sync-employees-btn" class="primary-btn"
-                        style="flex: 1; justify-content: center; background-color: #059669;">?�라?�드 ?�??�??�용</button>
+                        style="flex: 1; justify-content: center; background-color: #059669;">클라우드 저장 및 적용</button>
                 </div>
             </div>
         </div>
@@ -1213,61 +1218,63 @@ Print Styles (@media print)
     <div id="verify-modal" class="modal hidden no-print">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>근태 ?�이??검�?결과</h2>
+                <h2>근태 데이터 검증 결과</h2>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <button id="bulk-confirm-btn" class="secondary-btn"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #f97316; color: #f97316; background: #fff7ed;">
-                        ?�택 ??�� ?�괄 ?�인
+                        선택 항목 일괄 확인
                     </button>
                     <button id="bulk-unconfirm-btn" class="secondary-btn"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #6b7280; color: #6b7280; background: #f3f4f6;">
-                        ?�택 ??�� ?�인 ?�제
+                        선택 항목 확인 해제
                     </button>
                     <div style="width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px;"></div>
-                    <button id="sync-to-cloud-btn" class="secondary-btn" title="?�택???�역??직원 ?�명 ?�이지�??�송"
+                    <button id="sync-to-cloud-btn" class="secondary-btn" title="선택한 내역을 직원 소명 페이지로 전송"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f0f9ff;">
-                        ?�️ ?�명 ?�청 ?�송
+                        ☁️ 소명 요청 전송
                     </button>
-                    <button id="send-mailto-btn" class="secondary-btn" title="기본 메일 ?�라?�언?��? ?�어 발송?�니??
+                    <button id="send-mailto-btn" class="secondary-btn" title="기본 메일 클라이언트를 열어 발송합니다"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #8b5cf6; color: #8b5cf6; background: #f5f3ff;">
-                        ?�� 메일 ?�시 발송
+                        📧 메일 임시 발송
                     </button>
-                    <button id="fetch-from-cloud-btn" class="secondary-btn" title="직원???�력???�명 ?�역 가?�오�?
+                    <button id="fetch-from-cloud-btn" class="secondary-btn" title="직원이 입력한 소명 내역 가져오기"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
-                        ?�� ?�명 ?��? ?�기
+                        📥 소명 답변 읽기
                     </button>
-                    <button id="reset-all-data-btn" class="secondary-btn" title="모든 ?�동 조치 �??�명 ?�역????��?�니??
+                    <button id="reset-all-data-btn" class="secondary-btn" title="모든 수동 조치 및 소명 내역을 삭제합니다"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: #fef2f2;">
-                        ?���??�체 초기??                    </button>
+                        🗑️ 전체 초기화
+                    </button>
                     <button id="close-verify-btn" class="close-btn">&times;</button>
                 </div>
             </div>
             <div>
                 <div
                     style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; margin-top: -0.5rem;">
-                    <p style="font-size: 0.85rem; color: #6b7280; margin: 0;">근무�?기�? ?�간�??�제 출퇴�??�간??비교?�여 지�?�?조기 ?�근 ?�역??                        보여줍니??</p>
+                    <p style="font-size: 0.85rem; color: #6b7280; margin: 0;">근무조 기준 시간과 실제 출퇴근 시간을 비교하여 지각 및 조기 퇴근 내역을
+                        보여줍니다.</p>
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <label for="verify-group-select" style="font-size: 0.85rem; color: #374151;">모아보기:</label>
                         <select id="verify-group-select"
                             style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; background: white;">
-                            <option value="none">?�체 보기 (기본)</option>
-                            <option value="date">?�자�?/option>
-                            <option value="name">?�원�?/option>
-                            <option value="reason">?�상?�유�?/option>
+                            <option value="none">전체 보기 (기본)</option>
+                            <option value="date">일자별</option>
+                            <option value="name">사원별</option>
+                            <option value="reason">이상사유별</option>
                         </select>
                     </div>
                 </div>
-                <!-- ?�동 조치 ?�유 추천 목록 -->
+                <!-- 수동 조치 사유 추천 목록 -->
                 <datalist id="manual-reason-list">
-                    <option value="?�일??>
-                    <option value="?�차">
+                    <option value="생일자">
+                    <option value="연차">
                     <option value="반차">
-                    <option value="?�전반차">
-                    <option value="?�후반차">
-                    <option value="공�?">
+                    <option value="오전반차">
+                    <option value="오후반차">
+                    <option value="공가">
                     <option value="경조">
                     <option value="조퇴">
-                    <option value="?�근">
+                    <option value="외근">
                     <option value="출장">
                 </datalist>
 
@@ -1277,14 +1284,14 @@ Print Styles (@media print)
                         <thead>
                             <tr>
                                 <th style="width: 40px;"><input type="checkbox" id="verify-all-checkbox"></th>
-                                <th>?�자</th>
-                                <th>?�름</th>
-                                <th>근무�?/th>
-                                <th>출근/?�근</th>
-                                <th>?�상 ?�유</th>
-                                <th style="width: 120px;">직원 ?�명</th>
-                                <th style="width: 150px;">조치 ?�유</th>
-                                <th style="width: 100px;">?�인</th>
+                                <th>일자</th>
+                                <th>이름</th>
+                                <th>근무조</th>
+                                <th>출근/퇴근</th>
+                                <th>이상 사유</th>
+                                <th style="width: 120px;">직원 소명</th>
+                                <th style="width: 150px;">조치 사유</th>
+                                <th style="width: 100px;">확인</th>
                             </tr>
                         </thead>
                         <tbody id="verify-tbody">
@@ -1293,7 +1300,7 @@ Print Styles (@media print)
                     </table>
                     <div id="verify-empty-msg" class="hidden"
                         style="text-align: center; padding: 2.5rem; color: #10b981; font-weight: 600;">
-                        모든 직원??출퇴�?기록???�상?�니??
+                        모든 직원의 출퇴근 기록이 정상입니다!
                     </div>
                 </div>
             </div>
@@ -1304,32 +1311,32 @@ Print Styles (@media print)
     <div id="holiday-modal" class="modal hidden no-print">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>공휴???�무??관�?/h2>
+                <h2>공휴일/휴무일 관리</h2>
                 <button id="close-holiday-modal-btn" class="close-btn">&times;</button>
             </div>
             <div class="holiday-manager-section">
                 <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                     <input type="date" id="new-holiday-date"
                         style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                    <button id="add-holiday-btn" class="secondary-btn" style="padding: 0.4rem 0.8rem;">?�동 추�?</button>
+                    <button id="add-holiday-btn" class="secondary-btn" style="padding: 0.4rem 0.8rem;">수동 추가</button>
                 </div>
                 <div class="modal-divider"
                     style="margin: 1rem 0; font-size: 0.85rem; color: #6b7280; text-align: center; border-bottom: 1px solid #eee; line-height: 0.1em;">
-                    <span style="background:#fff; padding:0 10px;">?�는 공휴???�동 ?�출</span>
+                    <span style="background:#fff; padding:0 10px;">또는 공휴일 자동 호출</span>
                 </div>
                 <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                     <select id="holiday-year-select" class="year-select"
                         style="flex: 1; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                        <option value="2024">2024??/option>
-                        <option value="2025">2025??/option>
-                        <option value="2026" selected>2026??/option>
-                        <option value="2027">2027??/option>
-                        <option value="2028">2028??/option>
-                        <option value="2029">2029??/option>
-                        <option value="2030">2030??/option>
+                        <option value="2024">2024년</option>
+                        <option value="2025">2025년</option>
+                        <option value="2026" selected>2026년</option>
+                        <option value="2027">2027년</option>
+                        <option value="2028">2028년</option>
+                        <option value="2029">2029년</option>
+                        <option value="2030">2030년</option>
                     </select>
                     <button id="auto-fetch-holiday-btn" class="fetch-btn" style="padding: 0.4rem 0.8rem;">
-                        <span class="btn-text">?�이??가?�오�?/span>
+                        <span class="btn-text">데이터 가져오기</span>
                         <span class="loader hidden"></span>
                     </button>
                 </div>
@@ -1337,10 +1344,11 @@ Print Styles (@media print)
                     style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #f9fafb;">
                     <!-- Holiday items injected via JS -->
                 </div>
-                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">가?�오�?버튼???�르�?2024~2030??법정 공휴?�을 ?�동?�로
-                    불러?�니??</p>
+                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">가져오기 버튼을 누르면 2024~2030년 법정 공휴일을 자동으로
+                    불러옵니다.</p>
                 <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
-                    <button id="save-holiday-btn" class="primary-btn" style="width: 100%; justify-content: center;">공휴??                        ?�정 ?�??/button>
+                    <button id="save-holiday-btn" class="primary-btn" style="width: 100%; justify-content: center;">공휴일
+                        설정 저장</button>
                 </div>
             </div>
         </div>
@@ -1350,7 +1358,7 @@ Print Styles (@media print)
     <div id="mail-queue-modal" class="modal hidden no-print">
         <div class="modal-content" style="max-width: 500px;">
             <div class="modal-header">
-                <h2>메일 발송 ?�기열</h2>
+                <h2>메일 발송 대기열</h2>
                 <div style="display: flex; gap: 8px;">
                     <button id="close-mail-queue-btn" class="close-btn">&times;</button>
                 </div>
@@ -1358,26 +1366,26 @@ Print Styles (@media print)
             <div style="padding: 1rem;">
                 <div
                     style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 12px; border-radius: 8px; margin-bottom: 1.5rem;">
-                    <p style="font-size: 0.85rem; color: #0369a1; margin-bottom: 8px; font-weight: 600;">??빠른 ?�괄 발송 (추천)
+                    <p style="font-size: 0.85rem; color: #0369a1; margin-bottom: 8px; font-weight: 600;">⚡ 빠른 일괄 발송 (추천)
                     </p>
                     <p style="font-size: 0.8rem; color: #0c4a6e; margin-bottom: 12px; line-height: 1.3;">
-                        모든 ?�?�자?�게 <strong>공통 ?�내 ?�용</strong>?�로 메일????번에 보냅?�다.<br>
-                        개별 ?�짜/?�유???�함?��? ?��?�?가??빠릅?�다. (?��? 참조 ?�용)
+                        모든 대상자에게 <strong>공통 안내 내용</strong>으로 메일을 한 번에 보냅니다.<br>
+                        개별 날짜/사유는 포함되지 않지만 가장 빠릅니다. (숨은 참조 이용)
                     </p>
                     <button id="mail-batch-bcc-btn" class="primary-btn"
                         style="width: 100%; border-radius: 6px; background: #0ea5e9;">
-                        ?�� 공통 ?�용?�로 ??번에 발송
+                        📧 공통 내용으로 한 번에 발송
                     </button>
                 </div>
 
                 <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
                     <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
-                    <span style="font-size: 0.75rem; color: #9ca3af; white-space: nowrap;">?�는 개별 ?�세 발송</span>
+                    <span style="font-size: 0.75rem; color: #9ca3af; white-space: nowrap;">또는 개별 상세 발송</span>
                     <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
                 </div>
 
                 <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 1rem; line-height: 1.4;">
-                    �??�원별로 <strong>?�세 ?�짜/?�유</strong>�??�함?�려�??�래 버튼??각각 ?�러주세??
+                    각 사원별로 <strong>상세 날짜/사유</strong>를 포함하려면 아래 버튼을 각각 눌러주세요.
                 </p>
                 <div id="mail-queue-list"
                     style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
@@ -1386,13 +1394,14 @@ Print Styles (@media print)
             </div>
             <div
                 style="padding: 1.5rem; text-align: center; border-top: 1px solid var(--border-color); background: #f9fafb; border-radius: 0 0 16px 16px;">
-                <button id="mail-queue-done-btn" class="primary-btn" style="width: 100%; justify-content: center;">?�료 �?                    ?�기</button>
+                <button id="mail-queue-done-btn" class="primary-btn" style="width: 100%; justify-content: center;">완료 및
+                    닫기</button>
             </div>
         </div>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // [?�정] Supabase ?�동 ?�보 (?�용?��? 직접 ?�력 ?�요)
+            // [설정] Supabase 연동 정보 (사용자가 직접 입력 필요)
             const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
             let supabase = null;
@@ -1401,7 +1410,7 @@ Print Styles (@media print)
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
             }
 
-            // 기본 UI ?�소
+            // 기본 UI 요소
             const dropZoneAttendance = document.getElementById('drop-zone-attendance');
             const fileInputAttendance = document.getElementById('file-input-attendance');
             const fileListAttendance = document.getElementById('file-list-attendance');
@@ -1421,7 +1430,7 @@ Print Styles (@media print)
             const syncEmployeesBtn = document.getElementById('sync-employees-btn');
             const printBtn = document.getElementById('print-btn');
 
-            // 검�?Verification) 기능 ?�소
+            // 검증(Verification) 기능 요소
             const verifyBtn = document.getElementById('verify-data-btn');
             const verifyModal = document.getElementById('verify-modal');
             const closeVerifyBtn = document.getElementById('close-verify-btn');
@@ -1431,14 +1440,14 @@ Print Styles (@media print)
             const syncToCloudBtn = document.getElementById('sync-to-cloud-btn');
             const fetchFromCloudBtn = document.getElementById('fetch-from-cloud-btn');
 
-            // 메일 ?�기열 ?�소
+            // 메일 대기열 요소
             const mailQueueModal = document.getElementById('mail-queue-modal');
             const mailQueueList = document.getElementById('mail-queue-list');
             const closeMailQueueBtn = document.getElementById('close-mail-queue-btn');
             const mailQueueDoneBtn = document.getElementById('mail-queue-done-btn');
             const mailBatchBccBtn = document.getElementById('mail-batch-bcc-btn');
 
-            // 공휴??관�??�소
+            // 공휴일 관리 요소
             const openHolidayBtn = document.getElementById('open-holiday-btn');
             const highlightAnomalyBtn = document.getElementById('highlight-anomaly-btn');
             const cloudSyncAllBtn = document.getElementById('cloud-sync-all-btn');
@@ -1451,7 +1460,7 @@ Print Styles (@media print)
             const autoFetchHolidayBtn = document.getElementById('auto-fetch-holiday-btn');
             const saveHolidayBtn = document.getElementById('save-holiday-btn');
 
-            // ?�로?�된 출퇴�??��? ?�이??관�?(?�일�? ?�이??
+            // 업로드된 출퇴근 엑셀 데이터 관리 (파일명: 데이터)
             let attendanceFilesMap = new Map();
             let leaveFilesMap = new Map();
             let currentLeaveData = null;
@@ -1459,9 +1468,10 @@ Print Styles (@media print)
             let globalUnconfirmedAnomalies = false;
             let unconfirmedAnomaliesMap = {};
 
-            // [추�?] ?�원_?�자�?미확???�상 ?�무 �?            let showAnomaliesHighlight = false;
+            // [추가] 사원_일자별 미확인 이상 유무 맵
+            let showAnomaliesHighlight = false;
 
-            // [추�?] 모달 ?�래�?기능
+            // [추가] 모달 드래그 기능
             function makeDraggable(modalEl) {
                 const content = modalEl.querySelector('.modal-content');
                 const header = modalEl.querySelector('.modal-header');
@@ -1472,7 +1482,7 @@ Print Styles (@media print)
                 let transX = 0, transY = 0;
 
                 header.onmousedown = (e) => {
-                    if (e.target.closest('button')) return; // 버튼 ?�릭?� 무시
+                    if (e.target.closest('button')) return; // 버튼 클릭은 무시
                     isDragging = true;
                     startX = e.clientX - transX;
                     startY = e.clientY - transY;
@@ -1496,7 +1506,7 @@ Print Styles (@media print)
             makeDraggable(holidayModal);
             makeDraggable(mailQueueModal);
 
-            // [추�?] ?�동 ?�인 ?�이??(localStorage)
+            // [추가] 수동 확인 데이터 (localStorage)
             const savedCorrections = localStorage.getItem('manualCorrections');
             let manualCorrections = savedCorrections ? JSON.parse(savedCorrections) : {};
 
@@ -1507,7 +1517,7 @@ Print Styles (@media print)
 
             let manualEarlyPunches = JSON.parse(localStorage.getItem('manualEarlyPunches')) || {};
 
-            // [추�?] ?�명 ?�청??보낸 ??��?�의 ??관리�? ?�한 Set (로컬 ?�토리�? ?�동)
+            // [추가] 소명 요청을 보낸 항목들의 키 관리를 위한 Set (로컬 스토리지 연동)
             const savedSentKeys = localStorage.getItem('sentAnomalyKeys');
             let sentAnomalyKeys = new Set(savedSentKeys ? JSON.parse(savedSentKeys) : []);
 
@@ -1526,65 +1536,73 @@ Print Styles (@media print)
                 }
             }
 
-            // ?�원 리스???�이??(localStorage?�서 불러?�기)
+            // 사원 리스트 데이터 (localStorage에서 불러오기)
             const savedEmployees = localStorage.getItem('employeeConfigList');
             let employeeConfigList = savedEmployees ? JSON.parse(savedEmployees) : [
-                { org: "?�우밸브", name: "?��???, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "김?�원", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "?�우밸브", name: "?��???, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "?�재�?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "?�우밸브", name: "?�현??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "박주??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "?�우밸브", name: "김?�욱", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "강�???, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "밸브?�크", name: "곽정??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "?�효�?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "?�우밸브", name: "김?��?", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "?�재�?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "?�우밸브", name: "?�광??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "?�수??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "?�우밸브", name: "?�근??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "?�나�?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "밸브?�크", name: "?�도??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "밸브?�크", name: "채예?�", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "?�우밸브", name: "?�옥??, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "?�우밸브", name: "채�?�?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "?�우밸브", name: "?�상�?, rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }
+                { org: "다우밸브", name: "정미영", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "김혜원", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "이대희", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이재근", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "서현석", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "박주연", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "김현욱", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "강미나", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "밸브파크", name: "곽정원", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "안효모", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "김영민", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이재룡", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "정광호", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이수형", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "장근영", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "황나경", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "밸브파크", name: "이도아", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "밸브파크", name: "채예은", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "한옥련", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "채민주", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
+                { org: "다우밸브", name: "정상민", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }
             ];
 
-            // 공휴??리스???�이??(localStorage?�서 불러?�기)
+            // 공휴일 리스트 데이터 (localStorage에서 불러오기)
             const savedHolidays = localStorage.getItem('holidayConfigList');
             let holidayConfigList = savedHolidays ? JSON.parse(savedHolidays) : [];
             let tempHolidayConfigList = [];
 
-            // ?�년??법정 공휴???�이??(미리 ?�의??리스??
+            // 다년도 법정 공휴일 데이터 (미리 정의된 리스트)
             const PREDEFINED_HOLIDAYS = [
-                // 2024??                { date: "2024-01-01", name: "?�정" }, { date: "2024-02-09", name: "?�날" }, { date: "2024-02-10", name: "?�날" }, { date: "2024-02-11", name: "?�날" }, { date: "2024-02-12", name: "?�체공?�일" },
-                { date: "2024-03-01", name: "?�일?? }, { date: "2024-04-10", name: "�?��?�원?�거" }, { date: "2024-05-05", name: "?�린?�날" }, { date: "2024-05-06", name: "?�체공?�일" }, { date: "2024-05-15", name: "부처님?�신?? },
-                { date: "2024-06-06", name: "?�충?? }, { date: "2024-08-15", name: "광복?? }, { date: "2024-09-16", name: "추석" }, { date: "2024-09-17", name: "추석" }, { date: "2024-09-18", name: "추석" },
-                { date: "2024-10-03", name: "개천?? }, { date: "2024-10-09", name: "?��??? }, { date: "2024-12-25", name: "?�리?�마?? },
-                // 2025??                { date: "2025-01-01", name: "?�정" }, { date: "2025-01-28", name: "?�날" }, { date: "2025-01-29", name: "?�날" }, { date: "2025-01-30", name: "?�날" }, { date: "2025-03-01", name: "?�일?? }, { date: "2025-03-03", name: "?�체공?�일" },
-                { date: "2025-05-05", name: "?�린?�날" }, { date: "2025-05-06", name: "부처님?�신?? }, { date: "2025-06-06", name: "?�충?? }, { date: "2025-08-15", name: "광복?? }, { date: "2025-10-03", name: "개천?? },
-                { date: "2025-10-05", name: "추석" }, { date: "2025-10-06", name: "추석" }, { date: "2025-10-07", name: "추석" }, { date: "2025-10-08", name: "?�체공?�일" }, { date: "2025-10-09", name: "?��??? }, { date: "2025-12-25", name: "?�리?�마?? },
-                // 2026??                { date: "2026-01-01", name: "?�정" }, { date: "2026-02-16", name: "?�날" }, { date: "2026-02-17", name: "?�날" }, { date: "2026-02-18", name: "?�날" }, { date: "2026-03-01", name: "?�일?? }, { date: "2026-03-02", name: "?�체공?�일" },
-                { date: "2026-05-05", name: "?�린?�날" }, { date: "2026-05-24", name: "부처님?�신?? }, { date: "2026-05-25", name: "?�체공?�일" }, { date: "2026-06-06", name: "?�충?? }, { date: "2026-08-15", name: "광복?? }, { date: "2026-10-03", name: "개천?? },
-                { date: "2026-09-24", name: "추석" }, { date: "2026-09-25", name: "추석" }, { date: "2026-09-26", name: "추석" }, { date: "2026-10-09", name: "?��??? }, { date: "2026-12-25", name: "?�리?�마?? },
-                // 2027??                { date: "2027-01-01", name: "?�정" }, { date: "2027-02-06", name: "?�날" }, { date: "2027-02-07", name: "?�날" }, { date: "2027-02-08", name: "?�날" }, { date: "2027-02-09", name: "?�체공?�일" },
-                { date: "2027-03-01", name: "?�일?? }, { date: "2027-05-05", name: "?�린?�날" }, { date: "2027-05-13", name: "부처님?�신?? }, { date: "2027-06-06", name: "?�충?? }, { date: "2027-08-15", name: "광복?? }, { date: "2027-08-16", name: "?�체공?�일" },
-                { date: "2027-09-14", name: "추석" }, { date: "2027-09-15", name: "추석" }, { date: "2027-09-16", name: "추석" }, { date: "2027-10-03", name: "개천?? }, { date: "2027-10-04", name: "?�체공?�일" }, { date: "2027-10-09", name: "?��??? }, { date: "2027-12-25", name: "?�리?�마?? },
-                // 2028??                { date: "2028-01-01", name: "?�정" }, { date: "2028-01-26", name: "?�날" }, { date: "2028-01-27", name: "?�날" }, { date: "2028-01-28", name: "?�날" }, { date: "2028-03-01", name: "?�일?? },
-                { date: "2028-05-02", name: "부처님?�신?? }, { date: "2028-05-05", name: "?�린?�날" }, { date: "2028-06-06", name: "?�충?? }, { date: "2028-08-15", name: "광복?? },
-                { date: "2028-10-03", name: "개천?? }, { date: "2028-10-03", name: "추석" }, { date: "2028-10-04", name: "추석" }, { date: "2028-10-05", name: "추석" }, { date: "2028-10-06", name: "?�체공?�일" }, { date: "2028-10-09", name: "?��??? }, { date: "2028-12-25", name: "?�리?�마?? },
-                // 2029??                { date: "2029-01-01", name: "?�정" }, { date: "2029-02-12", name: "?�날" }, { date: "2029-02-13", name: "?�날" }, { date: "2029-02-14", name: "?�날" }, { date: "2029-03-01", name: "?�일?? },
-                { date: "2029-05-05", name: "?�린?�날" }, { date: "2029-05-07", name: "?�체공?�일" }, { date: "2029-05-20", name: "부처님?�신?? }, { date: "2029-05-21", name: "?�체공?�일" }, { date: "2029-06-06", name: "?�충?? },
-                { date: "2029-08-15", name: "광복?? }, { date: "2029-09-21", name: "추석" }, { date: "2029-09-22", name: "추석" }, { date: "2029-09-23", name: "추석" }, { date: "2029-09-24", name: "?�체공?�일" },
-                { date: "2029-10-03", name: "개천?? }, { date: "2029-10-09", name: "?��??? }, { date: "2029-12-25", name: "?�리?�마?? },
-                // 2030??                { date: "2030-01-01", name: "?�정" }, { date: "2030-02-02", name: "?�날" }, { date: "2030-02-03", name: "?�날" }, { date: "2030-02-04", name: "?�날" }, { date: "2030-03-01", name: "?�일?? },
-                { date: "2030-05-05", name: "?�린?�날" }, { date: "2030-05-06", name: "?�체공?�일" }, { date: "2030-05-09", name: "부처님?�신?? }, { date: "2030-06-06", name: "?�충?? },
-                { date: "2030-08-15", name: "광복?? }, { date: "2030-09-11", name: "추석" }, { date: "2030-09-12", name: "추석" }, { date: "2030-09-13", name: "추석" },
-                { date: "2030-10-03", name: "개천?? }, { date: "2030-10-09", name: "?��??? }, { date: "2030-12-25", name: "?�리?�마?? }
+                // 2024년
+                { date: "2024-01-01", name: "신정" }, { date: "2024-02-09", name: "설날" }, { date: "2024-02-10", name: "설날" }, { date: "2024-02-11", name: "설날" }, { date: "2024-02-12", name: "대체공휴일" },
+                { date: "2024-03-01", name: "삼일절" }, { date: "2024-04-10", name: "국회의원선거" }, { date: "2024-05-05", name: "어린이날" }, { date: "2024-05-06", name: "대체공휴일" }, { date: "2024-05-15", name: "부처님오신날" },
+                { date: "2024-06-06", name: "현충일" }, { date: "2024-08-15", name: "광복절" }, { date: "2024-09-16", name: "추석" }, { date: "2024-09-17", name: "추석" }, { date: "2024-09-18", name: "추석" },
+                { date: "2024-10-03", name: "개천절" }, { date: "2024-10-09", name: "한글날" }, { date: "2024-12-25", name: "크리스마스" },
+                // 2025년
+                { date: "2025-01-01", name: "신정" }, { date: "2025-01-28", name: "설날" }, { date: "2025-01-29", name: "설날" }, { date: "2025-01-30", name: "설날" }, { date: "2025-03-01", name: "삼일절" }, { date: "2025-03-03", name: "대체공휴일" },
+                { date: "2025-05-05", name: "어린이날" }, { date: "2025-05-06", name: "부처님오신날" }, { date: "2025-06-06", name: "현충일" }, { date: "2025-08-15", name: "광복절" }, { date: "2025-10-03", name: "개천절" },
+                { date: "2025-10-05", name: "추석" }, { date: "2025-10-06", name: "추석" }, { date: "2025-10-07", name: "추석" }, { date: "2025-10-08", name: "대체공휴일" }, { date: "2025-10-09", name: "한글날" }, { date: "2025-12-25", name: "크리스마스" },
+                // 2026년
+                { date: "2026-01-01", name: "신정" }, { date: "2026-02-16", name: "설날" }, { date: "2026-02-17", name: "설날" }, { date: "2026-02-18", name: "설날" }, { date: "2026-03-01", name: "삼일절" }, { date: "2026-03-02", name: "대체공휴일" },
+                { date: "2026-05-05", name: "어린이날" }, { date: "2026-05-24", name: "부처님오신날" }, { date: "2026-05-25", name: "대체공휴일" }, { date: "2026-06-06", name: "현충일" }, { date: "2026-08-15", name: "광복절" }, { date: "2026-10-03", name: "개천절" },
+                { date: "2026-09-24", name: "추석" }, { date: "2026-09-25", name: "추석" }, { date: "2026-09-26", name: "추석" }, { date: "2026-10-09", name: "한글날" }, { date: "2026-12-25", name: "크리스마스" },
+                // 2027년
+                { date: "2027-01-01", name: "신정" }, { date: "2027-02-06", name: "설날" }, { date: "2027-02-07", name: "설날" }, { date: "2027-02-08", name: "설날" }, { date: "2027-02-09", name: "대체공휴일" },
+                { date: "2027-03-01", name: "삼일절" }, { date: "2027-05-05", name: "어린이날" }, { date: "2027-05-13", name: "부처님오신날" }, { date: "2027-06-06", name: "현충일" }, { date: "2027-08-15", name: "광복절" }, { date: "2027-08-16", name: "대체공휴일" },
+                { date: "2027-09-14", name: "추석" }, { date: "2027-09-15", name: "추석" }, { date: "2027-09-16", name: "추석" }, { date: "2027-10-03", name: "개천절" }, { date: "2027-10-04", name: "대체공휴일" }, { date: "2027-10-09", name: "한글날" }, { date: "2027-12-25", name: "크리스마스" },
+                // 2028년
+                { date: "2028-01-01", name: "신정" }, { date: "2028-01-26", name: "설날" }, { date: "2028-01-27", name: "설날" }, { date: "2028-01-28", name: "설날" }, { date: "2028-03-01", name: "삼일절" },
+                { date: "2028-05-02", name: "부처님오신날" }, { date: "2028-05-05", name: "어린이날" }, { date: "2028-06-06", name: "현충일" }, { date: "2028-08-15", name: "광복절" },
+                { date: "2028-10-03", name: "개천절" }, { date: "2028-10-03", name: "추석" }, { date: "2028-10-04", name: "추석" }, { date: "2028-10-05", name: "추석" }, { date: "2028-10-06", name: "대체공휴일" }, { date: "2028-10-09", name: "한글날" }, { date: "2028-12-25", name: "크리스마스" },
+                // 2029년
+                { date: "2029-01-01", name: "신정" }, { date: "2029-02-12", name: "설날" }, { date: "2029-02-13", name: "설날" }, { date: "2029-02-14", name: "설날" }, { date: "2029-03-01", name: "삼일절" },
+                { date: "2029-05-05", name: "어린이날" }, { date: "2029-05-07", name: "대체공휴일" }, { date: "2029-05-20", name: "부처님오신날" }, { date: "2029-05-21", name: "대체공휴일" }, { date: "2029-06-06", name: "현충일" },
+                { date: "2029-08-15", name: "광복절" }, { date: "2029-09-21", name: "추석" }, { date: "2029-09-22", name: "추석" }, { date: "2029-09-23", name: "추석" }, { date: "2029-09-24", name: "대체공휴일" },
+                { date: "2029-10-03", name: "개천절" }, { date: "2029-10-09", name: "한글날" }, { date: "2029-12-25", name: "크리스마스" },
+                // 2030년
+                { date: "2030-01-01", name: "신정" }, { date: "2030-02-02", name: "설날" }, { date: "2030-02-03", name: "설날" }, { date: "2030-02-04", name: "설날" }, { date: "2030-03-01", name: "삼일절" },
+                { date: "2030-05-05", name: "어린이날" }, { date: "2030-05-06", name: "대체공휴일" }, { date: "2030-05-09", name: "부처님오신날" }, { date: "2030-06-06", name: "현충일" },
+                { date: "2030-08-15", name: "광복절" }, { date: "2030-09-11", name: "추석" }, { date: "2030-09-12", name: "추석" }, { date: "2030-09-13", name: "추석" },
+                { date: "2030-10-03", name: "개천절" }, { date: "2030-10-09", name: "한글날" }, { date: "2030-12-25", name: "크리스마스" }
             ];
 
             function isHoliday(dateStr) {
                 return holidayConfigList.some(h => h.date === dateStr);
             }
 
-            // 공휴??관�?UI ?�더�?            function renderHolidayManager() {
+            // 공휴일 관리 UI 렌더링
+            function renderHolidayManager() {
                 if (!holidayListContainer) return;
                 holidayListContainer.innerHTML = '';
 
                 if (tempHolidayConfigList.length === 0) {
-                    holidayListContainer.innerHTML = '<div class="holiday-empty-msg">?�록??공휴?�이 ?�습?�다.</div>';
+                    holidayListContainer.innerHTML = '<div class="holiday-empty-msg">등록된 공휴일이 없습니다.</div>';
                     return;
                 }
 
@@ -1606,21 +1624,21 @@ Print Styles (@media print)
                 });
             }
 
-            // ----- [추�?] ?�원 관�?모달 ?�시 ?�태 변??-----
+            // ----- [추가] 사원 관리 모달 임시 상태 변수 -----
             let tempEmployeeConfigList = [];
             let draggedItemIndex = null;
 
-            // ?�원 ?�렬 ?�수 (기본 ?�용)
+            // 사원 정렬 함수 (기본 적용)
             function sortEmployees(list) {
                 const rankOrder = {
-                    '?�?�이??: 1,
-                    '?�무': 2,
-                    '부??: 3,
+                    '대표이사': 1,
+                    '전무': 2,
+                    '부장': 3,
                     '과장': 4,
-                    '?��?: 5,
-                    '?�임': 6,
-                    '?�원': 7,
-                    '': 99 // 직급 ?�음
+                    '대리': 5,
+                    '선임': 6,
+                    '사원': 7,
+                    '': 99 // 직급 없음
                 };
 
                 return list.sort((a, b) => {
@@ -1631,18 +1649,18 @@ Print Styles (@media print)
                         return rankA - rankB;
                     }
 
-                    // 2?�위: ?�사??(빠른 ??
+                    // 2순위: 입사일 (빠른 순)
                     const dateA = a.joinDate || '9999-99-99';
                     const dateB = b.joinDate || '9999-99-99';
                     return dateA.localeCompare(dateB);
                 });
             }
 
-            // ?�원 관�?UI ?�더�?(?�래�?기능 ?�함)
+            // 사원 관리 UI 렌더링 (드래그 기능 포함)
             function renderEmployeeManager() {
                 if (!employeeListContainer) return;
 
-                // ?�렬 ?�행
+                // 정렬 수행
                 sortEmployees(tempEmployeeConfigList);
 
                 employeeListContainer.innerHTML = '';
@@ -1650,17 +1668,18 @@ Print Styles (@media print)
                 tempEmployeeConfigList.forEach((emp, index) => {
                     const row = document.createElement('div');
                     row.className = 'employee-row';
-                    row.draggable = true; // ?�래�?가???�정
+                    row.draggable = true; // 드래그 가능 설정
                     row.dataset.index = index;
 
-                    // ?�래�??�벤??리스??                    row.addEventListener('dragstart', (e) => {
+                    // 드래그 이벤트 리스너
+                    row.addEventListener('dragstart', (e) => {
                         draggedItemIndex = index;
                         row.classList.add('dragging');
                         e.dataTransfer.effectAllowed = 'move';
                     });
 
                     row.addEventListener('dragover', (e) => {
-                        e.preventDefault(); // ?�롭 ?�용
+                        e.preventDefault(); // 드롭 허용
                         row.classList.add('dragover');
                     });
 
@@ -1673,7 +1692,8 @@ Print Styles (@media print)
                         row.classList.remove('dragover');
                         const targetIndex = index;
                         if (draggedItemIndex !== null && draggedItemIndex !== targetIndex) {
-                            // ?�이???�서 변�?                            const movedItem = tempEmployeeConfigList.splice(draggedItemIndex, 1)[0];
+                            // 데이터 순서 변경
+                            const movedItem = tempEmployeeConfigList.splice(draggedItemIndex, 1)[0];
                             tempEmployeeConfigList.splice(targetIndex, 0, movedItem);
                             renderEmployeeManager();
                         }
@@ -1684,12 +1704,13 @@ Print Styles (@media print)
                         draggedItemIndex = null;
                     });
 
-                    // 기존 ?�력�?�?버튼??                    const orgSelect = document.createElement('select');
+                    // 기존 입력창 및 버튼들
+                    const orgSelect = document.createElement('select');
                     orgSelect.className = 'org-select';
                     orgSelect.style.width = '100px';
-                    ['조직 ?�택', '?�?�이??, '�?��?��?�??�업?�', '반도�??�업?�', '밸브?�크?�', '?�산기술?�', '?��??�어링�?', '?�외?�업?�', '2차전지 ?�업?�'].forEach(val => {
+                    ['조직 선택', '대표이사', '국내외관리 영업팀', '반도체 영업팀', '밸브파크팀', '생산기술팀', '엔지니어링팀', '해외영업팀', '2차전지 영업팀'].forEach(val => {
                         const opt = document.createElement('option');
-                        opt.value = val === '조직 ?�택' ? '' : val;
+                        opt.value = val === '조직 선택' ? '' : val;
                         opt.text = val;
                         orgSelect.appendChild(opt);
                     });
@@ -1700,7 +1721,7 @@ Print Styles (@media print)
 
                     const nameInput = document.createElement('input');
                     nameInput.type = 'text';
-                    nameInput.placeholder = '?�원�?;
+                    nameInput.placeholder = '사원명';
                     nameInput.style.width = '100px';
                     nameInput.value = emp.name;
                     nameInput.addEventListener('change', (e) => {
@@ -1712,9 +1733,9 @@ Print Styles (@media print)
                     const rankSelect = document.createElement('select');
                     rankSelect.className = 'rank-select';
                     rankSelect.style.width = '100px';
-                    ['직급 ?�택', '?�?�이??, '?�무', '부??, '과장', '?��?, '?�임', '?�원'].forEach(val => {
+                    ['직급 선택', '대표이사', '전무', '부장', '과장', '대리', '선임', '사원'].forEach(val => {
                         const opt = document.createElement('option');
-                        opt.value = val === '직급 ?�택' ? '' : val;
+                        opt.value = val === '직급 선택' ? '' : val;
                         opt.text = val;
                         rankSelect.appendChild(opt);
                     });
@@ -1725,7 +1746,7 @@ Print Styles (@media print)
 
                     const emailInput = document.createElement('input');
                     emailInput.type = 'email';
-                    emailInput.placeholder = '?�메??주소';
+                    emailInput.placeholder = '이메일 주소';
                     emailInput.style.width = '150px';
                     emailInput.value = emp.email || '';
                     emailInput.addEventListener('input', (e) => {
@@ -1735,7 +1756,7 @@ Print Styles (@media print)
                     const joinInput = document.createElement('input');
                     joinInput.type = 'date';
                     joinInput.max = '9999-12-31';
-                    joinInput.title = '?�사??;
+                    joinInput.title = '입사일';
                     joinInput.style.width = '110px';
                     joinInput.value = emp.joinDate || '';
                     joinInput.addEventListener('change', (e) => {
@@ -1745,7 +1766,7 @@ Print Styles (@media print)
                     const leaveInput = document.createElement('input');
                     leaveInput.type = 'date';
                     leaveInput.max = '9999-12-31';
-                    leaveInput.title = '?�사??;
+                    leaveInput.title = '퇴사일';
                     leaveInput.style.width = '110px';
                     leaveInput.value = emp.leaveDate || '';
                     leaveInput.addEventListener('change', (e) => {
@@ -1754,7 +1775,7 @@ Print Styles (@media print)
 
                     const leaderCheckbox = document.createElement('input');
                     leaderCheckbox.type = 'checkbox';
-                    leaderCheckbox.title = '?�???��?';
+                    leaderCheckbox.title = '팀장 여부';
                     leaderCheckbox.style.width = '50px';
                     leaderCheckbox.checked = emp.isLeader || false;
                     leaderCheckbox.addEventListener('change', (e) => {
@@ -1770,7 +1791,8 @@ Print Styles (@media print)
                         renderEmployeeManager();
                     });
 
-                    // [추�?] ?�비 �??�연??명시??지??                    orgSelect.style.flex = '0 0 120px';
+                    // [추가] 너비 및 유연성 명시적 지정
+                    orgSelect.style.flex = '0 0 120px';
                     nameInput.style.flex = '0 0 100px';
                     rankSelect.style.flex = '0 0 100px';
                     emailInput.style.flex = '1 1 150px';
@@ -1791,7 +1813,7 @@ Print Styles (@media print)
                 });
             }
 
-            // 초기 ?�행
+            // 초기 실행
             renderEmployeeManager();
 
             if (addEmployeeBtn) {
@@ -1824,12 +1846,12 @@ Print Styles (@media print)
                             const rawData = window.XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
 
                             if (rawData.length === 0) {
-                                alert("?��? ?�일???�이?��? ?�습?�다.");
+                                alert("엑셀 파일에 데이터가 없습니다.");
                                 return;
                             }
 
                             let addedCount = 0;
-                            const deptKeywords = ['?�?�이??, '�?��?��?�??�업?�', '반도�??�업?�', '밸브?�크?�', '?�산기술?�', '?��??�어링�?', '?�외?�업?�', '2차전지 ?�업?�'];
+                            const deptKeywords = ['대표이사', '국내외관리 영업팀', '반도체 영업팀', '밸브파크팀', '생산기술팀', '엔지니어링팀', '해외영업팀', '2차전지 영업팀'];
 
                             rawData.forEach(row => {
                                 if (!Array.isArray(row)) return;
@@ -1843,24 +1865,25 @@ Print Styles (@media print)
                                     if (typeof cell === 'string') {
                                         const s = cell.trim();
                                         if (!s) return;
-                                        // 부???�별
-                                        if (deptKeywords.includes(s) || s.endsWith('?�') || s.endsWith('부') || s.endsWith('?�트')) {
+                                        // 부서 판별
+                                        if (deptKeywords.includes(s) || s.endsWith('팀') || s.endsWith('부') || s.endsWith('파트')) {
                                             orgVal = s;
                                         }
-                                        // ?�름 ?�별 (?�반?�으�?2~4글???��?)
-                                        else if (/^[가-??{2,4}$/.test(s) && !s.match(/출근|?�근|?�차|반차|결재|?�인/)) {
+                                        // 이름 판별 (일반적으로 2~4글자 한글)
+                                        else if (/^[가-힣]{2,4}$/.test(s) && !s.match(/출근|퇴근|연차|반차|결재|승인/)) {
                                             nameVal = normalizeName(s);
                                         }
-                                        // ?�짜 ?�스???�별
+                                        // 날짜 텍스트 판별
                                         else if (/^\d{4}-\d{2}-\d{2}/.test(s) || /^\d{4}\.\d{2}\.\d{2}/.test(s) || /^\d{4}\/\d{2}\/\d{2}/.test(s)) {
                                             dateCandidates.push(s);
                                         }
-                                        // ?�메??주소 ?�별
+                                        // 이메일 주소 판별
                                         else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) {
                                             emailVal = s;
                                         }
                                     } else if (typeof cell === 'number') {
-                                        // ?��? ?�짜 ?�련번호 (1900??기�? ?�짜) ?�??2000??2050???�이�?                                        if (cell > 36000 && cell < 60000) {
+                                        // 엑셀 날짜 일련번호 (1900년 기준 날짜) 대략 2000년~2050년 사이값
+                                        if (cell > 36000 && cell < 60000) {
                                             dateCandidates.push(cell);
                                         }
                                     }
@@ -1887,11 +1910,11 @@ Print Styles (@media print)
                                     row.forEach(cell => {
                                         if (typeof cell === 'string') {
                                             const s = cell.trim();
-                                            if (s === '?�?? || s === 'O' || s === 'o' || s === 'Y' || s === 'y' || s === 'V' || s === 'v') {
+                                            if (s === '팀장' || s === 'O' || s === 'o' || s === 'Y' || s === 'y' || s === 'V' || s === 'v') {
                                                 isLeaderVal = true;
                                             }
-                                            // 직급 ?�별 (부?? 차장, 과장, ?��? ?�원, 주임 ??
-                                            if (s.match(/부??차장|과장|?��??�원|주임|?�임|책임|?�석|?�???�사/)) {
+                                            // 직급 판별 (부장, 차장, 과장, 대리, 사원, 주임 등)
+                                            if (s.match(/부장|차장|과장|대리|사원|주임|선임|책임|수석|대표|이사/)) {
                                                 rankVal = s;
                                             }
                                         }
@@ -1933,12 +1956,12 @@ Print Styles (@media print)
                             if (addedCount > 0) {
                                 renderEmployeeManager();
                                 employeeListContainer.scrollTop = employeeListContainer.scrollHeight;
-                                alert(`${addedCount}명의 ?�원 ?�보�??�공?�으�?로드?�습?�다.\n(?�정???�용???�인?�고 ?�단??'로컬 ?�용' �?'?�라?�드 ?�??�??�용' 버튼???�러주세??`);
+                                alert(`${addedCount}명의 사원 정보를 성공적으로 로드했습니다.\n(수정된 내용을 확인하고 하단의 '로컬 적용' 및 '클라우드 저장 및 적용' 버튼을 눌러주세요)`);
                             } else {
-                                alert("?�원 ?�보�?찾을 ???�습?�다. (?��? ?�에 최소???�원 ?�름(2~4???��?)??기재?�어 ?�는지 ?�인?�주?�요)");
+                                alert("사원 정보를 찾을 수 없습니다. (엑셀 행에 최소한 사원 이름(2~4자 한글)이 기재되어 있는지 확인해주세요)");
                             }
                         } catch (err) {
-                            alert("?��? ?�일 ?�싱 �??�류가 발생?�습?�다: " + err.message);
+                            alert("엑셀 파일 파싱 중 오류가 발생했습니다: " + err.message);
                         } finally {
                             uploadEmployeeFile.value = '';
                         }
@@ -1947,7 +1970,7 @@ Print Styles (@media print)
                 });
             }
 
-            // ?�짜 ?�정
+            // 날짜 설정
             const today = new Date();
             reportDateInput.value = today.toISOString().split('T')[0];
 
@@ -1966,9 +1989,9 @@ Print Styles (@media print)
             }
 
             async function syncAllToCloud() {
-                if (!supabase) { alert("?�스???�결 중입?�다. ?�시 ???�도??주세??"); return; }
+                if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
                 const currentMatrix = updateAndProcessData(true);
-                if (!currentMatrix) { alert("?�?�할 ?�이?��? ?�습?�다. 먼�? ?��? ?�일???�로?�해주세??"); return; }
+                if (!currentMatrix) { alert("저장할 데이터가 없습니다. 먼저 엑셀 파일을 업로드해주세요."); return; }
                 const { recordsMap, names, uniqueDates } = currentMatrix;
                 const toUpsert = [];
                 names.forEach(name => {
@@ -1989,39 +2012,40 @@ Print Styles (@media print)
                             status_leave: !!corrData.leave,
                             manager_reason: manualReasons[corrKey] || "",
                             employee_explanation: employeeExplanations[corrKey] || "",
-                            reason: rec.reason || "", // [추�?] ?��? ?�유 ?�라?�드 ?�??                            early_punch_mode: manualEarlyPunches[corrKey] || "",
+                            reason: rec.reason || "", // [추가] 휴가 사유 클라우드 저장
+                            early_punch_mode: manualEarlyPunches[corrKey] || "",
                             is_anomalous: !!(unconfirmedAnomaliesMap[corrKey] && (unconfirmedAnomaliesMap[corrKey].in || unconfirmedAnomaliesMap[corrKey].out))
                         });
                     });
                 });
-                if (toUpsert.length === 0) { alert("?�?�할 ?�동 ?�이?��? ?�습?�다."); return; }
-                if (!confirm(`?�재 ?�면??로드??${toUpsert.length}건의 ?�이?��? ?�라?�드??백업?�시겠습?�까?\n(기존 ?�일 ?�짜 ?�이?�는 ?�데?�트?�니??`)) return;
+                if (toUpsert.length === 0) { alert("저장할 활동 데이터가 없습니다."); return; }
+                if (!confirm(`현재 화면에 로드된 ${toUpsert.length}건의 데이터를 클라우드에 백업하시겠습니까?\n(기존 동일 날짜 데이터는 업데이트됩니다)`)) return;
                 cloudSyncAllBtn.disabled = true;
-                cloudSyncAllBtn.textContent = "???�??�?..";
+                cloudSyncAllBtn.textContent = "⏳ 저장 중...";
                 const { error } = await supabase.from('attendance_records').upsert(toUpsert, { onConflict: 'manager_key' });
                 if (error) {
                     console.error('Cloud Sync Error:', error);
-                    alert('?�??�??�류가 발생?�습?�다: ' + error.message);
+                    alert('저장 중 오류가 발생했습니다: ' + error.message);
                 } else {
-                    alert(`?�공?�으�?${toUpsert.length}건을 ?�라?�드???�?�했?�니??`);
+                    alert(`성공적으로 ${toUpsert.length}건을 클라우드에 저장했습니다.`);
                 }
                 cloudSyncAllBtn.disabled = false;
-                cloudSyncAllBtn.textContent = "?�체 ?�이???�라?�드 ?�??;
+                cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장";
             }
 
             async function fetchAllFromCloud() {
-                if (!supabase) { alert("?�스???�결 중입?�다. ?�시 ???�도??주세??"); return; }
+                if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
                 const start = document.getElementById('report-period-start')?.value;
                 const end = document.getElementById('report-period-end')?.value;
-                if (!start || !end) { alert("불러?�기 ??'기간 ?�정'???�작?�과 종료?�을 ?�력?�주?�요."); return; }
+                if (!start || !end) { alert("불러오기 전 '기간 설정'의 시작일과 종료일을 입력해주세요."); return; }
                 cloudFetchAllBtn.disabled = true;
-                cloudFetchAllBtn.textContent = "??불러?�는 �?..";
+                cloudFetchAllBtn.textContent = "⏳ 불러오는 중...";
                 const { data, error } = await supabase.from('attendance_records').select('*').gte('date', start).lte('date', end);
                 if (error) {
                     console.error('Cloud Fetch Error:', error);
-                    alert('불러?�기 �??�류가 발생?�습?�다: ' + error.message);
+                    alert('불러오기 중 오류가 발생했습니다: ' + error.message);
                 } else if (data && data.length > 0) {
-                    if (confirm(`?�라?�드?�서 ${data.length}건의 ?�이?��? 가?�왔?�니??\n기존 로컬 ?�정 ?�항????��?�워�????�습?�다. 계속?�시겠습?�까?`)) {
+                    if (confirm(`클라우드에서 ${data.length}건의 데이터를 가져왔습니다.\n기존 로컬 수정 사항이 덮어씌워질 수 있습니다. 계속하시겠습니까?`)) {
                         data.forEach(row => {
                             const key = row.manager_key;
                             manualCorrections[key] = { in: row.status_in, out: row.status_out, leave: row.status_leave };
@@ -2030,14 +2054,14 @@ Print Styles (@media print)
                             if (row.early_punch_mode) manualEarlyPunches[key] = row.early_punch_mode;
                             if (!attendanceFilesMap.has('Cloud_Data')) attendanceFilesMap.set('Cloud_Data', []);
                             const cloudData = attendanceFilesMap.get('Cloud_Data');
-                            const existingIdx = cloudData.findIndex(d => `${d.?�름}_${d.?�짜}` === key);
+                            const existingIdx = cloudData.findIndex(d => `${d.이름}_${d.날짜}` === key);
                             const newRow = {
-                                "?�짜": row.date,
-                                "?�름": row.name,
-                                "근무�?: row.shift,
+                                "날짜": row.date,
+                                "이름": row.name,
+                                "근무조": row.shift,
                                 "출근": row.in_time,
-                                "?�근": row.out_time,
-                                "비고": row.reason || "" // [추�?] ?��? ?�유 복구
+                                "퇴근": row.out_time,
+                                "비고": row.reason || "" // [추가] 휴가 사유 복구
                             };
                             if (existingIdx > -1) cloudData[existingIdx] = newRow;
                             else cloudData.push(newRow);
@@ -2047,23 +2071,23 @@ Print Styles (@media print)
                         localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
                         localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
                         updateAndProcessData();
-                        alert('?�라?�드 ?�이?��? ?�공?�으�?불러?�습?�다.');
+                        alert('클라우드 데이터를 성공적으로 불러왔습니다.');
                     }
                 } else {
-                    alert('?�당 기간???�라?�드???�?�된 ?�이?��? ?�습?�다.');
+                    alert('해당 기간에 클라우드에 저장된 데이터가 없습니다.');
                 }
                 cloudFetchAllBtn.disabled = false;
-                cloudFetchAllBtn.textContent = "?�라?�드 ?�이??불러?�기";
+                cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
             }
 
             async function syncEmployeesToCloud() {
-                if (!supabase) { alert("?�스???�결 중입?�다. ?�시 ???�도??주세??"); return; }
+                if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
 
                 const validEmployees = tempEmployeeConfigList.filter(emp => emp.name.trim() !== "");
-                if (validEmployees.length === 0) { alert("?�?�할 ?�원 ?�보가 ?�습?�다."); return; }
+                if (validEmployees.length === 0) { alert("저장할 사원 정보가 없습니다."); return; }
 
                 syncEmployeesBtn.disabled = true;
-                syncEmployeesBtn.textContent = "???�??�?..";
+                syncEmployeesBtn.textContent = "⏳ 저장 중...";
 
                 const toUpsert = validEmployees.map(emp => ({
                     name: normalizeName(emp.name),
@@ -2085,21 +2109,21 @@ Print Styles (@media print)
                     employeeConfigList = [...validEmployees];
                     localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
                     updateAndProcessData();
-                    alert("?�원 명단???�라?�드???�공?�으�??�?�되�?로컬???�용?�었?�니??");
+                    alert("사원 명단이 클라우드에 성공적으로 저장되고 로컬에 적용되었습니다.");
                 } catch (err) {
                     console.error('Cloud Sync Employees Error:', err);
-                    alert('?�라?�드 ?�??�??�류가 발생?�습?�다: ' + err.message);
+                    alert('클라우드 저장 중 오류가 발생했습니다: ' + err.message);
                 } finally {
                     syncEmployeesBtn.disabled = false;
-                    syncEmployeesBtn.textContent = "?�라?�드 ?�??�??�용";
+                    syncEmployeesBtn.textContent = "클라우드 저장 및 적용";
                 }
             }
 
             async function fetchEmployeesFromCloud() {
-                if (!supabase) { alert("?�스???�결 중입?�다. ?�시 ???�도??주세??"); return; }
+                if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
 
                 fetchEmployeesBtn.disabled = true;
-                fetchEmployeesBtn.textContent = "??불러?�는 �?..";
+                fetchEmployeesBtn.textContent = "⏳ 불러오는 중...";
 
                 try {
                     const { data, error } = await supabase
@@ -2110,7 +2134,7 @@ Print Styles (@media print)
                     if (error) throw error;
 
                     if (data && data.length > 0) {
-                        if (confirm(`?�라?�드?�서 ${data.length}명의 ?�원 ?�보�?가?�왔?�니?? ?�면??불러?�시겠습?�까?\n(?�직 로컬???�용?�진 ?�으�? ?�인 ??'로컬 ?�용'???�러??최종 반영?�니??`)) {
+                        if (confirm(`클라우드에서 ${data.length}명의 사원 정보를 가져왔습니다. 화면에 불러오시겠습니까?\n(아직 로컬에 적용되진 않으며, 확인 후 '로컬 적용'을 눌러야 최종 반영됩니다)`)) {
                             tempEmployeeConfigList = data.map(row => ({
                                 org: row.org || "",
                                 name: normalizeName(row.name),
@@ -2123,18 +2147,18 @@ Print Styles (@media print)
                             renderEmployeeManager();
                         }
                     } else {
-                        alert("?�라?�드???�?�된 ?�원 ?�보가 ?�습?�다.");
+                        alert("클라우드에 저장된 사원 정보가 없습니다.");
                     }
                 } catch (err) {
                     console.error('Cloud Sync Error:', err);
                     let msg = err.message;
                     if (msg.includes("column") && msg.includes("not found")) {
-                        msg = "?�원 ?�보 ?�이블에 ?�로????��(email ????추�??��? ?�았?�니?? 관리자?�게 문의?�거??SQL ?�키마�? ?�데?�트??주세??";
+                        msg = "사원 정보 테이블에 새로운 항목(email 등)이 추가되지 않았습니다. 관리자에게 문의하거나 SQL 스키마를 업데이트해 주세요.";
                     }
-                    alert('?�라?�드 ?�??�??�류가 발생?�습?�다: ' + msg);
+                    alert('클라우드 저장 중 오류가 발생했습니다: ' + msg);
                 } finally {
                     fetchEmployeesBtn.disabled = false;
-                    fetchEmployeesBtn.textContent = "?�️ ?�라?�드?�서 불러?�기";
+                    fetchEmployeesBtn.textContent = "☁️ 클라우드에서 불러오기";
                 }
             }
 
@@ -2163,7 +2187,7 @@ Print Styles (@media print)
                 listContainer.innerHTML = Array.from(fileMap.keys())
                     .map(name => `
                         <div class="file-item" style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 6px;">
-                            <span class="file-name" style="font-size: 0.85rem; color: var(--text-main);">??${name}</span>
+                            <span class="file-name" style="font-size: 0.85rem; color: var(--text-main);">✓ ${name}</span>
                             <button class="remove-file-btn" data-name="${name}" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
                         </div>
                     `).join('');
@@ -2174,13 +2198,14 @@ Print Styles (@media print)
                         const fileName = e.target.getAttribute('data-name');
                         fileMap.delete(fileName);
 
-                        // ?�일????��?????�력 ?�드(input)??value??초기?�하??
-                        // ?�같?� ?�일???�시 ?�렸????change ?�벤?��? ?�상?�으�?발생?�도�???                        if (fileMap === attendanceFilesMap && fileInputAttendance) fileInputAttendance.value = '';
+                        // 파일이 삭제될 때 입력 필드(input)의 value도 초기화하여 
+                        // 똑같은 파일을 다시 올렸을 때 change 이벤트가 정상적으로 발생하도록 함
+                        if (fileMap === attendanceFilesMap && fileInputAttendance) fileInputAttendance.value = '';
                         if (fileMap === leaveFilesMap && fileInputLeave) fileInputLeave.value = '';
 
                         renderFileList(fileMap, listContainer, dropZone);
 
-                        // ?��? ?�이??갱신
+                        // 휴가 데이터 갱신
                         if (fileMap === leaveFilesMap) {
                             currentLeaveData = [];
                             leaveFilesMap.forEach(data => currentLeaveData.push(...data));
@@ -2230,14 +2255,14 @@ Print Styles (@media print)
             fileInputAttendance.addEventListener('change', (e) => {
                 if (e.target.files.length > 0) {
                     handleFiles(e.target.files);
-                    // ?�일 처리가 ?�난 ?�에??input value�?초기?�하지 ?�음 (?�름 ?�시�??�해)
-                    // ?�????�� 버튼???��? ??초기?�함
+                    // 파일 처리가 끝난 후에는 input value를 초기화하지 않음 (이름 표시를 위해)
+                    // 대신 삭제 버튼을 누를 때 초기화함
                 }
             });
 
             const resetAllDataBtn = document.getElementById('reset-all-data-btn');
             resetAllDataBtn.addEventListener('click', () => {
-                if (confirm("?�말�?모든 ?�동 조치(?�인 ?�시), ?�유(조치 ?�유), 그리�?직원 ?�명 ?��????��? ??��?�시겠습?�까?\n(로컬 ?�?�소 ?�이?��? 초기?�됩?�다)")) {
+                if (confirm("정말로 모든 수동 조치(확인 표시), 사유(조치 사유), 그리고 직원 소명 답변을 전부 삭제하시겠습니까?\n(로컬 저장소 데이터가 초기화됩니다)")) {
                     manualCorrections = {};
                     manualReasons = {};
                     employeeExplanations = {};
@@ -2246,12 +2271,12 @@ Print Styles (@media print)
                     localStorage.removeItem('employeeExplanations');
                     localStorage.removeItem('manualEarlyPunches');
                     manualEarlyPunches = {};
-                    alert("모든 ?�이?��? 초기?�되?�습?�다. ?�면???�로고침?�거???�이?��? ?�시 분석??주세??");
+                    alert("모든 데이터가 초기화되었습니다. 화면을 새로고침하거나 데이터를 다시 분석해 주세요.");
                     updateAndProcessData();
                 }
             });
 
-            // [NEW] ?�일 3: ?��? ?�역 처리 ?�용 ?�업
+            // [NEW] 파일 3: 휴가 내역 처리 전용 셋업
             if (dropZoneLeave && fileInputLeave) {
                 dropZoneLeave.addEventListener('click', () => fileInputLeave.click());
                 dropZoneLeave.addEventListener('dragover', (e) => { e.preventDefault(); dropZoneLeave.classList.add('dragover'); });
@@ -2274,14 +2299,14 @@ Print Styles (@media print)
                 const firstRow = rawData[0];
                 const headers = Object.keys(firstRow);
 
-                // [NEW] 로그 ?�태???�이??처리 (발생?�각, ?�름 기반)
-                if (headers.includes('발생?�각') && !headers.includes('출근')) {
+                // [NEW] 로그 형태의 데이터 처리 (발생시각, 이름 기반)
+                if (headers.includes('발생시각') && !headers.includes('출근')) {
                     const results = [];
                     rawData.forEach(row => {
-                        const name = normalizeName(row['?�름']);
-                        const fullTime = String(row['발생?�각'] || "").trim();
-                        const shift = String(row['근무�?] || "").trim();
-                        const status = String(row['?�태'] || "").trim(); // ?�태 ?�인
+                        const name = normalizeName(row['이름']);
+                        const fullTime = String(row['발생시각'] || "").trim();
+                        const shift = String(row['근무조'] || "").trim();
+                        const status = String(row['상태'] || "").trim(); // 상태 확인
 
                         if (!name || !fullTime) return;
 
@@ -2290,31 +2315,31 @@ Print Styles (@media print)
                             let inTimeParam = "";
                             let outTimeParam = "";
 
-                            if (status.includes('?�근')) {
+                            if (status.includes('퇴근')) {
                                 outTimeParam = time;
                             } else if (status.includes('출근')) {
                                 inTimeParam = time;
-                            } else if (status.includes('출입') || status.includes('??)) {
+                            } else if (status.includes('출입') || status.includes('입')) {
                                 inTimeParam = time;
-                            } else if (status.includes('??)) {
+                            } else if (status.includes('퇴')) {
                                 outTimeParam = time;
                             } else {
                                 inTimeParam = time;
                             }
 
                             results.push({
-                                '?�짜': date,
-                                '?�름': name,
+                                '날짜': date,
+                                '이름': name,
                                 '출근': inTimeParam,
-                                '?�근': outTimeParam,
-                                '근무�?: shift
+                                '퇴근': outTimeParam,
+                                '근무조': shift
                             });
                         }
                     });
                     return results;
                 }
 
-                // 기존 ??기반 ?�이??처리 (Matrix Style)
+                // 기존 행 기반 데이터 처리 (Matrix Style)
                 const canonicalMap = {};
                 const findAndMap = (canonical, tests) => {
                     const found = tests.find(t => headers.some(h => t(h)));
@@ -2324,14 +2349,14 @@ Print Styles (@media print)
                     }
                 };
 
-                findAndMap('?�짜', [h => h === '?�짜', h => h.includes('?�짜') || h.includes('?�자')]);
-                findAndMap('?�름', [h => h === '?�름', h => h.includes('?�름') || h.includes('?�명') || h.includes('?�원�?)]);
-                findAndMap('출근', [h => h === '출근', h => h === '�?, h => h.includes('출근') && (h.includes('?�간') || h.includes('?�각')), h => h.includes('출입')]);
-                findAndMap('?�근', [h => h === '?�근', h => h === '??, h => h.includes('?�근') && (h.includes('?�간') || h.includes('?�각'))]);
-                findAndMap('근무�?, [h => h === '근무�?, h => h.includes('근무�?), h => h === '�?]);
+                findAndMap('날짜', [h => h === '날짜', h => h.includes('날짜') || h.includes('일자')]);
+                findAndMap('이름', [h => h === '이름', h => h.includes('이름') || h.includes('성명') || h.includes('사원명')]);
+                findAndMap('출근', [h => h === '출근', h => h === '출', h => h.includes('출근') && (h.includes('시간') || h.includes('시각')), h => h.includes('출입')]);
+                findAndMap('퇴근', [h => h === '퇴근', h => h === '퇴', h => h.includes('퇴근') && (h.includes('시간') || h.includes('시각'))]);
+                findAndMap('근무조', [h => h === '근무조', h => h.includes('근무조'), h => h === '조']);
 
-                // [?�정] 비고(?�유) 컬럼?� ?�러 �?부?? ?�외 ???�서 ?�정 ?�워?�만 추출
-                const reasonHeaders = headers.filter(h => ['비고', '부??, '?�외', '?�유'].some(k => h.includes(k)));
+                // [수정] 비고(사유) 컬럼은 여러 곳(부재, 예외 등)에서 특정 키워드만 추출
+                const reasonHeaders = headers.filter(h => ['비고', '부재', '예외', '사유'].some(k => h.includes(k)));
 
                 return rawData.map(row => {
                     const newRow = Object.assign({}, row);
@@ -2339,16 +2364,16 @@ Print Styles (@media print)
                         if (src in newRow && !(dst in newRow)) newRow[dst] = newRow[src];
                     });
 
-                    // [추�?] 근무�??�보 ?�규??(출근 ?�간�??�는 경우 +9?�간)
-                    if (newRow['근무�?]) {
-                        newRow['근무�?] = expandShift(newRow['근무�?]);
+                    // [추가] 근무조 정보 정규화 (출근 시간만 있는 경우 +9시간)
+                    if (newRow['근무조']) {
+                        newRow['근무조'] = expandShift(newRow['근무조']);
                     }
 
-                    // [추�?] ?�정 ?�워???�근, 조퇴, ?�일??�?추출?�여 비고�??�합
+                    // [추가] 특정 키워드(외근, 조퇴, 생일자)만 추출하여 비고로 통합
                     let combinedReason = "";
                     const targetKeywords = [
-                        { key: '?�근', label: '?�근' },
-                        { key: '?�일??, label: '?�일' }
+                        { key: '외근', label: '외근' },
+                        { key: '생일자', label: '생일' }
                     ];
 
                     reasonHeaders.forEach(h => {
@@ -2368,7 +2393,7 @@ Print Styles (@media print)
 
             function handleFileForSlot(file, slotIndex, dropZone, statusEl) {
                 if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
-                    alert('?��? ?�일???�로?�해주세??');
+                    alert('엑셀 파일을 업로드해주세요.');
                     return;
                 }
                 const reader = new FileReader();
@@ -2381,7 +2406,7 @@ Print Styles (@media print)
                     else currentJsonData2 = jsonData;
 
                     dropZone.classList.add('loaded');
-                    if (statusEl) statusEl.textContent = `??${file.name}`;
+                    if (statusEl) statusEl.textContent = `✓ ${file.name}`;
 
                     currentJsonData = [...(currentJsonData1 || []), ...(currentJsonData2 || [])];
                     if (currentJsonData.length > 0) processMatrixData(currentJsonData);
@@ -2410,22 +2435,23 @@ Print Styles (@media print)
                         const workbook = XLSX.read(data, { type: 'array' });
                         const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-                        // [Fix]: ?��? ?�장 !ref 범위가 ?�못?�어(?? A5:K96) ?�단 ?�더가 무시?�는 ?�상 방�?. 무조�?A1부???�도�?강제 범위�?지?�합?�다.
+                        // [Fix]: 엑셀 내장 !ref 범위가 잘못되어(예: A5:K96) 상단 헤더가 무시되는 현상 방지. 무조건 A1부터 읽도록 강제 범위를 지정합니다.
                         let range = sheet['!ref'];
                         if (range) {
                             const parts = range.split(':');
                             if (parts.length === 2) {
-                                // 강제�?A1부???�작?�도�??�정
+                                // 강제로 A1부터 시작하도록 수정
                                 range = 'A1:' + parts[1];
                             }
                         }
 
-                        // header: 1�?가?��? ?�더가 밀리거???�는 경우?�도 ?�연?�게 ?��?                        const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", range: range || undefined });
+                        // header: 1로 가져와 헤더가 밀리거나 없는 경우에도 유연하게 대처
+                        const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", range: range || undefined });
 
-                        // 1. ?�더 ??찾기 (?�위 10�????�??
+                        // 1. 헤더 행 찾기 (상위 10개 행 대상)
                         let bestHeaderIdx = -1;
-                        let maxMatches = 0; // 최소 1�??�상 ?�워?��? ?�어???�더�??�정
-                        const keyKeywords = ['?�름', '?�명', '?�작', '종료', '?�태', '결재'];
+                        let maxMatches = 0; // 최소 1개 이상 키워드가 있어야 헤더로 인정
+                        const keyKeywords = ['이름', '성명', '시작', '종료', '상태', '결재'];
 
                         for (let i = 0; i < Math.min(10, rawData.length); i++) {
                             const row = rawData[i];
@@ -2439,47 +2465,48 @@ Print Styles (@media print)
                         const headerRow = bestHeaderIdx !== -1 ? rawData[bestHeaderIdx] : [];
                         const findColIndex = (keywords) => headerRow.findIndex(v => keywords.some(k => String(v).includes(k)));
 
-                        const nameIdx = findColIndex(['?�름', '?�명', '?�원�?]);
-                        const startIdx = findColIndex(['?��? ?�작??, '?�작??, '?�작']);
-                        const endIdx = findColIndex(['?��? 종료??, '종료??, '종료']);
-                        const typeIdx = findColIndex(['??��', '종류', '구분', '?��?구분']);
-                        const daysIdx = findColIndex(['?�용?�간(??', '?�수', '?�용??]);
-                        const statusIdx = findColIndex(['처리?�태', '문서?�태', '결재', '?�태', '결재?�태']);
+                        const nameIdx = findColIndex(['이름', '성명', '사원명']);
+                        const startIdx = findColIndex(['휴가 시작일', '시작일', '시작']);
+                        const endIdx = findColIndex(['휴가 종료일', '종료일', '종료']);
+                        const typeIdx = findColIndex(['항목', '종류', '구분', '휴가구분']);
+                        const daysIdx = findColIndex(['사용시간(일)', '일수', '사용일']);
+                        const statusIdx = findColIndex(['처리상태', '문서상태', '결재', '상태', '결재상태']);
 
-                        // ?��? ?�싱
+                        // 엑셀 파싱
                         const parsedLeaveData = rawData.map((row, rowIndex) => {
                             if (!Array.isArray(row) || rowIndex <= bestHeaderIdx) return null;
 
                             const rowValues = row.map(v => String(v).trim());
 
-                            // 2�??�터�? ?�태 ?�인 로직 강화
+                            // 2중 필터링: 상태 확인 로직 강화
                             let status = (statusIdx !== -1) ? rowValues[statusIdx] : "";
 
-                            // 만약 명시?�인 ?�태 컬럼???�을 경우, ???�체?�서 ?�태 ?�워?��? ?�리?�틱?�로 추출
+                            // 만약 명시적인 상태 컬럼이 없을 경우, 행 전체에서 상태 키워드를 휴리스틱으로 추출
                             if (status === "") {
-                                const statusKeywords = ['?�인', '?�료', '?��?, '취소', '반려', '??��', '?�태'];
+                                const statusKeywords = ['승인', '완료', '대기', '취소', '반려', '삭제', '상태'];
                                 const foundStatus = rowValues.find(v => statusKeywords.some(k => v.includes(k)));
                                 if (foundStatus) status = foundStatus;
                             }
 
                             if (status !== "") {
-                                // ?�태 컬럼???�을 ?? '?��???검�?목적?�로 ?�려?�고, 취소/반려/??���??�전 ?�싱 ?�외
+                                // 상태 컬럼이 있을 때: '대기'는 검증 목적으로 살려두고, 취소/반려/삭제만 완전 파싱 제외
                                 if (status !== "") {
-                                    const isRejected = status.includes("취소") || status.includes("반려") || status.includes("??��");
+                                    const isRejected = status.includes("취소") || status.includes("반려") || status.includes("삭제");
                                     if (isRejected) return null;
                                 }
 
-                                // 명시?�으�??�인/?�료가 ?�니�? 기�? ?�른 ?�스?�라�??�스?��?�? 보통 ?�에??걸러�?                            }
+                                // 명시적으로 승인/완료가 아니고, 기타 다른 텍스트라면 패스하지만, 보통 위에서 걸러짐
+                            }
 
-                            // 1. ?�름 찾기
+                            // 1. 이름 찾기
                             let rawName = (nameIdx !== -1) ? rowValues[nameIdx] : rowValues.find(v => {
-                                const isHangul = /^[가-??{2,4}$/.test(v);
-                                const isDept = v.endsWith('?�') || v.endsWith('부') || v.endsWith('�?) || v.endsWith('??);
+                                const isHangul = /^[가-힣]{2,4}$/.test(v);
+                                const isDept = v.endsWith('팀') || v.endsWith('부') || v.endsWith('과') || v.endsWith('사');
                                 return isHangul && !isDept;
                             });
                             let name = normalizeName(rawName);
 
-                            // 2. ?�작??종료??찾기
+                            // 2. 시작일/종료일 찾기
                             let start = "";
                             let end = "";
 
@@ -2487,7 +2514,7 @@ Print Styles (@media print)
                                 start = row[startIdx];
                                 end = (endIdx !== -1 && row[endIdx]) ? row[endIdx] : start;
                             } else {
-                                // ?�더�?�?찾으�????�체?�서 ?�짜 ?�보????찾기
+                                // 헤더로 못 찾으면 행 전체에서 날짜 후보들 다 찾기
                                 const dateCandidates = [];
                                 row.forEach((v, idx) => {
                                     if (typeof v === 'number' && v > 40000 && v < 60000) dateCandidates.push(v);
@@ -2495,7 +2522,8 @@ Print Styles (@media print)
                                 });
 
                                 if (dateCandidates.length > 0) {
-                                    // ?�렬?�여 가??빠른 ?�을 ?�작, 가????? ?�을 종료�?                                    const timeValues = dateCandidates.map(v => (typeof v === 'number') ? v : new Date(v.replace(/\./g, '-')).getTime() / 86400000 + 25569);
+                                    // 정렬하여 가장 빠른 날을 시작, 가장 늦은 날을 종료로
+                                    const timeValues = dateCandidates.map(v => (typeof v === 'number') ? v : new Date(v.replace(/\./g, '-')).getTime() / 86400000 + 25569);
                                     const minIdx = timeValues.indexOf(Math.min(...timeValues));
                                     const maxIdx = timeValues.indexOf(Math.max(...timeValues));
                                     start = dateCandidates[minIdx];
@@ -2503,16 +2531,17 @@ Print Styles (@media print)
                                 }
                             }
 
-                            // 3. ?��? 종류 찾기
-                            const typeKeywords = ['?�차', '반차', '?�전반차', '?�후반차', '조퇴', '?�출', '경조', '?��?', '공�?', '병�?', '�?��', '?��?, '?�상', '출장'];
+                            // 3. 휴가 종류 찾기
+                            const typeKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장'];
                             let type = (typeIdx !== -1) ? rowValues[typeIdx] : "";
 
-                            // 찾�? ?�?�값???�제 ?��? ?�워??�??�나�??�함?�는지 ?�인 (?�못??컬럼 방�?), ?�니�??�리?�틱 ?��???                            if (!typeKeywords.some(k => type.includes(k))) {
+                            // 찾은 타입값이 실제 휴가 키워드 중 하나를 포함하는지 확인 (잘못된 컬럼 방지), 아니면 휴리스틱 재검색
+                            if (!typeKeywords.some(k => type.includes(k))) {
                                 const fallbackType = rowValues.find(v => typeKeywords.some(k => v.includes(k)));
                                 if (fallbackType) type = fallbackType;
                             }
 
-                            // 4. ?�수 찾기 (기본 1)
+                            // 4. 일수 찾기 (기본 1)
                             let days = 1;
                             const dayVal = (daysIdx !== -1) ? rowValues[daysIdx] : rowValues.find(v => /^\d+(\.\d+)?$/.test(v) && parseFloat(v) > 0 && parseFloat(v) <= 1.5);
                             if (dayVal) days = parseFloat(dayVal);
@@ -2524,7 +2553,7 @@ Print Styles (@media print)
                                     end: end,
                                     type: type,
                                     days: days,
-                                    status: status, // ?�태 추�?
+                                    status: status, // 상태 추가
                                     raw: JSON.stringify(row)
                                 };
                             }
@@ -2553,31 +2582,31 @@ Print Styles (@media print)
                 const recordsMap = {};
                 const uniqueDates = new Set();
 
-                // [?�동] ?�짜 ?�프?�을 ?�용??가???�이???�성
+                // [수동] 날짜 오프셋을 적용한 가상 데이터 생성
                 const effectiveRows = rows.map(row => {
                     let jsDate = null;
-                    if (typeof row["?�짜"] === 'number') jsDate = new Date(Math.round((row["?�짜"] - 25569) * 86400 * 1000));
-                    else if (row["?�짜"]) jsDate = new Date(String(row["?�짜"]).split(' ')[0]);
+                    if (typeof row["날짜"] === 'number') jsDate = new Date(Math.round((row["날짜"] - 25569) * 86400 * 1000));
+                    else if (row["날짜"]) jsDate = new Date(String(row["날짜"]).split(' ')[0]);
 
                     if (!jsDate || isNaN(jsDate)) return row;
 
                     const fDate = jsDate.toISOString().split('T')[0];
-                    const name = normalizeName(row["?�름"]);
+                    const name = normalizeName(row["이름"]);
                     const key = `${name}_${fDate}`;
                     const mode = manualEarlyPunches[key] || "";
 
                     if (mode === "shift") {
                         const inTimeRaw = cleanTime(row["출근"]);
-                        const outTimeRaw = cleanTime(row["?�근"]);
+                        const outTimeRaw = cleanTime(row["퇴근"]);
 
-                        // ?�벽 ?�간(06:00 ?�전)??경우�??�짜�??�프?�함
+                        // 새벽 시간(06:00 이전)인 경우만 날짜를 시프팅함
                         if ((inTimeRaw && inTimeRaw < '06:00') || (outTimeRaw && outTimeRaw < '06:00')) {
                             const prevDate = new Date(jsDate);
                             prevDate.setDate(prevDate.getDate() - 1);
                             const newRow = Object.assign({}, row);
-                            newRow["?�짜"] = prevDate.toISOString().split('T')[0];
+                            newRow["날짜"] = prevDate.toISOString().split('T')[0];
 
-                            // [추�?] 01:00 -> 25:00 ?�태�?변??(24?�간 ?�산 처리)
+                            // [추가] 01:00 -> 25:00 형태로 변환 (24시간 합산 처리)
                             const expandTime = (t) => {
                                 if (t && t < '06:00') {
                                     const [h, m] = t.split(':');
@@ -2586,17 +2615,17 @@ Print Styles (@media print)
                                 return t;
                             };
                             if (inTimeRaw && inTimeRaw < '06:00') newRow["출근"] = expandTime(inTimeRaw);
-                            if (outTimeRaw && outTimeRaw < '06:00') newRow["?�근"] = expandTime(outTimeRaw);
+                            if (outTimeRaw && outTimeRaw < '06:00') newRow["퇴근"] = expandTime(outTimeRaw);
 
                             return newRow;
                         }
                     } else if (mode === "forceIn") {
                         const inTimeRaw = cleanTime(row["출근"]);
-                        const outTimeRaw = cleanTime(row["?�근"]);
+                        const outTimeRaw = cleanTime(row["퇴근"]);
                         if (outTimeRaw && outTimeRaw < '06:00') {
                             const newRow = Object.assign({}, row);
                             newRow["출근"] = outTimeRaw;
-                            newRow["?�근"] = "";
+                            newRow["퇴근"] = "";
                             return newRow;
                         }
                     }
@@ -2605,21 +2634,21 @@ Print Styles (@media print)
 
                 effectiveRows.forEach(row => {
                     let jsDate = null;
-                    if (typeof row["?�짜"] === 'number') jsDate = new Date(Math.round((row["?�짜"] - 25569) * 86400 * 1000));
-                    else if (row["?�짜"]) jsDate = new Date(String(row["?�짜"]).split(' ')[0]);
+                    if (typeof row["날짜"] === 'number') jsDate = new Date(Math.round((row["날짜"] - 25569) * 86400 * 1000));
+                    else if (row["날짜"]) jsDate = new Date(String(row["날짜"]).split(' ')[0]);
 
                     if (jsDate && !isNaN(jsDate)) {
                         const fDate = jsDate.toISOString().split('T')[0];
-                        // 주말 ?�는 공휴???�외
+                        // 주말 또는 공휴일 제외
                         if (jsDate.getDay() !== 0 && jsDate.getDay() !== 6 && !isHoliday(fDate)) {
-                            const name = normalizeName(row["?�름"]);
+                            const name = normalizeName(row["이름"]);
                             const inTime = cleanTime(row["출근"]);
-                            const outTime = cleanTime(row["?�근"]);
-                            let shiftStr = String(row["근무�?] || "");
-                            if (name === "박주??) shiftStr = "0900-1800";
-                            const cloudReason = row["비고"] || row["reason"] || ""; // [추�?] ?�라?�드 ?�유 복구
+                            const outTime = cleanTime(row["퇴근"]);
+                            let shiftStr = String(row["근무조"] || "");
+                            if (name === "박주연") shiftStr = "0900-1800";
+                            const cloudReason = row["비고"] || row["reason"] || ""; // [추가] 클라우드 사유 복구
 
-                            // [?�정] 출퇴�?기록???�더?�도 ?�유(?�반 ?��? ??가 ?�으�??�이?�에 ?�함
+                            // [수정] 출퇴근 기록이 없더라도 사유(일반 휴가 등)가 있으면 데이터에 포함
                             if (name && (inTime || outTime || cloudReason)) {
                                 uniqueDates.add(fDate);
                                 if (!recordsMap[name]) recordsMap[name] = {};
@@ -2634,7 +2663,7 @@ Print Styles (@media print)
                                     shiftStart = shiftStr.split('-')[0].trim();
                                 }
 
-                                // [추�?] ?�라?�드?�서 복구???�유가 ?�으�??�용
+                                // [추가] 클라우드에서 복구된 사유가 있으면 적용
                                 const mergedReason = existing.reason || cloudReason;
 
                                 recordsMap[name][fDate] = { inTime: mergedIn, outTime: mergedOut, shiftStart, reason: mergedReason };
@@ -2643,7 +2672,7 @@ Print Styles (@media print)
                     }
                 });
 
-                // [NEW] ?��? ?�이??결합 로직
+                // [NEW] 휴가 데이터 결합 로직
                 if (currentLeaveData && currentLeaveData.length > 0) {
                     currentLeaveData.forEach(lv => {
                         const name = normalizeName(lv.name);
@@ -2666,10 +2695,10 @@ Print Styles (@media print)
                             else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false, leave: false };
 
                             const status = lv.status || "";
-                            const isManuallyApplied = status.includes("?��?) && corrData.leave === true;
+                            const isManuallyApplied = status.includes("대기") && corrData.leave === true;
 
-                            // 기본 ?�인 조건: (비어?�거??(?�인/?�료 ?�함 & ?��?반려/취소 ?�함 ?�함))
-                            const isDefaultApproved = status === "" || ((status.includes("?�인") || status.includes("?�료")) && !status.includes("?��?) && !status.includes("취소") && !status.includes("반려") && !status.includes("??��"));
+                            // 기본 승인 조건: (비어있거나 (승인/완료 포함 & 대기/반려/취소 포함 안함))
+                            const isDefaultApproved = status === "" || ((status.includes("승인") || status.includes("완료")) && !status.includes("대기") && !status.includes("취소") && !status.includes("반려") && !status.includes("삭제"));
                             const isApproved = isDefaultApproved || isManuallyApplied;
 
                             if (curDay.getDay() !== 0 && curDay.getDay() !== 6 && !isHoliday(fDate) && isApproved) {
@@ -2687,7 +2716,8 @@ Print Styles (@media print)
                                     const actualIn = rec.inTime;
                                     const shiftStart = rec.shiftStart;
 
-                                    let detectedAM = !raw.includes("?�후"); // 기본�?
+                                    let detectedAM = !raw.includes("오후"); // 기본값
+
                                     const parseToMin = (t) => {
                                         if (!t) return null;
                                         const cleaned = t.replace(':', '').trim();
@@ -2700,13 +2730,13 @@ Print Styles (@media print)
                                     const inMin = parseToMin(actualIn);
                                     const outMin = parseToMin(rec.outTime);
 
-                                    // [개선] 출근/?�근 ?�각??모두 고려?�여 ?�전/?�후 반차 ?��? ?�단 (Heuristic)
+                                    // [개선] 출근/퇴근 시각을 모두 고려하여 오전/오후 반차 여부 판단 (Heuristic)
                                     if (inMin !== null) {
-                                        // 11???�후??출근?�다�??�전 반차(?�전???�고 ?�후 출근)�?간주
+                                        // 11시 이후에 출근했다면 오전 반차(오전에 쉬고 오후 출근)로 간주
                                         if (inMin >= 660) detectedAM = true;
                                         else detectedAM = false;
                                     } else if (outMin !== null) {
-                                        // 14???�전???�근?�다�??�후 반차(?�전???�하�??�후 ?�사)�?간주
+                                        // 14시 이전에 퇴근했다면 오후 반차(오전에 일하고 오후 퇴사)로 간주
                                         if (outMin <= 840) detectedAM = false;
                                         else detectedAM = true;
                                     }
@@ -2716,12 +2746,12 @@ Print Styles (@media print)
                                     } else {
                                         recordsMap[name][fDate].outTime = "반차";
                                     }
-                                } else if (type.includes("?�차")) {
-                                    recordsMap[name][fDate].inTime = "?�차";
+                                } else if (type.includes("연차")) {
+                                    recordsMap[name][fDate].inTime = "연차";
                                 } else {
-                                    // ?�차, 반차�??�외???��? ?�항?� ?�유?�?�만 ?�력 (?�용???�청: 출퇴근�? 공�?)
+                                    // 연차, 반차를 제외한 휴가 사항은 사유란에만 입력 (사용자 요청: 출퇴근란 공란)
                                     let displayType = type;
-                                    if (type.includes("?�일??)) displayType = "?�일";
+                                    if (type.includes("생일자")) displayType = "생일";
                                     recordsMap[name][fDate].reason = displayType;
                                 }
                             }
@@ -2730,7 +2760,7 @@ Print Styles (@media print)
                     });
                 }
 
-                // [NEW] ?�동?�로 ?�력??조치 ?�유 반영
+                // [NEW] 수동으로 입력한 조치 사유 반영
                 Object.entries(manualReasons).forEach(([key, reason]) => {
                     const [name, fDate] = key.split('_');
                     if (name && fDate && reason) {
@@ -2739,7 +2769,7 @@ Print Styles (@media print)
                         recordsMap[name][fDate].reason = reason;
                     }
                 });
-                // [NEW] 기간 ??모든 ?�일??기본 ?�짜?�으�?구성 (기록???�나???�는 ?�짜???�상근태�??�기 ?�해)
+                // [NEW] 기간 내 모든 평일을 기본 날짜셋으로 구성 (기록이 하나도 없는 날짜도 이상근태로 잡기 위해)
                 const startInput = document.getElementById('report-period-start');
                 const endInput = document.getElementById('report-period-end');
                 const startBound = startInput ? startInput.value : "";
@@ -2763,20 +2793,22 @@ Print Styles (@media print)
                     sortedDates = sortedDates.filter(d => d >= startBound && d <= endBound);
                 }
 
-                currentUniqueDates = new Set(sortedDates); // [추�?] 검�?로직?�서 ?�용?�기 ?�해 ?�역 변?�에 ?�??
-                // [?�정] ?�사???�사??기�? 보고???�외 로직 추�?
+                currentUniqueDates = new Set(sortedDates); // [추가] 검증 로직에서 사용하기 위해 전역 변수에 저장
+
+                // [수정] 입사일/퇴사일 기준 보고서 제외 로직 추가
                 const manualNames = employeeConfigList
                     .filter(e => {
-                        // [추�?] ?�?�이???�외 로직
-                        if (e.org === "?�?�이??) return false;
+                        // [추가] 대표이사 제외 로직
+                        if (e.org === "대표이사") return false;
 
-                        // ?�사???�사???�터�?                        if (startBound && endBound) {
+                        // 입사일/퇴사일 필터링
+                        if (startBound && endBound) {
                             if (e.joinDate) {
-                                // ?�사?�이 보고 종료?�보????���??�외
+                                // 입사일이 보고 종료일보다 늦으면 제외
                                 if (e.joinDate > endBound) return false;
                             }
                             if (e.leaveDate) {
-                                // ?�사?�이 보고 ?�작?�보??빠르�??�외
+                                // 퇴사일이 보고 시작일보다 빠르면 제외
                                 if (e.leaveDate < startBound) return false;
                             }
                         }
@@ -2794,8 +2826,8 @@ Print Styles (@media print)
                     chunks[chunks.length - 1].dates.push(dt);
                 });
 
-                // --- ?�상 근태 글로벌 계산 (버튼 ?�성???? ---
-                // [?�정] 글로벌 ?�래�??�??개별 �?unconfirmedAnomaliesMap) ?�용
+                // --- 이상 근태 글로벌 계산 (버튼 활성화 시) ---
+                // [수정] 글로벌 플래그 대신 개별 맵(unconfirmedAnomaliesMap) 사용
                 unconfirmedAnomaliesMap = {};
                 if (showAnomaliesHighlight) {
                     const allData = [];
@@ -2803,7 +2835,7 @@ Print Styles (@media print)
                     const anomalies = calculateAnomalies(allData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
                     anomalies.forEach(a => {
                         const corrKey = `${a.name}_${a.date}`;
-                        // ?�터링된 ?�짜???�함?�는 경우?�만 ?�이?�이??맵에 추�?
+                        // 필터링된 날짜에 포함되는 경우에만 하이라이트 맵에 추가
                         if (!currentUniqueDates.has(a.date)) return;
 
                         let corrData = manualCorrections[corrKey];
@@ -2812,7 +2844,7 @@ Print Styles (@media print)
 
                         const hasInAnom = a.inAnom;
                         const hasOutAnom = a.outAnom;
-                        const isPendingLeave = a.reason && a.reason.includes("?�인?��?);
+                        const isPendingLeave = a.reason && a.reason.includes("승인대기");
 
                         if ((hasInAnom && !corrData.in) || (hasOutAnom && !corrData.out) || (isPendingLeave && !corrData.leave)) {
                             unconfirmedAnomaliesMap[corrKey] = {
@@ -2831,16 +2863,16 @@ Print Styles (@media print)
                 if (returnMatrix) return { recordsMap, names, uniqueDates: Array.from(currentUniqueDates).sort() };
                 reportContainer.innerHTML = '';
                 const reportDate = reportDateInput.value;
-                const weekdaysMap = ["??, "??, "??, "??, "�?, "�?, "??];
+                const weekdaysMap = ["일", "월", "화", "수", "목", "금", "토"];
 
                 dateChunks.forEach((datesChunk) => {
                     const chunkStart = datesChunk[0];
                     const chunkEnd = datesChunk[datesChunk.length - 1];
 
-                    // [추�?] ?�재 보고 ?�이지(�?��) 기간???�직?��? ?�는 ?�원?� ?�당 ?�이지 목록?�서 ?�외
+                    // [추가] 현재 보고 페이지(청크) 기간에 재직하지 않는 사원은 해당 페이지 목록에서 제외
                     const filteredNames = names.filter(name => {
                         const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
-                        if (!empInfo.name) return true; // ?�보가 ?�으�??�단 ?�시
+                        if (!empInfo.name) return true; // 정보가 없으면 일단 표시
                         if (empInfo.joinDate && empInfo.joinDate > chunkEnd) return false;
                         if (empInfo.leaveDate && empInfo.leaveDate < chunkStart) return false;
                         return true;
@@ -2860,14 +2892,14 @@ Print Styles (@media print)
 
                     pageDiv.innerHTML = `
         <div class="report-header">
-            <h2>근태 보고??/h2>
+            <h2>근태 보고서</h2>
             <div class="header-rightside">
                 <div class="report-meta">
-                    <div class="meta-item"><span class="meta-label">보고?�자</span><span class="meta-value current-report-date-display"><u>${reportDate}</u></span></div>
+                    <div class="meta-item"><span class="meta-label">보고일자</span><span class="meta-value current-report-date-display"><u>${reportDate}</u></span></div>
                     <div class="meta-item"><span class="meta-label">종합기간</span><span class="meta-value"><u>${periodText}</u></span></div>
                 </div>
                 <table class="approval-table">
-                    <tr><th>?�당</th><th>부??/th><th>?�무</th><th>?�?�이??/th><th>?�장</th></tr>
+                    <tr><th>담당</th><th>부장</th><th>전무</th><th>대표이사</th><th>회장</th></tr>
                     <tr><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td></tr>
                     <tr><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td></tr>
                 </table>
@@ -2877,9 +2909,9 @@ Print Styles (@media print)
 
                     const table = document.createElement('table');
                     table.className = 'matrix-table';
-                    let theadHtml = `<thead><tr><th colspan="2" class="sticky-col corner-cell">?�자</th>`;
+                    let theadHtml = `<thead><tr><th colspan="2" class="sticky-col corner-cell">일자</th>`;
 
-                    // [?�정] ?�제 ?�이?��? ?�는 ?�짜�??�더링하?�록 루프 변�?(�?????��)
+                    // [수정] 실제 데이터가 있는 날짜만 렌더링하도록 루프 변경 (빈 열 삭제)
                     datesChunk.forEach(dt => {
                         const d = new Date(dt);
                         theadHtml += `<th class="th-dategroup">${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}<br>(${weekdaysMap[d.getDay()]})</th>`;
@@ -2903,20 +2935,20 @@ Print Styles (@media print)
                             let val = (recs[dt] || {}).inTime || '';
 
                             let displayVal = val;
-                            if (val !== '?�차' && val !== '반차' && isConfirmedIn) {
-                                displayVal = val ? val : `??;
+                            if (val !== '연차' && val !== '반차' && isConfirmedIn) {
+                                displayVal = val ? val : `✓`;
                             }
 
                             let cls = '';
                             if (isOutRange) cls = 'not-employed';
-                            else if (val === '?�차') cls = 'leave-annual';
+                            else if (val === '연차') cls = 'leave-annual';
                             else if (val === '반차') cls = 'leave-half';
                             else if (isConfirmedIn) cls = 'confirmed-cell';
 
                             let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
-                        tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">?�근</td>`;
+                        tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
                             const corrKey = `${name}_${dt}`;
@@ -2928,20 +2960,20 @@ Print Styles (@media print)
                             let val = (recs[dt] || {}).outTime || '';
 
                             let displayVal = val;
-                            if (val !== '?�차' && val !== '반차' && isConfirmedOut) {
-                                displayVal = val ? val : `??;
+                            if (val !== '연차' && val !== '반차' && isConfirmedOut) {
+                                displayVal = val ? val : `✓`;
                             }
 
                             let cls = '';
                             if (isOutRange) cls = 'not-employed';
-                            else if (val === '?�차') cls = 'leave-annual';
+                            else if (val === '연차') cls = 'leave-annual';
                             else if (val === '반차') cls = 'leave-half';
                             else if (isConfirmedOut) cls = 'confirmed-cell';
 
                             let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
-                        tbodyHtml += `</tr><tr class="employee-border-bottom"><td class="sticky-col td-label label-reason">?�유</td>`;
+                        tbodyHtml += `</tr><tr class="employee-border-bottom"><td class="sticky-col td-label label-reason">사유</td>`;
                         let r_idx = 0;
                         while (r_idx < datesChunk.length) {
                             const dt = datesChunk[r_idx];
@@ -2949,18 +2981,18 @@ Print Styles (@media print)
                             const currentReason = isOutRange ? '' : (recs[dt] || {}).reason || '';
                             let span = 1;
 
-                            // [?�정] ?�직 기간 ?�인 경우(isOutRange)???�합?��? ?�고 개별 ?��?출력 (?�용???�청)
+                            // [수정] 재직 기간 외인 경우(isOutRange)는 통합하지 않고 개별 셀로 출력 (사용자 요청)
                             if (isOutRange) {
                                 const cls = 'time-cell reason-cell not-employed';
                                 tbodyHtml += `<td class="${cls}">${currentReason}</td>`;
                                 r_idx++;
                             } else {
-                                // �??�유가 ?�니�??�속??가치�? ?�는 경우) ?�음 ?�짜?�과 ?�유가 같�?지 ?�인
+                                // 빈 사유가 아니고(연속될 가치가 있는 경우) 다음 날짜들과 사유가 같은지 확인
                                 while (r_idx + span < datesChunk.length) {
                                     const nextDt = datesChunk[r_idx + span];
                                     const nextIsOutRange = (empInfo.joinDate && nextDt < empInfo.joinDate) || (empInfo.leaveDate && nextDt > empInfo.leaveDate);
 
-                                    if (nextIsOutRange) break; // ?�음 칸이 ?�직 기간 ?�면 병합 중단
+                                    if (nextIsOutRange) break; // 다음 칸이 재직 기간 외면 병합 중단
 
                                     if (currentReason !== '') {
                                         const nextReason = (recs[nextDt] || {}).reason || '';
@@ -2998,7 +3030,7 @@ Print Styles (@media print)
             const startInput = document.getElementById('report-period-start');
             const endInput = document.getElementById('report-period-end');
 
-            // [추�?] 빠른 기간 ?�택 로직
+            // [추가] 빠른 기간 선택 로직
             const quickMonthSelect = document.getElementById('quick-month-select');
             const quickFirstHalfBtn = document.getElementById('quick-first-half-btn');
             const quickSecondHalfBtn = document.getElementById('quick-second-half-btn');
@@ -3017,7 +3049,7 @@ Print Styles (@media print)
             if (quickFirstHalfBtn && quickMonthSelect && startInput && endInput) {
                 quickFirstHalfBtn.onclick = () => {
                     const ym = quickMonthSelect.value;
-                    if (!ym) { alert('기�? ?�을 ?�택?�주?�요.'); return; }
+                    if (!ym) { alert('기준 월을 선택해주세요.'); return; }
                     startInput.value = `${ym}-01`;
                     endInput.value = `${ym}-15`;
                     triggerDateChange();
@@ -3027,9 +3059,9 @@ Print Styles (@media print)
             if (quickSecondHalfBtn && quickMonthSelect && startInput && endInput) {
                 quickSecondHalfBtn.onclick = () => {
                     const ym = quickMonthSelect.value;
-                    if (!ym) { alert('기�? ?�을 ?�택?�주?�요.'); return; }
+                    if (!ym) { alert('기준 월을 선택해주세요.'); return; }
                     const [year, month] = ym.split('-');
-                    const lastDay = new Date(year, month, 0).getDate(); // ?�당 ?�의 마�?�??�짜 계산
+                    const lastDay = new Date(year, month, 0).getDate(); // 해당 월의 마지막 날짜 계산
                     startInput.value = `${ym}-16`;
                     endInput.value = `${ym}-${lastDay}`;
                     triggerDateChange();
@@ -3043,7 +3075,7 @@ Print Styles (@media print)
             }
 
 
-            // ----- 검�?Verification) 로직 (그룹??�??�괄 ?�인 추�?) -----
+            // ----- 검증(Verification) 로직 (그룹화 및 일괄 확인 추가) -----
             let selectedAnomalyKeys = new Set();
             let foldedGroups = new Set();
             if (verifyBtn) {
@@ -3074,10 +3106,10 @@ Print Styles (@media print)
                 if (bulkConfirmBtn) {
                     bulkConfirmBtn.onclick = () => {
                         if (selectedAnomalyKeys.size === 0) {
-                            alert('?�인????��??먼�? ?�택?�주?�요.');
+                            alert('확인할 항목을 먼저 선택해주세요.');
                             return;
                         }
-                        if (!confirm(`?�택??${selectedAnomalyKeys.size}건을 ?�괄 ?�인 처리?�시겠습?�까?`)) return;
+                        if (!confirm(`선택한 ${selectedAnomalyKeys.size}건을 일괄 확인 처리하시겠습니까?`)) return;
 
                         selectedAnomalyKeys.forEach(key => {
                             if (!manualCorrections[key] || typeof manualCorrections[key] !== 'object') {
@@ -3093,17 +3125,17 @@ Print Styles (@media print)
                         if (allCheckbox) allCheckbox.checked = false;
                         verifyBtn.click();
                         updateAndProcessData();
-                        alert('?�괄 ?�인 처리가 ?�료?�었?�니??');
+                        alert('일괄 확인 처리가 완료되었습니다.');
                     };
                 }
 
                 if (bulkUnconfirmBtn) {
                     bulkUnconfirmBtn.onclick = () => {
                         if (selectedAnomalyKeys.size === 0) {
-                            alert('?�제????��??먼�? ?�택?�주?�요.');
+                            alert('해제할 항목을 먼저 선택해주세요.');
                             return;
                         }
-                        if (!confirm(`?�택??${selectedAnomalyKeys.size}건을 ?�괄 ?�인 ?�제?�시겠습?�까?`)) return;
+                        if (!confirm(`선택한 ${selectedAnomalyKeys.size}건을 일괄 확인 해제하시겠습니까?`)) return;
 
                         selectedAnomalyKeys.forEach(key => {
                             if (manualCorrections[key]) {
@@ -3116,18 +3148,19 @@ Print Styles (@media print)
                         if (allCheckbox) allCheckbox.checked = false;
                         verifyBtn.click();
                         updateAndProcessData();
-                        alert('?�괄 ?�인 ?�제가 ?�료?�었?�니??');
+                        alert('일괄 확인 해제가 완료되었습니다.');
                     };
                 }
 
-                // [추�?] Supabase ?�기??버튼 ?�들??                if (syncToCloudBtn) {
+                // [추가] Supabase 동기화 버튼 핸들러
+                if (syncToCloudBtn) {
                     syncToCloudBtn.onclick = async () => {
                         if (!supabase) {
-                            alert('Supabase ?�정(URL, Key)???�요?�니?? 코드 ?�단??SUPABASE_URL�?SUPABASE_KEY�??�력?�주?�요.');
+                            alert('Supabase 설정(URL, Key)이 필요합니다. 코드 상단의 SUPABASE_URL과 SUPABASE_KEY를 입력해주세요.');
                             return;
                         }
                         if (selectedAnomalyKeys.size === 0) {
-                            alert('?�명 ?�청??보낼 ??��??먼�? ?�택?�주?�요.');
+                            alert('소명 요청을 보낼 항목을 먼저 선택해주세요.');
                             return;
                         }
 
@@ -3152,7 +3185,7 @@ Print Styles (@media print)
 
                         if (toSync.length === 0) return;
 
-                        if (!confirm(`?�택??${toSync.length}건을 직원 ?�명 ?�이지�??�송?�시겠습?�까?`)) return;
+                        if (!confirm(`선택한 ${toSync.length}건을 직원 소명 페이지로 전송하시겠습니까?`)) return;
 
                         const { data, error } = await supabase
                             .from('attendance_anomalies')
@@ -3160,22 +3193,23 @@ Print Styles (@media print)
 
                         if (error) {
                             console.error('Sync Error:', error);
-                            alert('?�송 �??�류가 발생?�습?�다: ' + error.message);
+                            alert('전송 중 오류가 발생했습니다: ' + error.message);
                         } else {
-                            // [추�?] ?�공 ??발송 ?�태 즉시 ?�데?�트
+                            // [추가] 성공 시 발송 상태 즉시 업데이트
                             toSync.forEach(item => sentAnomalyKeys.add(item.manager_key));
                             localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
-                            verifyBtn.click(); // ?�면 갱신
-                            alert('?�택????��???�공?�으�??�송?�었?�니??');
+                            verifyBtn.click(); // 화면 갱신
+                            alert('선택한 항목이 성공적으로 전송되었습니다.');
                         }
                     };
                 }
 
-                // [추�?] Mailto 발송 ?�들??                const sendMailtoBtn = document.getElementById('send-mailto-btn');
+                // [추가] Mailto 발송 핸들러
+                const sendMailtoBtn = document.getElementById('send-mailto-btn');
                 if (sendMailtoBtn) {
                     sendMailtoBtn.onclick = () => {
                         if (selectedAnomalyKeys.size === 0) {
-                            alert('메일??발송????��??먼�? ?�택?�주?�요.');
+                            alert('메일을 발송할 항목을 먼저 선택해주세요.');
                             return;
                         }
 
@@ -3199,31 +3233,31 @@ Print Styles (@media print)
 
                         const groupedNames = Object.keys(emailGroups);
                         if (groupedNames.length === 0) {
-                            alert('?�택????�� �??�메???�보가 ?�록???�원???�습?�다.');
+                            alert('선택한 항목 중 이메일 정보가 등록된 사원이 없습니다.');
                             return;
                         }
 
-                        // ?�기열 리스???�성
+                        // 대기열 리스트 생성
                         mailQueueList.innerHTML = '';
                         groupedNames.forEach((name, idx) => {
                             const group = emailGroups[name];
                             const div = document.createElement('div');
                             div.style = "display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;";
 
-                            const subject = `[근태 ?�명 ?�청] ${name}?? 근태 ?�상 ?�역 ?�내`;
+                            const subject = `[근태 소명 요청] ${name}님, 근태 이상 내역 안내`;
                             const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
                             let itemsText = group.items.map(item => `- ${item.date}: ${item.reason}`).join('\n');
-                            const bodyText = `?�녕?�세??${name}??\n\n?�래 ?�짜?�의 근태 기록???�상 ?�유가 발생?�여 ?�명???�요?�니??\n?�역???�인?�시�??�래 ?�명 ?�이지 링크???�속?�여 ?��? 부?�드립니??\n\n???�명 ?�이지 바로가�?\n${EXPLANATION_PAGE_URL}\n\n[?�상 ?�역 리스??\n${itemsText}\n\n감사?�니??`;
+                            const bodyText = `안녕하세요 ${name}님,\n\n아래 날짜들의 근태 기록에 이상 사유가 발생하여 소명이 필요합니다.\n내역을 확인하시고 아래 소명 페이지 링크에 접속하여 답변 부탁드립니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n[이상 내역 리스트]\n${itemsText}\n\n감사합니다.`;
                             const mailtoUrl = `mailto:${group.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
 
                             div.innerHTML = `
                                 <div style="display: flex; flex-direction: column;">
                                     <span style="font-weight: 600; font-size: 0.95rem;">${name} <small style="color:#6b7280; font-weight:normal;">(${group.email})</small></span>
-                                    <span style="font-size: 0.8rem; color: #10b981;">?�역 ${group.items.length}�?/span>
+                                    <span style="font-size: 0.8rem; color: #10b981;">내역 ${group.items.length}건</span>
                                 </div>
                                 <a href="${mailtoUrl}" class="secondary-btn send-item-btn" 
                                    style="padding: 6px 12px; font-size: 0.85rem; background: #4f46e5; color: white; border: none; text-decoration: none; border-radius: 4px;"
-                                   onclick="this.style.opacity='0.5'; this.innerText='발송??; this.style.pointerEvents='none';">
+                                   onclick="this.style.opacity='0.5'; this.innerText='발송됨'; this.style.pointerEvents='none';">
                                    발송
                                 </a>
                             `;
@@ -3232,16 +3266,17 @@ Print Styles (@media print)
 
                         mailQueueModal.classList.remove('hidden');
 
-                        // [추�?] ?�괄 발송(BCC) ?�들??                        if (mailBatchBccBtn) {
+                        // [추가] 일괄 발송(BCC) 핸들러
+                        if (mailBatchBccBtn) {
                             mailBatchBccBtn.onclick = () => {
                                 const bccList = groupedNames.map(name => emailGroups[name].email).join(',');
-                                const subject = encodeURIComponent(`[?�림] 근태 ?�상 ?�역 ?�명 ?�청 ?�내`);
+                                const subject = encodeURIComponent(`[알림] 근태 이상 내역 소명 요청 안내`);
                                 const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
 
-                                const bodyText = `?�녕?�세??\n\n최근 근태 기록???�상 ?�역??발생??분들�??�내?�립?�다.\n?�래 링크???�명 ?�이지???�속?�여 본인???�명�??�짜�??�력 ???�상 ?�유�??�인?�시�??�명 ?��????�성??주시�?바랍?�다.\n\n???�명 ?�이지 바로가�?\n${EXPLANATION_PAGE_URL}\n\n감사?�니??`;
+                                const bodyText = `안녕하세요,\n\n최근 근태 기록에 이상 내역이 발생한 분들께 안내드립니다.\n아래 링크의 소명 페이지에 접속하여 본인의 성명과 날짜를 입력 후 이상 사유를 확인하시고 소명 답변을 작성해 주시기 바랍니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n감사합니다.`;
                                 const body = encodeURIComponent(bodyText);
 
-                                // ?��? 참조(bcc)�?발송?�여 ?�신??�??�보 ?�출 방�?
+                                // 숨은 참조(bcc)로 발송하여 수신자 간 정보 노출 방지
                                 window.open(`mailto:?bcc=${bccList}&subject=${subject}&body=${body}`, '_blank');
                                 mailQueueModal.classList.add('hidden');
                             };
@@ -3255,25 +3290,25 @@ Print Styles (@media print)
                 if (fetchFromCloudBtn) {
                     fetchFromCloudBtn.onclick = async () => {
                         if (!supabase) {
-                            alert('Supabase ?�정(URL, Key)???�요?�니??');
+                            alert('Supabase 설정(URL, Key)이 필요합니다.');
                             return;
                         }
 
-                        if (!confirm('직원?�이 ?�력???�명 ?��????�라?�드?�서 가?�오?�겠?�니�?')) return;
+                        if (!confirm('직원들이 입력한 소명 답변을 클라우드에서 가져오시겠습니까?')) return;
 
                         const { data, error } = await supabase
                             .from('attendance_anomalies')
                             .select('manager_key, explanation');
 
                         if (error) {
-                            alert('?�이?��? 가?�오??�??�류가 발생?�습?�다: ' + error.message);
+                            alert('데이터를 가져오는 중 오류가 발생했습니다: ' + error.message);
                             return;
                         }
 
                         let updateCount = 0;
                         if (data && data.length > 0) {
                             data.forEach(item => {
-                                // 모든 ?�송????목록 ?�데?�트
+                                // 모든 전송된 키 목록 업데이트
                                 sentAnomalyKeys.add(item.manager_key);
                                 if (item.explanation) {
                                     employeeExplanations[item.manager_key] = item.explanation;
@@ -3284,9 +3319,9 @@ Print Styles (@media print)
                             localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
                             updateAndProcessData();
                             verifyBtn.click();
-                            alert(`${updateCount}건의 ?�명 ?��????�공?�으�?가?�왔?�니??\n(검�?창의 '직원 ?�명' ?�에???�인 가?�합?�다)`);
+                            alert(`${updateCount}건의 소명 답변을 성공적으로 가져왔습니다.\n(검증 창의 '직원 소명' 열에서 확인 가능합니다)`);
                         } else {
-                            alert('가?�올 ?�로???�명 ?��????�습?�다.');
+                            alert('가져올 새로운 소명 답변이 없습니다.');
                         }
                     };
                 }
@@ -3294,7 +3329,7 @@ Print Styles (@media print)
                 const resetAllDataBtn = document.getElementById('reset-all-data-btn');
                 if (resetAllDataBtn) {
                     resetAllDataBtn.onclick = () => {
-                        if (!confirm('주의: 모든 ?�동 ?�인 ?�역, ?�유, 직원 ?�명 ?��? �??�송 ?�태 기록????��?�니?? ?�말 초기?�하?�겠?�니�?')) return;
+                        if (!confirm('주의: 모든 수동 확인 내역, 사유, 직원 소명 답변 및 전송 상태 기록이 삭제됩니다. 정말 초기화하시겠습니까?')) return;
 
                         manualCorrections = {};
                         manualReasons = {};
@@ -3310,7 +3345,7 @@ Print Styles (@media print)
 
                         updateAndProcessData();
                         verifyBtn.click();
-                        alert('모든 ?�이?��? 초기?�되?�습?�다.');
+                        alert('모든 데이터가 초기화되었습니다.');
                     };
                 }
 
@@ -3319,7 +3354,7 @@ Print Styles (@media print)
                     attendanceFilesMap.forEach(data => combinedData.push(...data));
 
                     if (combinedData.length === 0) {
-                        alert('?�이?��? 먼�? ?�로?�해주세??');
+                        alert('데이터를 먼저 업로드해주세요.');
                         return;
                     }
 
@@ -3336,7 +3371,8 @@ Print Styles (@media print)
                         verifyTbody.parentElement.classList.remove('hidden');
                         verifyEmptyMsg.classList.add('hidden');
 
-                        // ?�이??그룹??                        let groupedAnomalies = [];
+                        // 데이터 그룹화
+                        let groupedAnomalies = [];
                         if (mode === 'none') {
                             groupedAnomalies = [{ groupTitle: null, items: anomalies.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)) }];
                         } else {
@@ -3367,13 +3403,13 @@ Print Styles (@media print)
                                 groupHeader.innerHTML = `
                                     <td style="padding: 8px;"><input type="checkbox" class="group-checkbox" data-group="${group.groupTitle}"></td>
                                     <td colspan="7" style="padding: 8px; font-size: 0.9rem;">
-                                        <span class="fold-icon" style="margin-right: 8px;">${isGroupFolded ? '?? : '??}</span>
-                                        ${group.groupTitle} (${group.items.length}�?
+                                        <span class="fold-icon" style="margin-right: 8px;">${isGroupFolded ? '▶' : '▼'}</span>
+                                        ${group.groupTitle} (${group.items.length}건)
                                     </td>
                                 `;
                                 verifyTbody.appendChild(groupHeader);
 
-                                // 체크박스 ?�릭?�는 ?�파 중�? (?�딩 방�?)
+                                // 체크박스 클릭시는 전파 중지 (폴딩 방지)
                                 groupHeader.querySelector('.group-checkbox').onclick = (e) => e.stopPropagation();
                                 groupHeader.querySelector('.group-checkbox').onchange = (e) => {
                                     const isChecked = e.target.checked;
@@ -3386,11 +3422,11 @@ Print Styles (@media print)
                                     });
                                 };
 
-                                // ?�더 ?�릭???�딩 ?��?
+                                // 헤더 클릭시 폴딩 토글
                                 groupHeader.onclick = () => {
                                     const icon = groupHeader.querySelector('.fold-icon');
-                                    const isNowExpanding = icon.textContent === '??;
-                                    icon.textContent = isNowExpanding ? '?? : '??;
+                                    const isNowExpanding = icon.textContent === '▶';
+                                    icon.textContent = isNowExpanding ? '▼' : '▶';
 
                                     if (isNowExpanding) foldedGroups.delete(group.groupTitle);
                                     else foldedGroups.add(group.groupTitle);
@@ -3410,7 +3446,7 @@ Print Styles (@media print)
                                 const corrData = manualCorrections[corrKey];
                                 const hasInAnom = a.inAnom;
                                 const hasOutAnom = a.outAnom;
-                                const isPendingLeave = a.reason.includes("?�인?��?);
+                                const isPendingLeave = a.reason.includes("승인대기");
 
                                 const isFullyConfirmed = (hasInAnom ? corrData.in : true) && (hasOutAnom ? corrData.out : true) && (isPendingLeave ? corrData.leave : true);
                                 const isPartiallyConfirmed = (hasInAnom && corrData.in) || (hasOutAnom && corrData.out) || (isPendingLeave && corrData.leave);
@@ -3427,28 +3463,28 @@ Print Styles (@media print)
                                     <td>${a.date}</td>
                                     <td><strong>${a.name}</strong></td>
                                     <td>${a.shift}</td>
-                                    <td>${(a.inTime || a.outTime) ? `${a.inTime} ~ ${a.outTime}` : '<span style="color:#999">(기록 ?�음)</span>'}</td>
+                                    <td>${(a.inTime || a.outTime) ? `${a.inTime} ~ ${a.outTime}` : '<span style="color:#999">(기록 없음)</span>'}</td>
                                     <td class="anomaly-reason" style="${isFullyConfirmed ? '' : 'color:#ef4444'}">${a.reason}</td>
                                     <td class="employee-explanation" style="font-size: 0.82rem; color: #4F46E5; background-color: #f0f4ff; border: 1px solid #e0e7ff; border-radius: 4px; padding: 4px; line-height: 1.2;">
-                                        ${employeeExplanations[corrKey] || (sentAnomalyKeys.has(corrKey) ? '<span style="color: #6b7280; font-weight: 500;">???�청??/span>' : '-')}
+                                        ${employeeExplanations[corrKey] || (sentAnomalyKeys.has(corrKey) ? '<span style="color: #6b7280; font-weight: 500;">⏳ 요청됨</span>' : '-')}
                                     </td>
                                     <td>
                                         <input type="text" class="manual-reason-input" 
                                             value="${manualReasons[corrKey] || ''}" 
-                                            placeholder="?�유 ?�력..."
+                                            placeholder="사유 입력..."
                                             style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem;"
                                             data-key="${corrKey}">
                                     </td>
                                     <td>
                                         <div class="verify-action-group">
                                             <button class="confirmation-btn ${isPendingLeave ? (corrData.leave ? 'confirmed' : '') : (isFullyConfirmed || isPartiallyConfirmed ? 'confirmed' : '')}" data-key="${corrKey}">
-                                                ${isPendingLeave ? (corrData.leave ? '???�용?? : '?�용?�기') : (isFullyConfirmed ? '???�인?? : (isPartiallyConfirmed ? '???��??�인' : '미확??))}
+                                                ${isPendingLeave ? (corrData.leave ? '✓ 적용됨' : '적용하기') : (isFullyConfirmed ? '✓ 확인됨' : (isPartiallyConfirmed ? '✓ 일부확인' : '미확인'))}
                                             </button>
                                             ${a.hasEarly ? `
                                                 <select class="early-mode-select" data-key="${corrKey}" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.8rem; cursor: pointer;">
-                                                    <option value="" ${(manualEarlyPunches[corrKey] || "") === "" ? 'selected' : ''}>미처�?/option>
-                                                    <option value="shift" ${(manualEarlyPunches[corrKey] || "") === "shift" ? 'selected' : ''}>?�날�?/option>
-                                                    <option value="forceIn" ${(manualEarlyPunches[corrKey] || "") === "forceIn" ? 'selected' : ''}>출근?�로</option>
+                                                    <option value="" ${(manualEarlyPunches[corrKey] || "") === "" ? 'selected' : ''}>미처리</option>
+                                                    <option value="shift" ${(manualEarlyPunches[corrKey] || "") === "shift" ? 'selected' : ''}>전날로</option>
+                                                    <option value="forceIn" ${(manualEarlyPunches[corrKey] || "") === "forceIn" ? 'selected' : ''}>출근으로</option>
                                                 </select>
                                             ` : ''}
                                         </div>
@@ -3476,20 +3512,20 @@ Print Styles (@media print)
                                             if (hasInAnom) manualCorrections[key].in = true;
                                             if (hasOutAnom) manualCorrections[key].out = true;
 
-                                            // [추�?] ?�명 ?��? ?�동 ?�유 반영 로직
+                                            // [추가] 소명 답변 자동 사유 반영 로직
                                             const rawExp = employeeExplanations[key];
                                             if (rawExp) {
                                                 const exps = rawExp.split(',').map(s => s.trim()).filter(s => s);
                                                 if (exps.length === 1) {
                                                     manualReasons[key] = exps[0];
                                                 } else if (exps.length >= 2) {
-                                                    const abnormalExps = exps.filter(s => s !== '?�상출근' && s !== '?�상?�근');
+                                                    const abnormalExps = exps.filter(s => s !== '정상출근' && s !== '정상퇴근');
                                                     if (abnormalExps.length === 0) {
-                                                        manualReasons[key] = '?�상근무';
+                                                        manualReasons[key] = '정상근무';
                                                     } else if (abnormalExps.length === 1) {
                                                         manualReasons[key] = abnormalExps[0];
                                                     } else {
-                                                        alert('복합?�인 ?�명 ?�유가 ?�습?�다. 직접 ?�인 ???�력?�주?�요.');
+                                                        alert('복합적인 소명 사유가 있습니다. 직접 확인 후 입력해주세요.');
                                                     }
                                                 }
                                                 localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
@@ -3530,21 +3566,22 @@ Print Styles (@media print)
                 });
             }
 
-            // [모달 ?�고 ?�기 관???�벤??
+            // [모달 열고 닫기 관련 이벤트]
             window.addEventListener('click', (e) => {
-                // 모달??반투�?배경부�?모달 컨테?�너 ?�체)???�릭?�을 ?�만 ?�기
+                // 모달의 반투명 배경부분(모달 컨테이너 자체)을 클릭했을 때만 닫기
                 if (e.target === verifyModal) verifyModal.classList.add('hidden');
                 if (e.target === employeeModal) employeeModal.classList.add('hidden');
                 if (e.target === holidayModal) holidayModal.classList.add('hidden');
             });
 
-            // 공통 ?�벤??            reportDateInput.addEventListener('change', (e) => {
+            // 공통 이벤트
+            reportDateInput.addEventListener('change', (e) => {
                 document.querySelectorAll('.current-report-date-display').forEach(el => el.textContent = e.target.value);
             });
 
             if (openManagerBtn) {
                 openManagerBtn.addEventListener('click', () => {
-                    tempEmployeeConfigList = JSON.parse(JSON.stringify(employeeConfigList)); // ?�카?�로 초기 ?�태 복원
+                    tempEmployeeConfigList = JSON.parse(JSON.stringify(employeeConfigList)); // 딥카피로 초기 상태 복원
                     renderEmployeeManager();
                     employeeModal.classList.remove('hidden');
                 });
@@ -3558,16 +3595,17 @@ Print Styles (@media print)
 
             if (saveEmployeeBtn) {
                 saveEmployeeBtn.addEventListener('click', () => {
-                    employeeConfigList = tempEmployeeConfigList.map(e => ({ ...e })); // ?�카??개념?�로 ?�체 ?�드 복사
+                    employeeConfigList = tempEmployeeConfigList.map(e => ({ ...e })); // 딥카피 개념으로 전체 필드 복사
                     localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
                     updateAndProcessData();
-                    alert('명단??로컬 ?�경???�??�??�용?�었?�니??');
+                    alert('명단이 로컬 환경에 저장 및 적용되었습니다.');
                 });
             }
 
             if (fetchEmployeesBtn) fetchEmployeesBtn.onclick = fetchEmployeesFromCloud;
             if (syncEmployeesBtn) syncEmployeesBtn.onclick = syncEmployeesToCloud;
-            // 공휴???�벤??            openHolidayBtn.onclick = () => {
+            // 공휴일 이벤트
+            openHolidayBtn.onclick = () => {
                 tempHolidayConfigList = JSON.parse(JSON.stringify(holidayConfigList));
                 renderHolidayManager();
                 holidayModal.classList.remove('hidden');
@@ -3578,10 +3616,10 @@ Print Styles (@media print)
                 const date = newHolidayDateInput.value;
                 if (!date) return;
                 if (tempHolidayConfigList.some(h => h.date === date)) {
-                    alert('?��? ?�록???�짜?�니??');
+                    alert('이미 등록된 날짜입니다.');
                     return;
                 }
-                tempHolidayConfigList.push({ date, name: "?�용??지?? });
+                tempHolidayConfigList.push({ date, name: "사용자 지정" });
                 renderHolidayManager();
             };
 
@@ -3592,13 +3630,13 @@ Print Styles (@media print)
                 const loader = autoFetchHolidayBtn.querySelector('.loader');
                 const btnText = autoFetchHolidayBtn.querySelector('.btn-text');
 
-                // 로딩 ?�시
+                // 로딩 표시
                 loader.classList.remove('hidden');
-                btnText.textContent = `${selectedYear}???�이???�인 �?..`;
+                btnText.textContent = `${selectedYear}년 데이터 확인 중...`;
                 autoFetchHolidayBtn.disabled = true;
 
                 try {
-                    // 1. ?��? ?�격 ?�이???�도 (hyunbinseo/holidays-kr)
+                    // 1. 외부 원격 데이터 시도 (hyunbinseo/holidays-kr)
                     const response = await fetch('https://holidays.hyunbin.page/basic.json');
                     if (!response.ok) throw new Error('Network response was not ok');
 
@@ -3617,9 +3655,9 @@ Print Styles (@media print)
                     }
 
                     if (fetchedCount > 0) {
-                        alert(`${selectedYear}??공휴??${fetchedCount}건을 ?��??�서 ?�공?�으�?가?�왔?�니??`);
+                        alert(`${selectedYear}년 공휴일 ${fetchedCount}건을 외부에서 성공적으로 가져왔습니다.`);
                     } else {
-                        // ?��? ?�이?�에 ?�당 ?�도가 ?�는 경우 ?�장 ?�이???�용 (Fallback)
+                        // 외부 데이터에 해당 연도가 없는 경우 내장 데이터 활용 (Fallback)
                         const internalMatches = PREDEFINED_HOLIDAYS.filter(h => h.date.startsWith(selectedYear));
                         let internalCount = 0;
                         internalMatches.forEach(pre => {
@@ -3630,15 +3668,15 @@ Print Styles (@media print)
                         });
 
                         if (internalCount > 0) {
-                            alert(`?��? ?�버??${selectedYear}???�이?��? ?�어 ?�장???�이?��? ?�용??${internalCount}건을 추�??�습?�다.`);
+                            alert(`외부 서버에 ${selectedYear}년 데이터가 없어 내장된 데이터를 활용해 ${internalCount}건을 추가했습니다.`);
                         } else {
-                            alert(`${selectedYear}?�에 ?�??공휴???�이?��? 코드???�버??존재?��? ?�습?�다.`);
+                            alert(`${selectedYear}년에 대한 공휴일 데이터가 코드나 서버에 존재하지 않습니다.`);
                         }
                     }
                     renderHolidayManager();
                 } catch (error) {
                     console.error('Holiday fetch error:', error);
-                    // ?�러 발생 ???�장 ?�이?�로 Fallback
+                    // 에러 발생 시 내장 데이터로 Fallback
                     const internalMatches = PREDEFINED_HOLIDAYS.filter(h => h.date.startsWith(selectedYear));
                     let internalCount = 0;
                     internalMatches.forEach(pre => {
@@ -3649,14 +3687,14 @@ Print Styles (@media print)
                     });
 
                     if (internalCount > 0) {
-                        alert(`?�터???�결 ?�류�??�장 ?�이??${selectedYear}??�?${internalCount}�?불러?�습?�다.`);
+                        alert(`인터넷 연결 오류로 내장 데이터(${selectedYear}년)를 ${internalCount}건 불러왔습니다.`);
                     } else {
-                        alert('공휴???�보�?가?�오지 못했?�니?? ?�터???�결???�인?�거???�중???�시 ?�도?�주?�요.');
+                        alert('공휴일 정보를 가져오지 못했습니다. 인터넷 연결을 확인하거나 나중에 다시 시도해주세요.');
                     }
                     renderHolidayManager();
                 } finally {
                     loader.classList.add('hidden');
-                    btnText.textContent = '공휴??가?�오�?;
+                    btnText.textContent = '공휴일 가져오기';
                     autoFetchHolidayBtn.disabled = false;
                 }
             };
