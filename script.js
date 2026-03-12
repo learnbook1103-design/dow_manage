@@ -104,7 +104,56 @@ document.addEventListener('DOMContentLoaded', () => {
         cloudSyncAllBtn.disabled = false;
         cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장";
     }
+    async function autoSyncToCloud() {
+        if (!supabase) return;
 
+        const currentMatrix = updateAndProcessData(true);
+        if (!currentMatrix) return;
+
+        const { recordsMap, names, uniqueDates } = currentMatrix;
+        const toUpsert = [];
+
+        names.forEach(name => {
+            const userRecs = recordsMap[name] || {};
+            uniqueDates.forEach(date => {
+                const rec = userRecs[date];
+                if (rec) {
+                    const corrKey = `${name}_${date}`;
+                    const corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
+                    toUpsert.push({
+                        manager_key: corrKey,
+                        name: name,
+                        date: date,
+                        shift: rec.shiftStart,
+                        in_time: rec.inTime,
+                        out_time: rec.outTime,
+                        status_in: !!corrData.in,
+                        status_out: !!corrData.out,
+                        status_leave: !!corrData.leave,
+                        manager_reason: manualReasons[corrKey] || "",
+                        employee_explanation: employeeExplanations[corrKey] || "",
+                        reason: rec.reason || "",
+                        early_punch_mode: manualEarlyPunches[corrKey] || "",
+                        is_anomalous: !!(unconfirmedAnomaliesMap[corrKey] && (unconfirmedAnomaliesMap[corrKey].in || unconfirmedAnomaliesMap[corrKey].out))
+                    });
+                }
+            });
+        });
+
+        if (toUpsert.length === 0) return;
+
+        const { error } = await supabase
+            .from('attendance_records')
+            .upsert(toUpsert, { onConflict: 'manager_key' });
+
+        if (error) {
+            console.error('Auto Sync Error:', error);
+        } else {
+            console.log(`자동 저장 완료: ${toUpsert.length}건`);
+            cloudSyncAllBtn.textContent = `저장됨 (${toUpsert.length}건)`;
+            setTimeout(() => cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장", 3000);
+        }
+    }
     async function fetchAllFromCloud() {
         if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
 
@@ -518,7 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
                 const jsonData = normalizeRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" }));
@@ -532,6 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         .join('');
                     dropZoneAttendance.classList.add('loaded');
                     updateAndProcessData();
+                    await autoSyncToCloud();
                 }
             };
             reader.readAsArrayBuffer(file);

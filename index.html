@@ -3285,7 +3285,7 @@ Print Styles (@media print)
                             div.style = "display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;";
 
                             const subject = `[근태 소명 요청] ${name}님, 근태 이상 내역 안내`;
-                            const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
+                            const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/supplement.html";
                             let itemsText = group.items.map(item => `- ${item.date}: ${item.reason}`).join('\n');
                             const bodyText = `안녕하세요 ${name}님,\n\n아래 날짜들의 근태 기록에 이상 사유가 발생하여 소명이 필요합니다.\n내역을 확인하시고 아래 소명 페이지 링크에 접속하여 답변 부탁드립니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n[이상 내역 리스트]\n${itemsText}\n\n감사합니다.`;
                             const mailtoUrl = `mailto:${group.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
@@ -3311,7 +3311,7 @@ Print Styles (@media print)
                             mailBatchBccBtn.onclick = () => {
                                 const bccList = groupedNames.map(name => emailGroups[name].email).join(',');
                                 const subject = encodeURIComponent(`[알림] 근태 이상 내역 소명 요청 안내`);
-                                const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/explanation.html";
+                                const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/supplement.html";
 
                                 const bodyText = `안녕하세요,\n\n최근 근태 기록에 이상 내역이 발생한 분들께 안내드립니다.\n아래 링크의 소명 페이지에 접속하여 본인의 성명과 날짜를 입력 후 이상 사유를 확인하시고 소명 답변을 작성해 주시기 바랍니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n감사합니다.`;
                                 const body = encodeURIComponent(bodyText);
