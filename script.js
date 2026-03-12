@@ -104,13 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
         cloudSyncAllBtn.disabled = false;
         cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장";
     }
-    async function autoSyncToCloud() {
+    async function autoSyncToCloud(matrix) {  // ← matrix를 인자로 받음
         if (!supabase) return;
+        if (!matrix) return;
 
-        const currentMatrix = updateAndProcessData(true);
-        if (!currentMatrix) return;
-
-        const { recordsMap, names, uniqueDates } = currentMatrix;
+        const { recordsMap, names, uniqueDates } = matrix;
         const toUpsert = [];
 
         names.forEach(name => {
@@ -580,8 +578,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         .map(name => `<div class="file-item"><span class="file-name">✓ ${name}</span></div>`)
                         .join('');
                     dropZoneAttendance.classList.add('loaded');
-                    updateAndProcessData();
-                    await autoSyncToCloud();
+                    const matrix = updateAndProcessData(true);
+                    await autoSyncToCloud(matrix);
                 }
             };
             reader.readAsArrayBuffer(file);
