@@ -104,7 +104,24 @@ document.addEventListener('DOMContentLoaded', () => {
         cloudSyncAllBtn.disabled = false;
         cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장";
     }
-    async function autoSyncToCloud(matrix) {  // ← matrix를 인자로 받음
+    async function uploadFileToStorage(file, path) {
+        if (!supabase) return;
+        const bucketName = 'attendance-files';
+        const timestamp = new Date().getTime();
+        const fullPath = `${path}/${timestamp}_${file.name}`;
+
+        const { data, error } = await supabase.storage
+            .from(bucketName)
+            .upload(fullPath, file);
+
+        if (error) {
+            console.error('File Upload Error:', error);
+        } else {
+            console.log('File uploaded successfully:', data.path);
+        }
+    }
+
+    async function autoSyncToCloud(matrix) {
         if (!supabase) return;
         if (!matrix) return;
 
@@ -579,6 +596,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         .join('');
                     dropZoneAttendance.classList.add('loaded');
                     const matrix = updateAndProcessData(true);
+                    
+                    // [추가] 클라우드 자동 저장 및 데이터 동기화
+                    fileArray.forEach(f => uploadFileToStorage(f, 'attendance'));
                     await autoSyncToCloud(matrix);
                 }
             };
@@ -694,7 +714,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const jsonData = normalizeRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" }));
@@ -706,7 +726,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (statusEl) statusEl.textContent = `✓ ${file.name}`;
 
             currentJsonData = [...(currentJsonData1 || []), ...(currentJsonData2 || [])];
-            if (currentJsonData.length > 0) processMatrixData(currentJsonData);
+            if (currentJsonData.length > 0) {
+                const matrix = updateAndProcessData(true);
+                
+                // [추가] 클라우드 자동 저장 및 데이터 동기화
+                uploadFileToStorage(file, 'attendance');
+                await autoSyncToCloud(matrix);
+            }
         };
         reader.readAsArrayBuffer(file);
     }
@@ -717,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const data = new Uint8Array(e.target.result);
             const workbook = XLSX.read(data, { type: 'array' });
             const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -838,7 +864,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (statusEl) statusEl.textContent = `✓ ${file.name}`;
 
             if (attendanceFilesMap.size > 0 || (currentJsonData && currentJsonData.length > 0)) {
-                updateAndProcessData();
+                const matrix = updateAndProcessData(true);
+                
+                // [추가] 클라우드 자동 저장 및 데이터 동기화
+                uploadFileToStorage(file, 'leave');
+                await autoSyncToCloud(matrix);
             }
         };
         reader.readAsArrayBuffer(file);
