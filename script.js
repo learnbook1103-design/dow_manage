@@ -1104,12 +1104,12 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        return renderMatrixReport(chunks.map(c => c.dates), finalNames, recordsMap);
+        return renderMatrixReport(chunks.map(c => c.dates), finalNames, recordsMap, Array.from(uniqueDates));
     }
 
     // [추가] 이상 근태 계산 로직 (Ported from Dow_근태.html)
 
-    function renderMatrixReport(dateChunks, names, recordsMap) {
+    function renderMatrixReport(dateChunks, names, recordsMap, uniqueDates) {
         reportContainer.innerHTML = '';
         const reportDate = reportDateInput.value;
         const weekdaysMap = ["일", "월", "화", "수", "목", "금", "토"];
