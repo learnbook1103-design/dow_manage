@@ -711,10 +711,6 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsArrayBuffer(file);
     }
 
-    fileInputAttendance.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) handleFiles(e.target.files);
-    });
-
     function handleLeaveFile(file, dropZone, statusEl) {
         if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
             alert('엑셀 파일을 업로드해주세요.');
