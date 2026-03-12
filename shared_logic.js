@@ -53,11 +53,11 @@ function expandShift(shiftStr) {
 
 
 function calculateAnomalies(combinedData, config) {
-    const { 
-        employeeConfigList = [], 
-        manualEarlyPunches = {}, 
-        manualReasons = {}, 
-        currentLeaveData = [], 
+    const {
+        employeeConfigList = [],
+        manualEarlyPunches = {},
+        manualReasons = {},
+        currentLeaveData = [],
         currentUniqueDates = new Set()
     } = config || {};
     const anomalies = [];
@@ -252,7 +252,7 @@ function calculateAnomalies(combinedData, config) {
         // [수정] 수동 사유(클라우드 복구분) 및 행 사유 결합
         const manualReason = group.reason || "";
         const combinedReason = manualReason;
-        
+
         const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자', '생일'];
         if (leaveKeywords.some(k => combinedReason.includes(k) || String(inVal).includes(k) || String(outVal).includes(k))) {
             const checkStr = combinedReason + " " + String(inVal) + " " + String(outVal);
@@ -264,7 +264,7 @@ function calculateAnomalies(combinedData, config) {
                 isAMHalf = true;
             } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("생일자") || checkStr.includes("생일")) {
                 // [수정] '조퇴' 키워드는 이상 사유이므로 '반차' 판정 키워드에서 제외 (사용자 요청 대응)
-                isPMHalf = true; 
+                isPMHalf = true;
             } else {
                 otherLeaveType = checkStr;
                 // [추가] 정식 휴가나 사전 등록 사유가 있는 경우 '처리됨' 플래그 설정
@@ -294,8 +294,8 @@ function calculateAnomalies(combinedData, config) {
 
                                 if (inT && inT.length >= 4) {
                                     const inMin = parseInt(inT.substring(0, 2)) * 60 + parseInt(inT.substring(2, 4));
-                                    if (inMin >= 660) detectedAM = true; 
-                                    else detectedAM = false; 
+                                    if (inMin >= 660) detectedAM = true;
+                                    else detectedAM = false;
                                 } else if (outT && outT.length >= 4) {
                                     const outMin = parseInt(outT.substring(0, 2)) * 60 + parseInt(outT.substring(2, 4));
                                     if (outMin <= 840) detectedAM = false;
@@ -315,13 +315,14 @@ function calculateAnomalies(combinedData, config) {
             });
         }
 
-        // 승인완료된 연차(isFullLeave)는 리스트에서 제외하여 과도한 노출 방지
-        if (isFullLeave) isResolved = true;
-        
-        // 기타 휴가(경조, 보건, 외근 등)는 리스트에는 보이되, 이상 여부만 resolved 플래그로 관리
+        // 승인완료된 연차(isFullLeave)는 검증 대상에서 완전 제외
+        if (isFullLeave) return;                          // ← 수정 1 (319라인)
+
+        // 기타 휴가(경조, 보건, 외근 등)
         let isLeaveResolved = false;
         if (otherLeaveType) {
             isLeaveResolved = true;
+            isResolved = true;                            // ← 수정 2 (325라인)
         }
 
         const cleanShift = expandShift(shiftStr);
@@ -344,26 +345,25 @@ function calculateAnomalies(combinedData, config) {
         const isLeaveMarker = (t) => t && leaveKeywords.some(k => t.includes(k));
 
         if (!isAMHalf && !isPMHalf) {
-            // 일반 근무일 경우 (반차 아님)
-            if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
-                inAnom = true;
-                reasons.push("출근 기록 없음");
-            } else if (isValidTime(inVal) && inVal > expIn) {
-                reasons.push("지각");
-                inAnom = true;
-            }
+            // 일반 근무 — isResolved면 전체 건너뜀
+            if (!isResolved) {                            // ← 수정 3 (349라인)
+                if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
+                    inAnom = true;
+                    reasons.push("출근 기록 없음");
+                } else if (isValidTime(inVal) && inVal > expIn) {
+                    reasons.push("지각");
+                    inAnom = true;
+                }
 
-            if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
-                reasons.push("퇴근 기록 없음");
-                outAnom = true;
-            } else if (isValidTime(outVal) && outVal < expOut) {
-                reasons.push("조기퇴근");
-                outAnom = true;
-            }
+                if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
+                    reasons.push("퇴근 기록 없음");
+                    outAnom = true;
+                } else if (isValidTime(outVal) && outVal < expOut) {
+                    reasons.push("조기퇴근");
+                    outAnom = true;
+                }
 
-            // 일반 근무일 때 출근보다 퇴근 시간이 앞서 기록된 경우
-            if (isValidTime(inVal) && isValidTime(outVal) && inVal > outVal) {
-                if (!isResolved) {
+                if (isValidTime(inVal) && isValidTime(outVal) && inVal > outVal) {
                     reasons.push("출근 기록 없음");
                     reasons.push("퇴근 기록 없음");
                     inAnom = true;
@@ -371,40 +371,39 @@ function calculateAnomalies(combinedData, config) {
                 }
             }
         } else if (isAMHalf) {
-            // 오전 반차인 경우 (오후 근무)
-            if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
-                reasons.push("퇴근 기록 없음");
-                outAnom = true;
-            } else if (isValidTime(outVal) && outVal < expOut) {
-                reasons.push("조기퇴근");
-                outAnom = true;
-            }
-
-            // [추가] 오후 출근 기록도 체크
-            if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
-                reasons.push("출근 기록 없음");
-                inAnom = true;
+            // 오전 반차 (오후 근무)
+            if (!isResolved) {                            // ← 수정 3 동일 패턴
+                if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
+                    reasons.push("퇴근 기록 없음");
+                    outAnom = true;
+                } else if (isValidTime(outVal) && outVal < expOut) {
+                    reasons.push("조기퇴근");
+                    outAnom = true;
+                }
+                if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
+                    reasons.push("출근 기록 없음");
+                    inAnom = true;
+                }
             }
         } else if (isPMHalf) {
-            // 오후 반차인 경우 (오전 근무)
-            if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
-                inAnom = true;
-                reasons.push("출근 기록 없음");
-            } else if (isValidTime(inVal) && inVal > expIn) {
-                reasons.push("지각");
-                inAnom = true;
-            }
-            
-            // [추가] 오전 퇴근 기록(12:00 기준) 체크
-            if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
-                reasons.push("퇴근 기록 없음");
-                outAnom = true;
-            } else if (isValidTime(outVal) && outVal < '12:00') {
-                reasons.push("조기퇴근");
-                outAnom = true;
+            // 오후 반차 (오전 근무)
+            if (!isResolved) {                            // ← 수정 3 동일 패턴
+                if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
+                    inAnom = true;
+                    reasons.push("출근 기록 없음");
+                } else if (isValidTime(inVal) && inVal > expIn) {
+                    reasons.push("지각");
+                    inAnom = true;
+                }
+                if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
+                    reasons.push("퇴근 기록 없음");
+                    outAnom = true;
+                } else if (isValidTime(outVal) && outVal < '12:00') {
+                    reasons.push("조기퇴근");
+                    outAnom = true;
+                }
             }
         }
-
         const hasEarly = group.hasEarly;
 
         if (reasons.length > 0 || hasEarly) {

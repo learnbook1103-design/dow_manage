@@ -189,7 +189,28 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (prepErr) {
             console.error('Preemptive Supplement Fetch Error:', prepErr);
         }
+        // [추가] 직원 제출 보완 답변(attendance_anomalies) 자동 로딩
+        try {
+            const { data: anomalyData, error: anomalyError } = await supabase
+                .from('attendance_anomalies')
+                .select('manager_key, explanation')
+                .not('explanation', 'is', null)
+                .gte('date', start)
+                .lte('date', end);
 
+            if (anomalyError) {
+                console.error('Anomaly Explanation Fetch Error:', anomalyError);
+            } else if (anomalyData && anomalyData.length > 0) {
+                anomalyData.forEach(item => {
+                    if (item.explanation) {
+                        employeeExplanations[item.manager_key] = item.explanation;
+                    }
+                });
+                localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+            }
+        } catch (anomalyErr) {
+            console.error('Anomaly Fetch Error:', anomalyErr);
+        }
         updateAndProcessData();
         cloudFetchAllBtn.disabled = false;
         cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
