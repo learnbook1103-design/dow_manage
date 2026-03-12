@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Dow 근태 보고서</title>
+    <title> Dow 근태 사유 관리</title>
     <!-- Use a modern Google Font (Inter) -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Supabase Client Library -->
@@ -1137,7 +1137,7 @@ Print Styles (@media print)
                     </div>
                     <button id="verify-data-btn" class="secondary-btn"
                         style="color: #f97316; background: #fff7ed; border-color: #fed7aa; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
-                        데이터 검증
+                        근태 내역 조정
                     </button>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -1218,7 +1218,7 @@ Print Styles (@media print)
     <div id="verify-modal" class="modal hidden no-print">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>근태 데이터 검증 결과</h2>
+                <h2>근태 내역 조정 결과</h2>
                 <div style="display: flex; gap: 8px; align-items: center;">
                     <button id="bulk-confirm-btn" class="secondary-btn"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #f97316; color: #f97316; background: #fff7ed;">
@@ -1229,17 +1229,17 @@ Print Styles (@media print)
                         선택 항목 확인 해제
                     </button>
                     <div style="width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px;"></div>
-                    <button id="sync-to-cloud-btn" class="secondary-btn" title="선택한 내역을 직원 소명 페이지로 전송"
+                    <button id="sync-to-cloud-btn" class="secondary-btn" title="선택한 내역을 사원 보완 등록 페이지로 전송"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f0f9ff;">
-                        ☁️ 소명 요청 전송
+                        ☁️ 보완 요청 전송
                     </button>
                     <button id="send-mailto-btn" class="secondary-btn" title="기본 메일 클라이언트를 열어 발송합니다"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #8b5cf6; color: #8b5cf6; background: #f5f3ff;">
                         📧 메일 임시 발송
                     </button>
-                    <button id="fetch-from-cloud-btn" class="secondary-btn" title="직원이 입력한 소명 내역 가져오기"
+                    <button id="fetch-from-cloud-btn" class="secondary-btn" title="사원이 입력한 보완 내역 가져오기"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
-                        📥 소명 답변 읽기
+                        📥 보완 사유 읽기
                     </button>
                     <button id="reset-all-data-btn" class="secondary-btn" title="모든 수동 조치 및 소명 내역을 삭제합니다"
                         style="padding: 4px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: #fef2f2;">
@@ -1289,7 +1289,7 @@ Print Styles (@media print)
                                 <th>근무조</th>
                                 <th>출근/퇴근</th>
                                 <th>이상 사유</th>
-                                <th style="width: 120px;">직원 소명</th>
+                                <th style="width: 120px;">사원 보완 사유</th>
                                 <th style="width: 150px;">조치 사유</th>
                                 <th style="width: 100px;">확인</th>
                             </tr>
@@ -1514,6 +1514,9 @@ Print Styles (@media print)
             let manualReasons = savedReasons ? JSON.parse(savedReasons) : {};
             const savedExplanations = localStorage.getItem('employeeExplanations');
             let employeeExplanations = savedExplanations ? JSON.parse(savedExplanations) : {};
+
+            const savedPreemptive = localStorage.getItem('preemptiveSupplements');
+            let preemptiveSupplements = savedPreemptive ? JSON.parse(savedPreemptive) : {};
 
             let manualEarlyPunches = JSON.parse(localStorage.getItem('manualEarlyPunches')) || {};
 
@@ -2045,39 +2048,70 @@ Print Styles (@media print)
                     console.error('Cloud Fetch Error:', error);
                     alert('불러오기 중 오류가 발생했습니다: ' + error.message);
                 } else if (data && data.length > 0) {
-                    if (confirm(`클라우드에서 ${data.length}건의 데이터를 가져왔습니다.\n기존 로컬 수정 사항이 덮어씌워질 수 있습니다. 계속하시겠습니까?`)) {
-                        data.forEach(row => {
-                            const key = row.manager_key;
-                            manualCorrections[key] = { in: row.status_in, out: row.status_out, leave: row.status_leave };
-                            manualReasons[key] = row.manager_reason || "";
-                            employeeExplanations[key] = row.employee_explanation || "";
-                            if (row.early_punch_mode) manualEarlyPunches[key] = row.early_punch_mode;
-                            if (!attendanceFilesMap.has('Cloud_Data')) attendanceFilesMap.set('Cloud_Data', []);
-                            const cloudData = attendanceFilesMap.get('Cloud_Data');
-                            const existingIdx = cloudData.findIndex(d => `${d.이름}_${d.날짜}` === key);
-                            const newRow = {
-                                "날짜": row.date,
-                                "이름": row.name,
-                                "근무조": row.shift,
-                                "출근": row.in_time,
-                                "퇴근": row.out_time,
-                                "비고": row.reason || "" // [추가] 휴가 사유 복구
-                            };
-                            if (existingIdx > -1) cloudData[existingIdx] = newRow;
-                            else cloudData.push(newRow);
-                        });
-                        localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
-                        localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
-                        localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
-                        localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
-                        updateAndProcessData();
-                        alert('클라우드 데이터를 성공적으로 불러왔습니다.');
-                    }
-                } else {
-                    alert('해당 기간에 클라우드에 저장된 데이터가 없습니다.');
+                    data.forEach(row => {
+                        const key = row.manager_key;
+                        manualCorrections[key] = { in: row.status_in, out: row.status_out, leave: row.status_leave };
+                        manualReasons[key] = row.manager_reason || "";
+                        employeeExplanations[key] = row.employee_explanation || "";
+                        if (row.early_punch_mode) manualEarlyPunches[key] = row.early_punch_mode;
+                        if (!attendanceFilesMap.has('Cloud_Data')) attendanceFilesMap.set('Cloud_Data', []);
+                        const cloudData = attendanceFilesMap.get('Cloud_Data');
+                        const existingIdx = cloudData.findIndex(d => `${d.이름}_${d.날짜}` === key);
+                        const newRow = {
+                            "날짜": row.date,
+                            "이름": row.name,
+                            "근무조": row.shift,
+                            "출근": row.in_time,
+                            "퇴근": row.out_time,
+                            "비고": row.reason || ""
+                        };
+                        if (existingIdx > -1) cloudData[existingIdx] = newRow;
+                        else cloudData.push(newRow);
+                    });
+                    localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                    localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                    localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                    localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
                 }
+
+                // [추가] 선제적 보완 데이터(사전 등록 내역) 별도 로딩
+                let prepData = null;
+                try {
+                    const { data: pData, error: prepError } = await supabase.from('attendance_supplements').select('*').gte('date', start).lte('date', end);
+                    if (prepError) {
+                        alert('사전 등록 내역 불러오기 오류: ' + prepError.message);
+                    } else if (pData) {
+                        prepData = pData;
+                        if (prepData.length > 0) {
+                            prepData.forEach(row => {
+                                const key = `${normalizeName(row.name)}_${row.date}`;
+                                const reasonText = row.type + (row.details ? ` (${row.details})` : "");
+                                preemptiveSupplements[key] = reasonText;
+                                // [단일화] 사원 소명 객체에도 동일하게 반영 (사전 등록임을 표시)
+                                if (!employeeExplanations[key]) {
+                                    employeeExplanations[key] = `[사전] ${reasonText}`;
+                                }
+                            });
+                            localStorage.setItem('preemptiveSupplements', JSON.stringify(preemptiveSupplements));
+                            localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                        }
+                    }
+                } catch (prepErr) {
+                    console.error('Preemptive Supplement Fetch Error:', prepErr);
+                }
+
+                updateAndProcessData();
                 cloudFetchAllBtn.disabled = false;
                 cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
+
+                const totalRecords = (data ? data.length : 0);
+                const prepCount = (prepData ? prepData.length : 0);
+
+                if (totalRecords > 0 || prepCount > 0) {
+                    alert(`클라우드 데이터를 불러왔습니다.\n(기록: ${totalRecords}건, 사전등록: ${prepCount}건)`);
+                } else {
+                    alert(`해당 기간(${start} ~ ${end})에 클라우드에 저장된 데이터가 없습니다.`);
+                }
             }
 
             async function syncEmployeesToCloud() {
@@ -2163,8 +2197,9 @@ Print Styles (@media print)
             }
 
             function updateAndProcessData(returnMatrix = false) {
+                const hasPreemptive = Object.keys(preemptiveSupplements || {}).length > 0;
                 if (attendanceFilesMap.size === 0) {
-                    if (currentLeaveData || attendanceFilesMap.has('Cloud_Data')) {
+                    if (currentLeaveData || (attendanceFilesMap.get('Cloud_Data') && attendanceFilesMap.get('Cloud_Data').length > 0) || hasPreemptive) {
                         return processMatrixData([], returnMatrix);
                     } else {
                         reportContainer.innerHTML = '';
@@ -2766,9 +2801,11 @@ Print Styles (@media print)
                     if (name && fDate && reason) {
                         if (!recordsMap[name]) recordsMap[name] = {};
                         if (!recordsMap[name][fDate]) recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: "" };
-                        recordsMap[name][fDate].reason = reason;
+                        const cleanReason = reason.replace(/^\[사전\]\s*/, '');
+                        recordsMap[name][fDate].reason = (recordsMap[name][fDate].reason ? recordsMap[name][fDate].reason + ", " : "") + cleanReason;
                     }
                 });
+
                 // [NEW] 기간 내 모든 평일을 기본 날짜셋으로 구성 (기록이 하나도 없는 날짜도 이상근태로 잡기 위해)
                 const startInput = document.getElementById('report-period-start');
                 const endInput = document.getElementById('report-period-end');
@@ -2832,8 +2869,11 @@ Print Styles (@media print)
                 if (showAnomaliesHighlight) {
                     const allData = [];
                     attendanceFilesMap.forEach(data => allData.push(...data));
-                    const anomalies = calculateAnomalies(allData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
+                    const anomalies = calculateAnomalies(allData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, preemptiveSupplements });
                     anomalies.forEach(a => {
+                        // [추가] 사전 등록 등으로 이미 처리된(isResolved) 항목은 하이라이트 제외
+                        if (a.isResolved) return;
+
                         const corrKey = `${a.name}_${a.date}`;
                         // 필터링된 날짜에 포함되는 경우에만 하이라이트 맵에 추가
                         if (!currentUniqueDates.has(a.date)) return;
@@ -3358,7 +3398,7 @@ Print Styles (@media print)
                         return;
                     }
 
-                    const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
+                    const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, preemptiveSupplements });
                     const mode = groupSelect ? groupSelect.value : 'none';
 
                     verifyTbody.innerHTML = '';
@@ -3517,13 +3557,13 @@ Print Styles (@media print)
                                             if (rawExp) {
                                                 const exps = rawExp.split(',').map(s => s.trim()).filter(s => s);
                                                 if (exps.length === 1) {
-                                                    manualReasons[key] = exps[0];
+                                                    manualReasons[key] = exps[0].replace(/^\[사전\]\s*/, '');
                                                 } else if (exps.length >= 2) {
                                                     const abnormalExps = exps.filter(s => s !== '정상출근' && s !== '정상퇴근');
                                                     if (abnormalExps.length === 0) {
                                                         manualReasons[key] = '정상근무';
                                                     } else if (abnormalExps.length === 1) {
-                                                        manualReasons[key] = abnormalExps[0];
+                                                        manualReasons[key] = abnormalExps[0].replace(/^\[사전\]\s*/, '');
                                                     } else {
                                                         alert('복합적인 소명 사유가 있습니다. 직접 확인 후 입력해주세요.');
                                                     }

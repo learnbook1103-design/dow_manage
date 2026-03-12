@@ -53,7 +53,13 @@ function expandShift(shiftStr) {
 
 
 function calculateAnomalies(combinedData, config) {
-    const { employeeConfigList = [], manualEarlyPunches = {}, manualReasons = {}, currentLeaveData = [], currentUniqueDates = new Set() } = config || {};
+    const { 
+        employeeConfigList = [], 
+        manualEarlyPunches = {}, 
+        manualReasons = {}, 
+        currentLeaveData = [], 
+        currentUniqueDates = new Set()
+    } = config || {};
     const anomalies = [];
     const manualNames = employeeConfigList.map(e => e.name.trim()).filter(n => n.length > 0);
     const ceoNames = new Set(employeeConfigList.filter(e => e.org === "대표이사").map(e => normalizeName(e.name)));
@@ -102,6 +108,7 @@ function calculateAnomalies(combinedData, config) {
         if (rowReason && !groupedMap[manualKey].reason.includes(rowReason)) {
             groupedMap[manualKey].reason = (groupedMap[manualKey].reason ? groupedMap[manualKey].reason + ", " : "") + rowReason;
         }
+
 
         // 2. 수동 오버라이드 모드 적용 및 데이터 배분
         if (mode === "forceIn" && isEarly) {
@@ -241,8 +248,11 @@ function calculateAnomalies(combinedData, config) {
         let isPMHalf = false;
         let otherLeaveType = "";
 
-        // [추가] 수동 사유(클라우드 복구분) 및 행 사유에서 휴가 여부 판단
-        const combinedReason = group.reason || "";
+        let isResolved = false;
+        // [수정] 수동 사유(클라우드 복구분) 및 행 사유 결합
+        const manualReason = group.reason || "";
+        const combinedReason = manualReason;
+        
         const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자', '생일'];
         if (leaveKeywords.some(k => combinedReason.includes(k) || String(inVal).includes(k) || String(outVal).includes(k))) {
             const checkStr = combinedReason + " " + String(inVal) + " " + String(outVal);
@@ -257,6 +267,8 @@ function calculateAnomalies(combinedData, config) {
                 isPMHalf = true; 
             } else {
                 otherLeaveType = checkStr;
+                // [추가] 정식 휴가나 사전 등록 사유가 있는 경우 '처리됨' 플래그 설정
+                isResolved = true;
             }
         }
 
@@ -303,8 +315,14 @@ function calculateAnomalies(combinedData, config) {
             });
         }
 
-        // 승인완료된 기타 휴가(경조, 보건 등)나 연차는 제외
-        if (otherLeaveType || isFullLeave) return;
+        // 승인완료된 연차(isFullLeave)는 리스트에서 제외하여 과도한 노출 방지
+        if (isFullLeave) isResolved = true;
+        
+        // 기타 휴가(경조, 보건, 외근 등)는 리스트에는 보이되, 이상 여부만 resolved 플래그로 관리
+        let isLeaveResolved = false;
+        if (otherLeaveType) {
+            isLeaveResolved = true;
+        }
 
         const cleanShift = expandShift(shiftStr);
         const parts = cleanShift.split(/[-~]/);
@@ -345,10 +363,12 @@ function calculateAnomalies(combinedData, config) {
 
             // 일반 근무일 때 출근보다 퇴근 시간이 앞서 기록된 경우
             if (isValidTime(inVal) && isValidTime(outVal) && inVal > outVal) {
-                reasons.push("출근 기록 없음");
-                reasons.push("퇴근 기록 없음");
-                inAnom = true;
-                outAnom = true;
+                if (!isResolved) {
+                    reasons.push("출근 기록 없음");
+                    reasons.push("퇴근 기록 없음");
+                    inAnom = true;
+                    outAnom = true;
+                }
             }
         } else if (isAMHalf) {
             // 오전 반차인 경우 (오후 근무)
@@ -398,7 +418,8 @@ function calculateAnomalies(combinedData, config) {
                 hasEarly: hasEarly,
                 originalDate: group.originalDate,
                 inAnom: inAnom,
-                outAnom: outAnom
+                outAnom: outAnom,
+                isResolved: isResolved
             });
         }
     });

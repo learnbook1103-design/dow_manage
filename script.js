@@ -126,55 +126,82 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Cloud Fetch Error:', error);
             alert('불러오기 중 오류가 발생했습니다: ' + error.message);
         } else if (data && data.length > 0) {
-            if (confirm(`클라우드에서 ${data.length}건의 데이터를 가져왔습니다.\n기존 로컬 수정 사항이 덮어씌워질 수 있습니다. 계속하시겠습니까?`)) {
+            // Map to local state
+            data.forEach(row => {
+                const key = row.manager_key;
+                manualCorrections[key] = {
+                    in: row.status_in,
+                    out: row.status_out,
+                    leave: row.status_leave
+                };
+                manualReasons[key] = row.manager_reason || "";
+                employeeExplanations[key] = row.employee_explanation || "";
+                if (row.early_punch_mode) {
+                    manualEarlyPunches[key] = row.early_punch_mode;
+                }
 
-                // Map to local state
-                data.forEach(row => {
-                    const key = row.manager_key;
-                    // recordsMap is derived from Excel, but we need manualCorrections/Reasons
-                    manualCorrections[key] = {
-                        in: row.status_in,
-                        out: row.status_out,
-                        leave: row.status_leave
-                    };
-                    manualReasons[key] = row.manager_reason || "";
-                    employeeExplanations[key] = row.employee_explanation || "";
-                    if (row.early_punch_mode) {
-                        manualEarlyPunches[key] = row.early_punch_mode;
-                    }
+                if (!attendanceFilesMap.has('Cloud_Data')) attendanceFilesMap.set('Cloud_Data', []);
+                const cloudData = attendanceFilesMap.get('Cloud_Data');
+                const existingIdx = cloudData.findIndex(d => `${d.이름}_${d.날짜}` === key);
+                const newRow = {
+                    "날짜": row.date,
+                    "이름": row.name,
+                    "근무조": row.shift,
+                    "출근": row.in_time,
+                    "퇴근": row.out_time,
+                    "비고": row.reason || ""
+                };
+                if (existingIdx > -1) cloudData[existingIdx] = newRow;
+                else cloudData.push(newRow);
+            });
 
-                    // We also need a way to store the actual times if Excel isn't uploaded
-                    if (!attendanceFilesMap.has('Cloud_Data')) attendanceFilesMap.set('Cloud_Data', []);
-                    const cloudData = attendanceFilesMap.get('Cloud_Data');
-
-                    // Avoid duplicate cloud rows
-                    const existingIdx = cloudData.findIndex(d => `${d.이름}_${d.날짜}` === key);
-                    const newRow = {
-                        "날짜": row.date,
-                        "이름": row.name,
-                        "근무조": row.shift,
-                        "출근": row.in_time,
-                        "퇴근": row.out_time,
-                        "비고": row.reason || "" // [추가] 휴가 사유 복구
-                    };
-                    if (existingIdx > -1) cloudData[existingIdx] = newRow;
-                    else cloudData.push(newRow);
-                });
-
-                localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
-                localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
-                localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
-                localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
-
-                updateAndProcessData();
-                alert('클라우드 데이터를 성공적으로 불러왔습니다.');
-            }
-        } else {
-            alert('해당 기간에 클라우드에 저장된 데이터가 없습니다.');
+            localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+            localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+            localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+            localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
         }
 
+        // [추가] 선제적 보완 데이터(사전 등록 내역) 별도 로딩
+        try {
+            const { data: prepData, error: prepError } = await supabase
+                .from('attendance_supplements')
+                .select('*')
+                .gte('date', start)
+                .lte('date', end);
+
+            if (prepError) {
+                alert('선제 등록 내역 불러오기 중 오류: ' + prepError.message);
+            } else if (prepData) {
+                if (prepData.length > 0) {
+                    prepData.forEach(row => {
+                        const key = `${normalizeName(row.name)}_${row.date}`;
+                        const reasonText = row.type + (row.details ? ` (${row.details})` : "");
+                        // [단일화] 사원 소명 객체에도 동일하게 반영
+                        if (!employeeExplanations[key]) {
+                            employeeExplanations[key] = reasonText;
+                        } else if (!employeeExplanations[key].includes(reasonText)) {
+                            employeeExplanations[key] += `, ${reasonText}`;
+                        }
+                    });
+                    localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                }
+            }
+        } catch (prepErr) {
+            console.error('Preemptive Supplement Fetch Error:', prepErr);
+        }
+
+        updateAndProcessData();
         cloudFetchAllBtn.disabled = false;
         cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
+
+        const totalRecords = (data ? data.length : 0);
+        const prepCount = (prepData ? prepData.length : 0);
+
+        if (totalRecords > 0 || prepCount > 0) {
+            alert(`클라우드 데이터를 불러왔습니다.\n(기록: ${totalRecords}건, 사전등록: ${prepCount}건)`);
+        } else {
+            alert(`해당 기간(${start} ~ ${end})에 클라우드에 저장된 데이터가 없습니다.`);
+        }
     }
 
     if (cloudSyncAllBtn) cloudSyncAllBtn.onclick = syncAllToCloud;
@@ -245,6 +272,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedExplanations = localStorage.getItem('employeeExplanations');
     let employeeExplanations = savedExplanations ? JSON.parse(savedExplanations) : {};
     let manualReasons = savedReasons ? JSON.parse(savedReasons) : {};
+
+    // [추가] 선제적 보완 데이터 저장소
+    const savedPreemptive = localStorage.getItem('preemptiveSupplements');
+    let preemptiveSupplements = {}; // 더이상 사용하지 않지만 변수 선언은 유지 (오류 방지)
 
     // 사원 리스트 데이터 (localStorage에서 불러오기)
     const savedEmployees = localStorage.getItem('employeeConfigList');
@@ -437,8 +468,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateAndProcessData(returnMatrix = false) {
         if (attendanceFilesMap.size === 0) {
-            // Check if we have cloud data proxy or leave data
-            if (currentLeaveData || (attendanceFilesMap.get('Cloud_Data') && attendanceFilesMap.get('Cloud_Data').length > 0)) {
+            // Check if we have cloud data proxy, leave data, or preemptive supplements
+            const hasPreemptive = Object.keys(preemptiveSupplements || {}).length > 0;
+            if (currentLeaveData || (attendanceFilesMap.get('Cloud_Data') && attendanceFilesMap.get('Cloud_Data').length > 0) || hasPreemptive) {
                 const matrix = processMatrixData([]);
                 if (returnMatrix) return matrix;
             } else {
@@ -931,9 +963,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (name && fDate && reason) {
                 if (!recordsMap[name]) recordsMap[name] = {};
                 if (!recordsMap[name][fDate]) recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: "" };
-                recordsMap[name][fDate].reason = reason;
+                recordsMap[name][fDate].reason = (recordsMap[name][fDate].reason ? recordsMap[name][fDate].reason + ", " : "") + reason;
             }
         });
+
+        // [NEW] 선제적 보완(사전 등록) 사유 반영 제거 (관리자 확인 전에는 보고서에 미노출)
+        // Object.entries(preemptiveSupplements || {}).forEach(([key, reason]) => { ... });
 
         // [NEW] 기간 내 모든 평일을 기본 날짜셋으로 구성 (기록이 하나도 없는 날짜도 이상근태로 잡기 위해)
         const startInput = document.getElementById('report-period-start');
@@ -976,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (showAnomaliesHighlight) {
             const allData = [];
             attendanceFilesMap.forEach(data => allData.push(...data));
-            const anomalies = calculateAnomalies(allData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
+            const anomalies = calculateAnomalies(allData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });// [추가]
             anomalies.forEach(a => {
                 const corrKey = `${a.name}_${a.date}`;
                 // 필터링된 날짜에 포함되는 경우에만 하이라이트 맵에 추가
@@ -1319,7 +1354,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const anomalies = calculateAnomalies(combinedData);
+            const anomalies = calculateAnomalies(combinedData, {
+                employeeConfigList,
+                manualEarlyPunches,
+                manualReasons,
+                currentLeaveData,
+                currentUniqueDates
+            });
             const mode = groupSelect ? groupSelect.value : 'none';
 
             verifyTbody.innerHTML = '';
@@ -1458,15 +1499,34 @@ document.addEventListener('DOMContentLoaded', () => {
                         const confirmBtn = tr.querySelector('.confirmation-btn');
                         confirmBtn.onclick = () => {
                             const key = confirmBtn.getAttribute('data-key');
+                            const isCurrentlyConfirmed = (isPendingLeave ? corrData.leave : (isFullyConfirmed || isPartiallyConfirmed));
+
                             if (isPendingLeave) {
                                 manualCorrections[key].leave = !manualCorrections[key].leave;
                             } else {
-                                if (isFullyConfirmed) {
+                                if (isCurrentlyConfirmed) {
                                     manualCorrections[key].in = false;
                                     manualCorrections[key].out = false;
+                                    // [추가] 확인 취소 시 조치 사유도 함께 초기화
+                                    delete manualReasons[key];
+                                    localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
                                 } else {
                                     if (hasInAnom) manualCorrections[key].in = true;
                                     if (hasOutAnom) manualCorrections[key].out = true;
+
+                                    // [추가] 소명 답변 자동 사유 반영 로직 (일관성 유지)
+                                    const rawExp = employeeExplanations[key];
+                                    if (rawExp) {
+                                        const exps = rawExp.split(',').map(s => s.trim()).filter(s => s);
+                                        if (exps.length === 1) {
+                                            manualReasons[key] = exps[0].replace(/^\[사전\]\s*/, '');
+                                        } else if (exps.length >= 2) {
+                                            const abnormalExps = exps.filter(s => s !== '정상출근' && s !== '정상퇴근');
+                                            if (abnormalExps.length === 0) manualReasons[key] = '정상근무';
+                                            else if (abnormalExps.length === 1) manualReasons[key] = abnormalExps[0].replace(/^\[사전\]\s*/, '');
+                                        }
+                                        localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                                    }
                                 }
                             }
                             localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
