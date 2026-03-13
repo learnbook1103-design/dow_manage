@@ -49,16 +49,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveHolidayBtn = document.getElementById('save-holiday-btn');
 
     async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null) {
-        if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
+        console.log('[DEBUG] syncAllToCloud 진입 / skipConfirm:', skipConfirm, '/ prebuiltMatrix:', !!prebuiltMatrix);
 
-        // 자동 호출 시엔 이미 만들어진 matrix 사용, 버튼 클릭 시엔 직접 계산
+        if (!supabase) {
+            console.log('[DEBUG] supabase 없음 → 중단');
+            alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return;
+        }
+
         const currentMatrix = prebuiltMatrix || updateAndProcessData(true);
+        console.log('[DEBUG] currentMatrix:', currentMatrix ? `names:${currentMatrix.names?.length}, dates:${currentMatrix.uniqueDates?.length}` : 'null');
+
         if (!currentMatrix) {
+            console.log('[DEBUG] currentMatrix 없음 → 중단');
             if (!skipConfirm) alert("저장할 데이터가 없습니다. 먼저 엑셀 파일을 업로드해주세요.");
             return;
         }
 
         const { recordsMap, names, uniqueDates } = currentMatrix;
+        console.log('[DEBUG] names:', names);
+        console.log('[DEBUG] uniqueDates:', uniqueDates);
+
         const toUpsert = [];
 
         names.forEach(name => {
@@ -68,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (rec) {
                     const corrKey = `${name}_${date}`;
                     const corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
-
                     toUpsert.push({
                         manager_key: corrKey,
                         name: name,
@@ -81,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         status_leave: !!corrData.leave,
                         manager_reason: manualReasons[corrKey] || "",
                         employee_explanation: employeeExplanations[corrKey] || "",
-                        reason: rec.reason || "", // [추가] 휴가 사유 클라우드 저장
+                        reason: rec.reason || "",
                         early_punch_mode: manualEarlyPunches[corrKey] || "",
                         is_anomalous: !!(unconfirmedAnomaliesMap[corrKey] && (unconfirmedAnomaliesMap[corrKey].in || unconfirmedAnomaliesMap[corrKey].out))
                     });
@@ -89,7 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
+        console.log('[DEBUG] toUpsert.length:', toUpsert.length);
+
         if (toUpsert.length === 0) {
+            console.log('[DEBUG] toUpsert 0건 → 중단. recordsMap 샘플:', JSON.stringify(Object.entries(recordsMap).slice(0, 2)));
             if (!skipConfirm) alert("저장할 활동 데이터가 없습니다.");
             return;
         }
@@ -100,16 +112,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
         cloudSyncAllBtn.disabled = true;
         cloudSyncAllBtn.textContent = "저장 중...";
+        console.log('[DEBUG] supabase upsert 시작...');
 
         const { error } = await supabase
             .from('attendance_records')
             .upsert(toUpsert, { onConflict: 'manager_key' });
 
         if (error) {
-            console.error('Cloud Sync Error:', error);
+            console.error('[DEBUG] upsert 에러:', error);
             if (!skipConfirm) alert('저장 중 오류가 발생했습니다: ' + error.message);
         } else {
-            console.log(`자동 저장 완료: ${toUpsert.length}건`);
+            console.log(`[DEBUG] upsert 성공: ${toUpsert.length}건`);
             cloudSyncAllBtn.textContent = `저장됨 (${toUpsert.length}건)`;
             setTimeout(() => cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장", 3000);
         }
@@ -558,14 +571,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadedCount++;
 
                 if (loadedCount === fileArray.length) {
+                    console.log('[DEBUG] handleFiles: 파일 로딩 완료, loadedCount:', loadedCount);
                     fileListAttendance.innerHTML = Array.from(attendanceFilesMap.keys())
                         .map(name => `<div class="file-item"><span class="file-name">✓ ${name}</span></div>`)
                         .join('');
                     dropZoneAttendance.classList.add('loaded');
                     const matrix = updateAndProcessData(true);
+                    console.log('[DEBUG] handleFiles: updateAndProcessData 결과:', matrix ? `names:${matrix.names?.length}, dates:${matrix.uniqueDates?.length}` : 'null');
 
                     // [추가] 클라우드 자동 저장 및 데이터 동기화
                     await Promise.all(fileArray.map(f => uploadFileToStorage(f, 'attendance')));
+                    console.log('[DEBUG] handleFiles: 스토리지 업로드 완료, syncAllToCloud 호출');
                     await syncAllToCloud(true, matrix);
                 }
             };
