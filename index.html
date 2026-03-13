@@ -368,26 +368,54 @@
         .employee-list-container {
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 0.5rem;
-            max-height: 350px;
+            padding: 0; /* 내부 행들과 정렬을 위해 패딩 제거 */
+            max-height: 450px;
             overflow-y: auto;
+            scrollbar-gutter: stable;
             background: #f9fafb;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            width: 100%;
+            min-width: min-content; /* 내부 행 너비에 맞춰 확장 */
         }
 
+        /* 사원 관리 모달 레이아웃 최적화 */
+        .employee-manager-scroll-wrapper {
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .employee-manager-table-header,
         .employee-row {
+            min-width: 1200px; /* PIN 컬럼 추가로 인해 너비 확장 */
             display: flex;
             gap: 0.5rem;
             align-items: center;
+            padding: 8px 13px;
+        }
+
+        .employee-manager-table-header {
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .employee-manager-table-header span {
+            display: inline-block;
+            margin: 0;
+            padding: 0;
+        }
+
+        .employee-row {
             background-color: white;
-            padding: 4px;
+            padding: 4px 13px;
             border-radius: 6px;
             cursor: grab;
             transition: background-color 0.2s, border 0.2s;
             border: 1px solid transparent;
-            /* 위치 보정용 */
+            margin-bottom: 0.5rem;
         }
 
         /* [추가] 드래그 중인 행 효과 */
@@ -413,14 +441,12 @@
             outline: none;
             background-color: white;
             flex: none;
-            /* [변경] 고정 너비 사용을 위해 flex: 1 제거 */
         }
 
         .employee-row input:focus,
         .employee-row select:focus {
             border-color: var(--primary);
         }
-
 
         .remove-btn {
             background: none;
@@ -1039,13 +1065,126 @@ Print Styles (@media print)
             min-width: 200px;
             width: 100%;
         }
+
+        /* Admin Login Overlay */
+        #admin-login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        .login-card h2 {
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+            font-weight: 700;
+        }
+
+        .login-card p {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .login-input-group {
+            text-align: left;
+            margin-bottom: 1.25rem;
+        }
+
+        .login-input-group label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-main);
+        }
+
+        .login-input-group input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .login-input-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.875rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-top: 1rem;
+        }
+
+        .login-btn:hover {
+            background: var(--primary-hover);
+        }
+
+        .login-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        #main-dashboard-wrap {
+            display: none; /* Hide until auth */
+        }
     </style>
     <!-- Include SheetJS (xlsx) from CDN for in-browser Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body>
-    <div id="ui-container" class="no-print">
+    <!-- Admin Login Overlay -->
+    <div id="admin-login-overlay">
+        <div class="login-card">
+            <h2>관리자 로그인</h2>
+            <p>대시보드 접속을 위해 관리자 정보를 입력해주세요.</p>
+            <div class="login-input-group">
+                <label for="admin-name-input">성함</label>
+                <input type="text" id="admin-name-input" placeholder="성함을 입력하세요">
+            </div>
+            <div class="login-input-group">
+                <label for="admin-pin-input">확인코드 (PIN)</label>
+                <input type="password" id="admin-pin-input" maxlength="4" placeholder="••••">
+            </div>
+            <button id="admin-login-btn" class="login-btn">로그인</button>
+            <div id="login-error-msg" style="color: #ef4444; font-size: 0.85rem; margin-top: 1rem; display: none;">
+                일치하는 관리자 정보가 없습니다.
+            </div>
+        </div>
+    </div>
+
+    <div id="main-dashboard-wrap">
+        <div id="ui-container" class="no-print">
         <header>
             <h1>DOW 근태 보고서</h1>
             <p>출퇴근 엑셀 데이터를 올려 프리미엄 매트릭스 보고서를 만들어 보세요.</p>
@@ -1124,7 +1263,7 @@ Print Styles (@media print)
                 <div class="middle-controls">
                     <div class="settings-group">
                         <button id="open-manager-btn" class="secondary-btn">
-                            사원 명단
+                            사원 관리
                         </button>
                         <button id="open-holiday-btn" class="secondary-btn"
                             style="color: #6366f1; background: #f5f3ff; border-color: #ddd6fe;">
@@ -1149,6 +1288,10 @@ Print Styles (@media print)
                     <button id="print-btn" class="primary-btn"
                         style="background-color: #0d5e94; font-size: 0.9rem; padding: 0.5rem 1rem;">
                         보고서 인쇄 및 PDF 저장
+                    </button>
+                    <button id="logout-btn" class="secondary-btn"
+                        style="font-size: 0.8rem; padding: 0.4rem; color: #6b7280; border-color: #e5e7eb; margin-top: 0.5rem;">
+                        로그아웃
                     </button>
                 </div>
             </div>
@@ -1183,21 +1326,23 @@ Print Styles (@media print)
                 </div>
             </div>
             <div class="employee-manager-section">
-                <div style="display: flex; align-items: center; margin-bottom: 0.5rem; padding: 0 13px;">
-                    <div style="font-size: 0.8rem; color: #6b7280; display: flex; gap: 8px; width: 100%;">
+                <div class="employee-manager-scroll-wrapper">
+                    <div class="employee-manager-table-header">
                         <span style="flex: 0 0 120px;">조직</span>
                         <span style="flex: 0 0 100px;">사원명</span>
                         <span style="flex: 0 0 100px;">직급</span>
-                        <span style="flex: 1 1 150px;">이메일</span>
+                        <span style="flex: 0 0 130px;">근무조</span>
+                        <span style="flex: 0 0 80px;">PIN</span>
+                        <span style="flex: 1 1 150px; min-width: 150px;">이메일</span>
                         <span style="flex: 0 0 130px;">입사일</span>
                         <span style="flex: 0 0 130px;">퇴사일</span>
                         <span style="flex: 0 0 60px; text-align: center;">팀장</span>
+                        <span style="flex: 0 0 60px; text-align: center;">관리자</span>
                         <span style="flex: 0 0 40px; text-align: center;"></span>
                     </div>
-                </div>
-                <div id="employee-list-container" class="employee-list-container"
-                    style="display:flex; flex-direction:column; gap:8px;">
-                    <!-- Rows injected via JS -->
+                    <div id="employee-list-container" class="employee-list-container">
+                        <!-- Rows injected via JS -->
+                    </div>
                 </div>
                 <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.5rem; display: block;">위 순서대로 보고서에 출력됩니다
                     (조직, 입/퇴사일은 화면 관리용이며 보고서 표에는 인쇄되지 않습니다).</small>
@@ -1276,7 +1421,7 @@ Print Styles (@media print)
                 </datalist>
 
                 <div class="verify-table-container"
-                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #f9fafb; position: relative;">
+                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0 0.5rem 0.5rem 0.5rem; background: #f9fafb; position: relative;">
                     <table class="verify-table">
                         <thead>
                             <tr>
@@ -1405,6 +1550,156 @@ Print Styles (@media print)
 
             if (SUPABASE_URL && SUPABASE_KEY) {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                // [추가] 관리자 세션 체크
+                checkAdminSession();
+                loadAllInitialData();
+            }
+
+            // [추가] 관리자 세션 처리 함수
+            function checkAdminSession() {
+                const session = localStorage.getItem('admin_session');
+                const overlay = document.getElementById('admin-login-overlay');
+                const wrapper = document.getElementById('main-dashboard-wrap');
+                
+                if (session) {
+                    const auth = JSON.parse(session);
+                    const now = new Date().getTime();
+                    // 24시간 세션 유지
+                    if (now - auth.timestamp < 24 * 60 * 60 * 1000) {
+                        overlay.style.display = 'none';
+                        wrapper.style.display = 'block';
+                        return;
+                    }
+                }
+                overlay.style.display = 'flex';
+                wrapper.style.display = 'none';
+            }
+
+            async function handleAdminLogin() {
+                const nameInput = document.getElementById('admin-name-input');
+                const pinInput = document.getElementById('admin-pin-input');
+                const loginBtn = document.getElementById('admin-login-btn');
+                const errorMsg = document.getElementById('login-error-msg');
+                
+                const name = normalizeName(nameInput.value);
+                const pin = pinInput.value;
+
+                if (!name || pin.length !== 4) {
+                    alert('성함과 4자리 PIN을 올바르게 입력해주세요.');
+                    return;
+                }
+
+                loginBtn.disabled = true;
+                loginBtn.textContent = '인증 중...';
+                errorMsg.style.display = 'none';
+
+                try {
+                    // 1. 관리자가 한 명도 없는지 확인 (최초 설정용)
+                    const { count, error: countError } = await supabase
+                        .from('employees')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('is_admin', true);
+                    
+                    if (countError) throw countError;
+
+                    let isAuthorized = false;
+
+                    if (count === 0) {
+                        // 관리자가 한 명도 없으면, 유효한 사원 정보이기만 하면 첫 관리자로 승격 및 로그인 허용
+                        const { data: emp, error: empError } = await supabase
+                            .from('employees')
+                            .select('*')
+                            .eq('name', name)
+                            .eq('pin', pin)
+                            .maybeSingle();
+                        
+                        if (empError) throw empError;
+                        if (emp) {
+                            if (confirm(`${name}님, 아직 등록된 관리자가 없습니다. 첫 관리자로 등록하고 접속하시겠습니까?`)) {
+                                await supabase.from('employees').update({ is_admin: true }).eq('name', name).eq('pin', pin);
+                                isAuthorized = true;
+                            }
+                        }
+                    } else {
+                        // 일반적인 관리자 로그인 체크
+                        const { data: admin, error: authError } = await supabase
+                            .from('employees')
+                            .select('*')
+                            .eq('name', name)
+                            .eq('pin', pin)
+                            .eq('is_admin', true)
+                            .maybeSingle();
+
+                        if (authError) throw authError;
+                        if (admin) isAuthorized = true;
+                    }
+
+                    if (isAuthorized) {
+                        const sessionData = {
+                            name: name,
+                            timestamp: new Date().getTime()
+                        };
+                        localStorage.setItem('admin_session', JSON.stringify(sessionData));
+                        document.getElementById('admin-login-overlay').style.display = 'none';
+                        document.getElementById('main-dashboard-wrap').style.display = 'block';
+                    } else {
+                        errorMsg.style.display = 'block';
+                    }
+                } catch (err) {
+                    console.error('Admin Login Error:', err);
+                    alert('로그인 처리 중 오류가 발생했습니다: ' + err.message);
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = '로그인';
+                }
+            }
+
+            document.getElementById('admin-login-btn').onclick = handleAdminLogin;
+            document.getElementById('admin-pin-input').onkeypress = (e) => {
+                if (e.key === 'Enter') handleAdminLogin();
+            };
+
+            document.getElementById('logout-btn').onclick = () => {
+                if (confirm('로그아웃 하시겠습니까?')) {
+                    localStorage.removeItem('admin_session');
+                    checkAdminSession();
+                }
+            };
+
+            // [추가] 전체 데이터 통합 로드 함수
+            async function loadAllInitialData() {
+                console.log("Starting cloud data sync...");
+                try {
+                    await Promise.all([
+                        fetchEmployeesFromCloud(true), // 조용히 로드
+                        fetchHolidaysFromCloud(true)
+                    ]);
+
+                    // [수정] 최근 1주일 대신 현재 월의 상/하반기 자동 설정
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = now.getMonth() + 1;
+                    const day = now.getDate();
+
+                    let start, end;
+                    if (day <= 15) {
+                        start = `${year}-${String(month).padStart(2, '0')}-01`;
+                        end = `${year}-${String(month).padStart(2, '0')}-15`;
+                    } else {
+                        start = `${year}-${String(month).padStart(2, '0')}-16`;
+                        const lastDay = new Date(year, month, 0).getDate();
+                        end = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+                    }
+
+                    document.getElementById('report-period-start').value = start;
+                    document.getElementById('report-period-end').value = end;
+                    document.getElementById('report-date-input').value = now.toISOString().split('T')[0];
+
+                    await fetchAllFromCloud(true); // 해당 기간 데이터 로드
+                    console.log("Initial cloud sync complete.");
+                } catch (err) {
+                    console.error("Initial sync failed:", err);
+                }
             }
 
             // 기본 UI 요소
@@ -1430,7 +1725,7 @@ Print Styles (@media print)
             // 검증(Verification) 기능 요소
             const verifyBtn = document.getElementById('verify-data-btn');
             const verifyModal = document.getElementById('verify-modal');
-            const closeVerifyBtn = document.getElementById('close-verify-btn');
+            const cVerifyBtn = document.getElementById('close-verify-btn');
             const verifyTbody = document.getElementById('verify-tbody');
             const verifyEmptyMsg = document.getElementById('verify-empty-msg');
             const bulkUnconfirmBtn = document.getElementById('bulk-unconfirm-btn');
@@ -1502,23 +1797,23 @@ Print Styles (@media print)
             makeDraggable(holidayModal);
             makeDraggable(mailQueueModal);
 
-            // [추가] 수동 확인 데이터 (localStorage)
-            const savedCorrections = localStorage.getItem('manualCorrections');
-            let manualCorrections = savedCorrections ? JSON.parse(savedCorrections) : {};
+            // [추가] 수동 확인 데이터 (localStorage) - 오류 방지를 위해 try-catch 적용
+            function getSafeJSON(key, defaultVal) {
+                try {
+                    const saved = localStorage.getItem(key);
+                    return saved ? JSON.parse(saved) : defaultVal;
+                } catch (e) {
+                    console.error(`Error parsing localStorage key "${key}":`, e);
+                    return defaultVal;
+                }
+            }
 
-            const savedReasons = localStorage.getItem('manualReasons');
-            let manualReasons = savedReasons ? JSON.parse(savedReasons) : {};
-            const savedExplanations = localStorage.getItem('employeeExplanations');
-            let employeeExplanations = savedExplanations ? JSON.parse(savedExplanations) : {};
-
-            const savedPreemptive = localStorage.getItem('preemptiveSupplements');
-            let preemptiveSupplements = savedPreemptive ? JSON.parse(savedPreemptive) : {};
-
-            let manualEarlyPunches = JSON.parse(localStorage.getItem('manualEarlyPunches')) || {};
-
-            // [추가] 소명 요청을 보낸 항목들의 키 관리를 위한 Set (로컬 스토리지 연동)
-            const savedSentKeys = localStorage.getItem('sentAnomalyKeys');
-            let sentAnomalyKeys = new Set(savedSentKeys ? JSON.parse(savedSentKeys) : []);
+            let manualCorrections = getSafeJSON('manualCorrections', {});
+            let manualReasons = getSafeJSON('manualReasons', {});
+            let employeeExplanations = getSafeJSON('employeeExplanations', {});
+            let preemptiveSupplements = getSafeJSON('preemptiveSupplements', {});
+            let manualEarlyPunches = getSafeJSON('manualEarlyPunches', {});
+            let sentAnomalyKeys = new Set(getSafeJSON('sentAnomalyKeys', []));
 
             // Migration from legacy keys if they exist
             if (Object.keys(manualEarlyPunches).length === 0) {
@@ -1539,16 +1834,16 @@ Print Styles (@media print)
             const savedEmployees = localStorage.getItem('employeeConfigList');
             let employeeConfigList = savedEmployees ? JSON.parse(savedEmployees) : [
                 { org: "다우밸브", name: "정미영", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "김혜원", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "다우밸브", name: "이대희", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이재근", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "다우밸브", name: "서현석", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "박주연", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "다우밸브", name: "김현욱", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "강미나", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "밸브파크", name: "곽정원", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "안효모", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "다우밸브", name: "김영민", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이재룡", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "다우밸브", name: "정광호", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "이수형", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "다우밸브", name: "장근영", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "황나경", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "밸브파크", name: "이도아", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "밸브파크", name: "채예은", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "다우밸브", name: "한옥련", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }, { org: "다우밸브", name: "채민주", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false },
-                { org: "다우밸브", name: "정상민", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false }
+                { org: "다우밸브", name: "이대희", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "다우밸브", name: "이재근", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "다우밸브", name: "서현석", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "다우밸브", name: "박주연", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "다우밸브", name: "김현욱", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "다우밸브", name: "강미나", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "밸브파크", name: "곽정원", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "다우밸브", name: "안효모", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "다우밸브", name: "김영민", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "다우밸브", name: "이재룡", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "다우밸브", name: "정광호", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "다우밸브", name: "이수형", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "다우밸브", name: "장근영", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "다우밸브", name: "황나경", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "밸브파크", name: "이도아", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "밸브파크", name: "채예은", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "다우밸브", name: "한옥련", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }, { org: "다우밸브", name: "채민주", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" },
+                { org: "다우밸브", name: "정상민", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" }
             ];
 
             // 공휴일 리스트 데이터 (localStorage에서 불러오기)
@@ -1743,6 +2038,25 @@ Print Styles (@media print)
                         tempEmployeeConfigList[index].rank = e.target.value;
                     });
 
+                    const shiftInput = document.createElement('input');
+                    shiftInput.type = 'text';
+                    shiftInput.placeholder = '근무조 (예: 09:00-18:00)';
+                    shiftInput.style.width = '120px';
+                    shiftInput.value = emp.shift || '';
+                    shiftInput.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].shift = e.target.value;
+                    });
+
+                    const pinInput = document.createElement('input');
+                    pinInput.type = 'text';
+                    pinInput.maxLength = 4;
+                    pinInput.placeholder = '0000';
+                    pinInput.style.width = '80px';
+                    pinInput.value = emp.pin || '0000';
+                    pinInput.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].pin = e.target.value;
+                    });
+
                     const emailInput = document.createElement('input');
                     emailInput.type = 'email';
                     emailInput.placeholder = '이메일 주소';
@@ -1771,7 +2085,6 @@ Print Styles (@media print)
                     leaveInput.addEventListener('change', (e) => {
                         tempEmployeeConfigList[index].leaveDate = e.target.value;
                     });
-
                     const leaderCheckbox = document.createElement('input');
                     leaderCheckbox.type = 'checkbox';
                     leaderCheckbox.title = '팀장 여부';
@@ -1779,6 +2092,15 @@ Print Styles (@media print)
                     leaderCheckbox.checked = emp.isLeader || false;
                     leaderCheckbox.addEventListener('change', (e) => {
                         tempEmployeeConfigList[index].isLeader = e.target.checked;
+                    });
+
+                    const adminCheckbox = document.createElement('input');
+                    adminCheckbox.type = 'checkbox';
+                    adminCheckbox.title = '관리자 여부';
+                    adminCheckbox.style.width = '50px';
+                    adminCheckbox.checked = emp.isAdmin || false;
+                    adminCheckbox.addEventListener('change', (e) => {
+                        tempEmployeeConfigList[index].isAdmin = e.target.checked;
                     });
 
                     const removeBtn = document.createElement('button');
@@ -1794,19 +2116,28 @@ Print Styles (@media print)
                     orgSelect.style.flex = '0 0 120px';
                     nameInput.style.flex = '0 0 100px';
                     rankSelect.style.flex = '0 0 100px';
+                    shiftInput.style.flex = '0 0 130px';
+                    pinInput.style.flex = '0 0 80px';
                     emailInput.style.flex = '1 1 150px';
+                    emailInput.style.minWidth = '150px';
                     joinInput.style.flex = '0 0 130px';
                     leaveInput.style.flex = '0 0 130px';
                     leaderCheckbox.style.flex = '0 0 60px';
+                    leaderCheckbox.style.margin = '0';
+                    adminCheckbox.style.flex = '0 0 60px';
+                    adminCheckbox.style.margin = '0';
                     removeBtn.style.flex = '0 0 40px';
 
                     row.appendChild(orgSelect);
                     row.appendChild(nameInput);
                     row.appendChild(rankSelect);
+                    row.appendChild(shiftInput);
+                    row.appendChild(pinInput);
                     row.appendChild(emailInput);
                     row.appendChild(joinInput);
                     row.appendChild(leaveInput);
                     row.appendChild(leaderCheckbox);
+                    row.appendChild(adminCheckbox);
                     row.appendChild(removeBtn);
                     employeeListContainer.appendChild(row);
                 });
@@ -1817,7 +2148,7 @@ Print Styles (@media print)
 
             if (addEmployeeBtn) {
                 addEmployeeBtn.addEventListener('click', () => {
-                    tempEmployeeConfigList.push({ org: "", name: "", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false });
+                    tempEmployeeConfigList.push({ org: "", name: "", rank: "", email: "", joinDate: "", leaveDate: "", isLeader: false, shift: "" });
                     renderEmployeeManager();
                     employeeListContainer.scrollTop = employeeListContainer.scrollHeight;
                 });
@@ -1987,25 +2318,23 @@ Print Styles (@media print)
                 });
             }
 
-            async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null) {
+            async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false) {
                 if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
-                const currentMatrix = prebuiltMatrix || updateAndProcessData(true);
+                const currentMatrix = prebuiltMatrix || updateAndProcessData(true, ignorePeriod);
                 if (!currentMatrix) {
                     if (!skipConfirm) alert("저장할 데이터가 없습니다. 먼저 엑셀 파일을 업로드해주세요.");
                     return;
                 }
                 const { recordsMap, names, uniqueDates } = currentMatrix;
-                const toUpsert = [];
+                const newRecords = [];
                 names.forEach(name => {
                     const userRecs = recordsMap[name] || {};
                     uniqueDates.forEach(date => {
                         const rec = userRecs[date] || {};
                         const corrKey = `${name}_${date}`;
                         const corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
-                        toUpsert.push({
-                            manager_key: corrKey,
-                            name: name,
-                            date: date,
+                        newRecords.push({
+                            manager_key: corrKey, name, date,
                             shift: rec.shiftStart || null,
                             in_time: rec.inTime || null,
                             out_time: rec.outTime || null,
@@ -2020,14 +2349,38 @@ Print Styles (@media print)
                         });
                     });
                 });
-                if (toUpsert.length === 0) {
+                if (newRecords.length === 0) {
                     if (!skipConfirm) alert("저장할 활동 데이터가 없습니다.");
                     return;
                 }
                 if (!skipConfirm) {
-                    if (!confirm(`현재 화면에 로드된 ${toUpsert.length}건의 데이터를 클라우드에 백업하시겠습니까?\n(기존 동일 날짜 데이터는 업데이트됩니다)`)) return;
+                    if (!confirm(`현재 화면에 로드된 ${newRecords.length}건의 데이터를 클라우드에 백업하시겠습니까?\n(기존 동일 날짜 데이터는 업데이트됩니다)`)) return;
                 }
                 if (cloudFetchAllBtn) { cloudFetchAllBtn.disabled = true; cloudFetchAllBtn.textContent = "저장 중..."; }
+                const keys = newRecords.map(r => r.manager_key);
+                const { data: existingData } = await supabase
+                    .from('attendance_records')
+                    .select('manager_key, manager_reason, employee_explanation, early_punch_mode, status_in, status_out, status_leave, in_time, out_time, shift, reason')
+                    .in('manager_key', keys);
+                const existingMap = {};
+                if (existingData) existingData.forEach(row => { existingMap[row.manager_key] = row; });
+                const toUpsert = newRecords.map(r => {
+                    const ex = existingMap[r.manager_key];
+                    if (!ex) return r;
+                    return {
+                        ...r,
+                        shift: r.shift || ex.shift || null,
+                        in_time: r.in_time || ex.in_time || null,
+                        out_time: r.out_time || ex.out_time || null,
+                        reason: r.reason || ex.reason || "",
+                        manager_reason: r.manager_reason || ex.manager_reason || "",
+                        employee_explanation: r.employee_explanation || ex.employee_explanation || "",
+                        early_punch_mode: r.early_punch_mode || ex.early_punch_mode || "",
+                        status_in: r.status_in || ex.status_in,
+                        status_out: r.status_out || ex.status_out,
+                        status_leave: r.status_leave || ex.status_leave,
+                    };
+                });
                 const { error } = await supabase.from('attendance_records').upsert(toUpsert, { onConflict: 'manager_key' });
                 if (error) {
                     console.error('Cloud Sync Error:', error);
@@ -2041,81 +2394,70 @@ Print Styles (@media print)
                 }
             }
 
-            async function fetchAllFromCloud() {
-                if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
+            async function fetchAllFromCloud(silent = false) {
+                if (!supabase) { if (!silent) alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
                 const start = document.getElementById('report-period-start')?.value;
                 const end = document.getElementById('report-period-end')?.value;
-                if (!start || !end) { alert("불러오기 전 '기간 설정'의 시작일과 종료일을 입력해주세요."); return; }
-                cloudFetchAllBtn.disabled = true;
-                cloudFetchAllBtn.textContent = "⏳ 불러오는 중...";
-                const { data, error } = await supabase.from('attendance_records').select('*').gte('date', start).lte('date', end);
-                if (error) {
-                    console.error('Cloud Fetch Error:', error);
-                    alert('불러오기 중 오류가 발생했습니다: ' + error.message);
-                } else if (data && data.length > 0) {
-                    data.forEach(row => {
-                        const key = row.manager_key;
-                        manualCorrections[key] = { in: row.status_in, out: row.status_out, leave: row.status_leave };
-                        manualReasons[key] = row.manager_reason || "";
-                        employeeExplanations[key] = row.employee_explanation || "";
-                        if (row.early_punch_mode) manualEarlyPunches[key] = row.early_punch_mode;
-                        if (!attendanceFilesMap.has('Cloud_Data')) attendanceFilesMap.set('Cloud_Data', []);
-                        const cloudData = attendanceFilesMap.get('Cloud_Data');
-                        const existingIdx = cloudData.findIndex(d => `${d.이름}_${d.날짜}` === key);
-                        const newRow = {
-                            "날짜": row.date,
-                            "이름": row.name,
-                            "근무조": row.shift,
-                            "출근": row.in_time,
-                            "퇴근": row.out_time,
-                            "비고": row.reason || ""
-                        };
-                        if (existingIdx > -1) cloudData[existingIdx] = newRow;
-                        else cloudData.push(newRow);
-                    });
-                    localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
-                    localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
-                    localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
-                    localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
+                if (!start || !end) { if (!silent) alert("불러오기 전 '기간 설정'의 시작일과 종료일을 입력해주세요."); return; }
+
+                if (cloudFetchAllBtn) {
+                    cloudFetchAllBtn.disabled = true;
+                    cloudFetchAllBtn.textContent = "⏳ 불러오는 중...";
                 }
 
-                // [추가] 선제적 보완 데이터(사전 등록 내역) 별도 로딩
-                let prepData = null;
                 try {
-                    const { data: pData, error: prepError } = await supabase.from('attendance_supplements').select('*').gte('date', start).lte('date', end);
-                    if (prepError) {
-                        alert('사전 등록 내역 불러오기 오류: ' + prepError.message);
-                    } else if (pData) {
-                        prepData = pData;
-                        if (prepData.length > 0) {
-                            prepData.forEach(row => {
-                                const key = `${normalizeName(row.name)}_${row.date}`;
-                                const reasonText = row.type + (row.details ? ` (${row.details})` : "");
-                                preemptiveSupplements[key] = reasonText;
-                                // [단일화] 사원 소명 객체에도 동일하게 반영 (사전 등록임을 표시)
-                                if (!employeeExplanations[key]) {
-                                    employeeExplanations[key] = `[사전] ${reasonText}`;
-                                }
-                            });
-                            localStorage.setItem('preemptiveSupplements', JSON.stringify(preemptiveSupplements));
-                            localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
-                        }
+                    const { data, error } = await supabase.from('attendance_records').select('*').gte('date', start).lte('date', end);
+                    if (error) throw error;
+
+                    if (data && data.length > 0) {
+                        data.forEach(row => {
+                            const key = row.manager_key;
+                            manualCorrections[key] = { in: row.status_in, out: row.status_out, leave: row.status_leave };
+                            manualReasons[key] = row.manager_reason || "";
+                            employeeExplanations[key] = row.employee_explanation || "";
+                            if (row.early_punch_mode) manualEarlyPunches[key] = row.early_punch_mode;
+
+                            if (!attendanceFilesMap.has('Cloud_Data')) attendanceFilesMap.set('Cloud_Data', []);
+                            const cloudData = attendanceFilesMap.get('Cloud_Data');
+                            const existingIdx = cloudData.findIndex(d => `${d.이름}_${d.날짜}` === key);
+                            const newRow = {
+                                "날짜": row.date, "이름": row.name, "근무조": row.shift,
+                                "출근": row.in_time, "퇴근": row.out_time, "비고": row.reason || ""
+                            };
+                            if (existingIdx > -1) cloudData[existingIdx] = newRow;
+                            else cloudData.push(newRow);
+                        });
+                        localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                        localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                        localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                        localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
                     }
-                } catch (prepErr) {
-                    console.error('Preemptive Supplement Fetch Error:', prepErr);
-                }
 
-                updateAndProcessData();
-                cloudFetchAllBtn.disabled = false;
-                cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
+                    // 선제적 보완 데이터(사전 등록 내역) 로딩
+                    const { data: pData, error: prepError } = await supabase.from('attendance_supplements').select('*').gte('date', start).lte('date', end);
+                    if (prepError) throw prepError;
 
-                const totalRecords = (data ? data.length : 0);
-                const prepCount = (prepData ? prepData.length : 0);
+                    if (pData && pData.length > 0) {
+                        pData.forEach(row => {
+                            const key = `${normalizeName(row.name)}_${row.date}`;
+                            const reasonText = row.type + (row.details ? ` (${row.details})` : "");
+                            preemptiveSupplements[key] = reasonText;
+                            if (!employeeExplanations[key]) employeeExplanations[key] = `[사전] ${reasonText}`;
+                        });
+                        localStorage.setItem('preemptiveSupplements', JSON.stringify(preemptiveSupplements));
+                        localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                    }
 
-                if (totalRecords > 0 || prepCount > 0) {
-                    alert(`클라우드 데이터를 불러왔습니다.\n(기록: ${totalRecords}건, 사전등록: ${prepCount}건)`);
-                } else {
-                    alert(`해당 기간(${start} ~ ${end})에 클라우드에 저장된 데이터가 없습니다.`);
+                    updateAndProcessData();
+                    if (!silent) alert(`클라우드 데이터를 불러왔습니다.\n(기록: ${data.length}건, 사전등록: ${pData ? pData.length : 0}건)`);
+                } catch (err) {
+                    console.error('Cloud Fetch Error:', err);
+                    if (!silent) alert('불러오기 중 오류가 발생했습니다: ' + err.message);
+                } finally {
+                    if (cloudFetchAllBtn) {
+                        cloudFetchAllBtn.disabled = false;
+                        cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
+                    }
                 }
             }
 
@@ -2125,20 +2467,63 @@ Print Styles (@media print)
                 const validEmployees = tempEmployeeConfigList.filter(emp => emp.name.trim() !== "");
                 if (validEmployees.length === 0) { alert("저장할 사원 정보가 없습니다."); return; }
 
+                // [추가] 동명이인 확인코드 중복 체크
+                const namePinPairs = new Set();
+                for (const emp of validEmployees) {
+                    const key = `${normalizeName(emp.name)}_${emp.pin || '0000'}`;
+                    if (namePinPairs.has(key)) {
+                        alert(`중복된 이름과 확인코드 조합이 있습니다: ${emp.name} (${emp.pin || '0000'})\n동명이인은 반드시 서로 다른 확인코드를 가져야 합니다.`);
+                        syncEmployeesBtn.disabled = false;
+                        syncEmployeesBtn.textContent = "클라우드 저장 및 적용";
+                        return;
+                    }
+                    namePinPairs.add(key);
+                }
+
                 syncEmployeesBtn.disabled = true;
                 syncEmployeesBtn.textContent = "⏳ 저장 중...";
 
-                const toUpsert = validEmployees.map(emp => ({
-                    name: normalizeName(emp.name),
-                    org: emp.org,
-                    rank: emp.rank || null,
-                    email: emp.email || null,
-                    join_date: emp.joinDate || null,
-                    leave_date: emp.leaveDate || null,
-                    is_leader: emp.isLeader || false
-                }));
-
+                const names = validEmployees.map(e => normalizeName(e.name));
                 try {
+                    const { data: existingEmployees } = await supabase
+                        .from('employees')
+                        .select('*')
+                        .in('name', names);
+                    
+                    const existingMap = {};
+                    if (existingEmployees) existingEmployees.forEach(emp => { existingMap[emp.name] = emp; });
+
+                    const toUpsert = validEmployees.map(emp => {
+                        const name = normalizeName(emp.name);
+                        const ex = existingMap[name];
+                        if (!ex) {
+                            return {
+                                name: name,
+                                org: emp.org,
+                                rank: emp.rank || null,
+                                email: emp.email || null,
+                                join_date: emp.joinDate || null,
+                                leave_date: emp.leaveDate || null,
+                                is_leader: emp.isLeader || false,
+                                shift: emp.shift || null,
+                                pin: emp.pin || '0000',
+                                is_admin: emp.isAdmin || false
+                            };
+                        }
+                        return {
+                            name: name,
+                            org: emp.org || ex.org || "",
+                            rank: emp.rank || ex.rank || null,
+                            email: emp.email || ex.email || null,
+                            join_date: emp.joinDate || ex.join_date || null,
+                            leave_date: emp.leave_date || ex.leave_date || null,
+                            is_leader: emp.isLeader !== undefined ? emp.isLeader : ex.is_leader,
+                            shift: emp.shift || ex.shift || null,
+                            pin: emp.pin && emp.pin !== '0000' ? emp.pin : (ex.pin || '0000'),
+                            is_admin: emp.isAdmin !== undefined ? emp.isAdmin : (ex.is_admin || false)
+                        };
+                    });
+
                     const { error } = await supabase
                         .from('employees')
                         .upsert(toUpsert, { onConflict: 'name' });
@@ -2158,54 +2543,144 @@ Print Styles (@media print)
                 }
             }
 
-            async function fetchEmployeesFromCloud() {
-                if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
-
-                fetchEmployeesBtn.disabled = true;
-                fetchEmployeesBtn.textContent = "⏳ 불러오는 중...";
+            async function fetchEmployeesFromCloud(silent = false) {
+                if (!supabase) { if (!silent) alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
+                if (!silent) {
+                    fetchEmployeesBtn.disabled = true;
+                    fetchEmployeesBtn.textContent = "⏳ 불러오는 중...";
+                }
 
                 try {
-                    const { data, error } = await supabase
-                        .from('employees')
-                        .select('*')
-                        .order('name');
-
+                    const { data, error } = await supabase.from('employees').select('*').order('name');
                     if (error) throw error;
 
                     if (data && data.length > 0) {
-                        if (confirm(`클라우드에서 ${data.length}명의 사원 정보를 가져왔습니다. 화면에 불러오시겠습니까?\n(아직 로컬에 적용되진 않으며, 확인 후 '로컬 적용'을 눌러야 최종 반영됩니다)`)) {
-                            tempEmployeeConfigList = data.map(row => ({
-                                org: row.org || "",
-                                name: normalizeName(row.name),
-                                rank: row.rank || "",
-                                email: row.email || "",
-                                joinDate: row.join_date || "",
-                                leaveDate: row.leave_date || "",
-                                isLeader: row.is_leader || false
-                            }));
+                        const newConfigs = data.map(row => ({
+                            org: row.org || "",
+                            name: normalizeName(row.name),
+                            rank: row.rank || "",
+                            email: row.email || "",
+                            joinDate: row.join_date || "",
+                            leaveDate: row.leave_date || "",
+                            isLeader: row.is_leader || false,
+                            isAdmin: row.is_admin || false,
+                            shift: row.shift || "",
+                            pin: row.pin || "0000"
+                        }));
+
+                        // [추가] 클라우드에서 가져온 사원 명단에도 동일한 정렬 로직 적용
+                        sortEmployees(newConfigs);
+
+                        if (silent) {
+                            employeeConfigList = newConfigs;
+                            localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
+                        } else if (confirm(`클라우드에서 ${data.length}명의 사원 정보를 가져왔습니다. 화면에 불러오시겠습니까?\n(아직 로컬에 적용되진 않으며, 확인 후 '로컬 적용'을 눌러야 최종 반영됩니다)`)) {
+                            tempEmployeeConfigList = newConfigs;
                             renderEmployeeManager();
                         }
                     } else {
-                        alert("클라우드에 저장된 사원 정보가 없습니다.");
+                        if (!silent) alert("클라우드에 저장된 사원 정보가 없습니다.");
                     }
                 } catch (err) {
-                    console.error('Cloud Sync Error:', err);
-                    let msg = err.message;
-                    if (msg.includes("column") && msg.includes("not found")) {
-                        msg = "사원 정보 테이블에 새로운 항목(email 등)이 추가되지 않았습니다. 관리자에게 문의하거나 SQL 스키마를 업데이트해 주세요.";
-                    }
-                    alert('클라우드 저장 중 오류가 발생했습니다: ' + msg);
+                    console.error('Cloud Fetch Employees Error:', err);
+                    if (!silent) alert('불러오기 중 오류가 발생했습니다: ' + err.message);
                 } finally {
-                    fetchEmployeesBtn.disabled = false;
-                    fetchEmployeesBtn.textContent = "☁️ 클라우드에서 불러오기";
+                    if (!silent) {
+                        fetchEmployeesBtn.disabled = false;
+                        fetchEmployeesBtn.textContent = "☁️ 클라우드에서 불러오기";
+                    }
                 }
             }
 
-            function updateAndProcessData(returnMatrix = false) {
+            async function syncHolidaysToCloud() {
+                if (!supabase) { alert("시스템 연결 중입니다."); return; }
+                const toUpsert = holidayConfigList.map(h => ({ date: h.date, name: h.name }));
+                try {
+                    // [개선] 클라우드에는 있으나 로컬에는 없는(삭제된) 항목 처리
+                    const { data: cloudHolidays, error: fetchErr } = await supabase.from('attendance_holidays').select('date');
+                    if (!fetchErr && cloudHolidays) {
+                        const localDates = new Set(holidayConfigList.map(h => h.date));
+                        const toDelete = cloudHolidays.filter(h => !localDates.has(h.date)).map(h => h.date);
+                        if (toDelete.length > 0) {
+                            await supabase.from('attendance_holidays').delete().in('date', toDelete);
+                        }
+                    }
+
+                    if (toUpsert.length > 0) {
+                        const { error } = await supabase.from('attendance_holidays').upsert(toUpsert, { onConflict: 'date' });
+                        if (error) throw error;
+                    }
+                    console.log("Holidays synced to cloud successfully.");
+                    alert("공휴일 설정이 클라우드에 저장되었습니다.");
+                } catch (err) {
+                    console.error("Holiday Sync Error:", err);
+                    alert("공휴일 클라우드 저장 실패: " + err.message);
+                }
+            }
+
+            async function fetchHolidaysFromCloud(silent = false) {
+                if (!supabase) return;
+                try {
+                    const { data, error } = await supabase.from('attendance_holidays').select('*').order('date');
+                    if (error) throw error;
+                    if (data) {
+                        holidayConfigList = data;
+                        localStorage.setItem('holidayConfigList', JSON.stringify(holidayConfigList));
+                    }
+                } catch (err) {
+                    console.error("Holiday Fetch Error:", err);
+                }
+            }
+
+            async function syncSingleRecordToCloud(key) {
+                if (!supabase) return;
+                const [name, date] = key.split('_');
+                const corrData = manualCorrections[key] || { in: false, out: false, leave: false };
+
+                let rec = {};
+                for (const [filename, rows] of attendanceFilesMap.entries()) {
+                    const found = rows.find(r => normalizeName(r.이름) === name && r.날짜 === date);
+                    if (found) {
+                        rec = {
+                            shiftStart: found.근무조?.split('-')[0]?.trim() || "",
+                            inTime: found.출근 || "",
+                            outTime: found.퇴근 || "",
+                            reason: found.비고 || ""
+                        };
+                        break;
+                    }
+                }
+
+                try {
+                    const { data: ex } = await supabase.from('attendance_records').select('*').eq('manager_key', key).single();
+                    
+                    const record = {
+                        manager_key: key, name, date,
+                        shift: rec.shiftStart || (ex ? ex.shift : null),
+                        in_time: rec.inTime || (ex ? ex.in_time : null),
+                        out_time: rec.outTime || (ex ? ex.out_time : null),
+                        status_in: !!corrData.in || (ex ? ex.status_in : false),
+                        status_out: !!corrData.out || (ex ? ex.status_out : false),
+                        status_leave: !!corrData.leave || (ex ? ex.status_leave : false),
+                        manager_reason: manualReasons[key] || (ex ? ex.manager_reason : ""),
+                        employee_explanation: employeeExplanations[key] || (ex ? ex.employee_explanation : ""),
+                        reason: rec.reason || (ex ? ex.reason : ""),
+                        early_punch_mode: manualEarlyPunches[key] || (ex ? ex.early_punch_mode : ""),
+                        is_anomalous: !!(unconfirmedAnomaliesMap[key] && (unconfirmedAnomaliesMap[key].in || unconfirmedAnomaliesMap[key].out))
+                    };
+
+                    const { error } = await supabase.from('attendance_records').upsert([record], { onConflict: 'manager_key' });
+                    if (error) console.error("Realtime Sync Error:", error);
+                } catch (e) {
+                    console.error("Realtime Sync Failed:", e);
+                }
+            }
+
+            function updateAndProcessData(returnMatrix = false, ignorePeriod = false) {
                 const hasPreemptive = Object.keys(preemptiveSupplements || {}).length > 0;
                 if (attendanceFilesMap.size === 0) {
                     if (currentLeaveData || (attendanceFilesMap.get('Cloud_Data') && attendanceFilesMap.get('Cloud_Data').length > 0) || hasPreemptive) {
-                        return processMatrixData([], returnMatrix);
+                        return processMatrixData([], returnMatrix, ignorePeriod);
                     } else {
                         reportContainer.innerHTML = '';
                         reportContainer.classList.add('hidden');
@@ -2215,7 +2690,7 @@ Print Styles (@media print)
                 }
                 const allData = [];
                 attendanceFilesMap.forEach(data => allData.push(...data));
-                return processMatrixData(allData, returnMatrix);
+                return processMatrixData(allData, returnMatrix, ignorePeriod);
             }
 
             function renderFileList(fileMap, listContainer, dropZone) {
@@ -2277,8 +2752,10 @@ Print Styles (@media print)
                         if (loadedCount === fileArray.length) {
                             renderFileList(attendanceFilesMap, fileListAttendance, dropZoneAttendance);
                             dropZoneAttendance.classList.add('loaded');
-                            const matrix = updateAndProcessData(true);
-                            await syncAllToCloud(true, matrix);
+                            updateAndProcessData();
+                            // [추가] 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
+                            console.log("Attendance files uploaded. Triggering full cloud sync...");
+                            await syncAllToCloud(true, null, true);
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -2301,21 +2778,6 @@ Print Styles (@media print)
                 }
             });
 
-            const resetAllDataBtn = document.getElementById('reset-all-data-btn');
-            resetAllDataBtn.addEventListener('click', () => {
-                if (confirm("정말로 모든 수동 조치(확인 표시), 사유(조치 사유), 그리고 직원 소명 답변을 전부 삭제하시겠습니까?\n(로컬 저장소 데이터가 초기화됩니다)")) {
-                    manualCorrections = {};
-                    manualReasons = {};
-                    employeeExplanations = {};
-                    localStorage.removeItem('manualCorrections');
-                    localStorage.removeItem('manualReasons');
-                    localStorage.removeItem('employeeExplanations');
-                    localStorage.removeItem('manualEarlyPunches');
-                    manualEarlyPunches = {};
-                    alert("모든 데이터가 초기화되었습니다. 화면을 새로고침하거나 데이터를 다시 분석해 주세요.");
-                    updateAndProcessData();
-                }
-            });
 
             // [NEW] 파일 3: 휴가 내역 처리 전용 셋업
             if (dropZoneLeave && fileInputLeave) {
@@ -2470,7 +2932,7 @@ Print Styles (@media print)
                         return;
                     }
                     const reader = new FileReader();
-                    reader.onload = (e) => {
+                    reader.onload = async (e) => {
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
                         const sheet = workbook.Sheets[workbook.SheetNames[0]];
@@ -2611,6 +3073,9 @@ Print Styles (@media print)
                             dropZoneLeave.classList.add('loaded');
 
                             updateAndProcessData();
+                            // [추가] 휴가 파일 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
+                            console.log("Leave files uploaded. Triggering full cloud sync...");
+                            await syncAllToCloud(true, null, true);
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -2618,7 +3083,7 @@ Print Styles (@media print)
             }
 
 
-            function processMatrixData(rows, returnMatrix = false) {
+            function processMatrixData(rows, returnMatrix = false, ignorePeriod = false) {
                 const recordsMap = {};
                 const uniqueDates = new Set();
 
@@ -2686,6 +3151,13 @@ Print Styles (@media print)
                             const outTime = cleanTime(row["퇴근"]);
                             let shiftStr = String(row["근무조"] || "");
                             if (name === "박주연") shiftStr = "0900-1800";
+
+                            // [추가] 엑셀에 근무조가 없으면 인사정보에 등록된 기본 근무조 사용
+                            if (!shiftStr) {
+                                const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
+                                if (empInfo && empInfo.shift) shiftStr = empInfo.shift;
+                            }
+
                             const cloudReason = row["비고"] || row["reason"] || ""; // [추가] 클라우드 사유 복구
 
                             // [수정] 출퇴근 기록이 없더라도 사유(일반 휴가 등)가 있으면 데이터에 포함
@@ -2831,7 +3303,8 @@ Print Styles (@media print)
 
                 let sortedDates = Array.from(uniqueDates).sort();
 
-                if (startBound && endBound) {
+                // [수정] 업로드 시에는 기간 제한 없이 저장하기 위해 필터링 건너뜀
+                if (!ignorePeriod && startBound && endBound) {
                     sortedDates = sortedDates.filter(d => d >= startBound && d <= endBound);
                 }
 
@@ -3543,9 +4016,10 @@ Print Styles (@media print)
                                 };
 
                                 const confirmBtn = tr.querySelector('.confirmation-btn');
-                                confirmBtn.onclick = () => {
+                                confirmBtn.onclick = async () => {
                                     const key = confirmBtn.getAttribute('data-key');
                                     const wasFullyConfirmed = isFullyConfirmed;
+                                    const [name, date] = key.split('_');
 
                                     if (isPendingLeave) {
                                         manualCorrections[key].leave = !manualCorrections[key].leave;
@@ -3578,8 +4052,33 @@ Print Styles (@media print)
                                         }
                                     }
                                     localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+
+                                    // [추가] 클라우드 상태 동기화 (확인됨 <-> 제출됨/보완요청)
+                                    if (supabase) {
+                                        const isCurrentlyConfirmed = (isPendingLeave ? manualCorrections[key].leave : wasFullyConfirmed);
+                                        const nextStatus = !isCurrentlyConfirmed ? 'processed' : (employeeExplanations[key] ? 'submitted' : 'requested');
+                                        try {
+                                            // 1. anomalies 테이블 상태 업데이트
+                                            await supabase
+                                                .from('attendance_anomalies')
+                                                .update({ status: nextStatus })
+                                                .eq('manager_key', key);
+
+                                            // 2. supplements (사전등록/소명) 테이블 상태 업데이트
+                                            await supabase
+                                                .from('attendance_supplements')
+                                                .update({ status: nextStatus })
+                                                .eq('name', name)
+                                                .eq('date', date);
+                                        } catch (syncErr) {
+                                            console.error('Status Sync Error:', syncErr);
+                                        }
+                                    }
+
                                     verifyBtn.click();
                                     updateAndProcessData();
+                                    // [추가] 실시간 클라우드 동기화
+                                    syncSingleRecordToCloud(key);
                                 };
 
                                 const modeSelect = tr.querySelector('.early-mode-select');
@@ -3592,6 +4091,8 @@ Print Styles (@media print)
                                         localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
                                         verifyBtn.click();
                                         updateAndProcessData();
+                                        // [추가] 실시간 클라우드 동기화
+                                        syncSingleRecordToCloud(key);
                                     };
                                 }
 
@@ -3601,6 +4102,8 @@ Print Styles (@media print)
                                     manualReasons[key] = e.target.value;
                                     localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
                                     updateAndProcessData();
+                                    // [추가] 실시간 클라우드 동기화 (디바운스 없이 즉시 - 간단한 구현)
+                                    syncSingleRecordToCloud(key);
                                 };
 
                                 verifyTbody.appendChild(tr);
@@ -3639,11 +4142,13 @@ Print Styles (@media print)
             }
 
             if (saveEmployeeBtn) {
-                saveEmployeeBtn.addEventListener('click', () => {
+                saveEmployeeBtn.addEventListener('click', async () => {
                     employeeConfigList = tempEmployeeConfigList.map(e => ({ ...e })); // 딥카피 개념으로 전체 필드 복사
                     localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
                     updateAndProcessData();
-                    alert('명단이 로컬 환경에 저장 및 적용되었습니다.');
+                    // [추가] 클라우드 실시간 동기화
+                    await syncEmployeesToCloud();
+                    employeeModal.classList.add('hidden');
                 });
             }
 
@@ -3744,14 +4249,36 @@ Print Styles (@media print)
                 }
             };
 
-            saveHolidayBtn.onclick = () => {
-                holidayConfigList = JSON.parse(JSON.stringify(tempHolidayConfigList));
-                localStorage.setItem('holidayConfigList', JSON.stringify(holidayConfigList));
-                holidayModal.classList.add('hidden');
-                updateAndProcessData();
-            };
+            if (saveHolidayBtn) {
+                saveHolidayBtn.onclick = async () => {
+                    holidayConfigList = JSON.parse(JSON.stringify(tempHolidayConfigList));
+                    localStorage.setItem('holidayConfigList', JSON.stringify(holidayConfigList));
+                    holidayModal.classList.add('hidden');
+                    updateAndProcessData();
+                    // [추가] 클라우드 동기화
+                    await syncHolidaysToCloud();
+                };
+            }
 
-            closeVerifyBtn.onclick = () => verifyModal.classList.add('hidden');
+            const resetAllDataBtn = document.getElementById('reset-all-data-btn');
+            if (resetAllDataBtn) {
+                resetAllDataBtn.onclick = () => {
+                    if (!confirm('경고: 모든 수동 수정 내역과 소명 답변 데이터가 삭제됩니다. 정말 초기화하시겠습니까?')) return;
+
+                    const keysToRemove = [
+                        'manualCorrections', 'manualReasons', 'employeeExplanations',
+                        'manualEarlyPunches', 'manualDateOffsets', 'manualInOverrides',
+                        'sentAnomalyKeys'
+                    ];
+                    keysToRemove.forEach(k => localStorage.removeItem(k));
+
+                    alert('모든 데이터가 초기화되었습니다. 페이지를 새로고침합니다.');
+                    location.reload();
+                };
+            }
+
+            const closeVerifyBtn = document.getElementById('close-verify-btn');
+            if (closeVerifyBtn) closeVerifyBtn.onclick = () => verifyModal.classList.add('hidden');
             window.onclick = (e) => {
                 if (e.target === employeeModal) employeeModal.classList.add('hidden');
                 if (e.target === verifyModal) verifyModal.classList.add('hidden');

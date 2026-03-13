@@ -1588,9 +1588,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         };
 
                         const confirmBtn = tr.querySelector('.confirmation-btn');
-                        confirmBtn.onclick = () => {
+                        confirmBtn.onclick = async () => {
                             const key = confirmBtn.getAttribute('data-key');
                             const isCurrentlyConfirmed = (isPendingLeave ? corrData.leave : (isFullyConfirmed || isPartiallyConfirmed));
+                            const [name, date] = key.split('_');
 
                             if (isPendingLeave) {
                                 manualCorrections[key].leave = !manualCorrections[key].leave;
@@ -1598,14 +1599,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (isCurrentlyConfirmed) {
                                     manualCorrections[key].in = false;
                                     manualCorrections[key].out = false;
-                                    // [추가] 확인 취소 시 조치 사유도 함께 초기화
                                     delete manualReasons[key];
                                     localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
                                 } else {
                                     if (hasInAnom) manualCorrections[key].in = true;
                                     if (hasOutAnom) manualCorrections[key].out = true;
 
-                                    // [추가] 소명 답변 자동 사유 반영 로직 (일관성 유지)
                                     const rawExp = employeeExplanations[key];
                                     if (rawExp) {
                                         const exps = rawExp.split(',').map(s => s.trim()).filter(s => s);
@@ -1621,6 +1620,36 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }
                             localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+
+                            // [추가] 클라우드 상태 동기화 (확인됨 <-> 제출됨/보완요청)
+                            if (supabase) {
+                                const nextStatus = !isCurrentlyConfirmed ? 'processed' : (employeeExplanations[key] ? 'submitted' : 'requested');
+                                console.log(`[Status Sync] Key: ${key}, currentConfirmed: ${isCurrentlyConfirmed}, nextStatus: ${nextStatus}`);
+                                
+                                try {
+                                    // 1. anomalies 테이블 상태 업데이트
+                                    const { error: err1 } = await supabase
+                                        .from('attendance_anomalies')
+                                        .update({ status: nextStatus })
+                                        .eq('manager_key', key);
+                                    
+                                    if (err1) console.error('[Status Sync] anomalies update failed:', err1);
+
+                                    // 2. supplements (사전등록/소명) 테이블 상태 업데이트
+                                    const { error: err2 } = await supabase
+                                        .from('attendance_supplements')
+                                        .update({ status: nextStatus })
+                                        .eq('name', name)
+                                        .eq('date', date);
+                                    
+                                    if (err2) console.error('[Status Sync] supplements update failed:', err2);
+                                    
+                                    if (!err1 && !err2) console.log('[Status Sync] Successfully updated status to:', nextStatus);
+                                } catch (syncErr) {
+                                    console.error('[Status Sync] Exception during sync:', syncErr);
+                                }
+                            }
+
                             verifyBtn.click();
                             updateAndProcessData();
                         };
