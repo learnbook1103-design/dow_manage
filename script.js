@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const addHolidayBtn = document.getElementById('add-holiday-btn');
     const cloudSyncAllBtn = document.getElementById('cloud-sync-all-btn');
     const cloudFetchAllBtn = document.getElementById('cloud-fetch-all-btn');
+    const autoFetchHolidayBtn = document.getElementById('auto-fetch-holiday-btn');
+    const saveHolidayBtn = document.getElementById('save-holiday-btn');
 
     async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null) {
         if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
@@ -312,6 +314,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const savedCorrections = localStorage.getItem('manualCorrections');
     let manualCorrections = savedCorrections ? JSON.parse(savedCorrections) : {};
 
+    const savedDateOffsets = localStorage.getItem('manualDateOffsets');
+    let manualDateOffsets = savedDateOffsets ? JSON.parse(savedDateOffsets) : {};
+
     const savedEarlyPunches = localStorage.getItem('manualEarlyPunches');
     let manualEarlyPunches = savedEarlyPunches ? JSON.parse(savedEarlyPunches) : {};
 
@@ -560,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const matrix = updateAndProcessData(true);
 
                     // [추가] 클라우드 자동 저장 및 데이터 동기화
-                    fileArray.forEach(f => uploadFileToStorage(f, 'attendance'));
+                    await Promise.all(fileArray.map(f => uploadFileToStorage(f, 'attendance')));
                     await syncAllToCloud(true, matrix);
                 }
             };
@@ -705,7 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const matrix = updateAndProcessData(true);
 
                 // [추가] 클라우드 자동 저장 및 데이터 동기화
-                uploadFileToStorage(file, 'attendance');
+                await uploadFileToStorage(file, 'attendance');
                 await syncAllToCloud(true, matrix);
             }
         };
@@ -842,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const matrix = updateAndProcessData(true);
 
                 // [추가] 클라우드 자동 저장 및 데이터 동기화
-                uploadFileToStorage(file, 'leave');
+                await uploadFileToStorage(file, 'leave');
                 await syncAllToCloud(true, matrix);
             }
         };
