@@ -46,12 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const cloudSyncAllBtn = document.getElementById('cloud-sync-all-btn');
     const cloudFetchAllBtn = document.getElementById('cloud-fetch-all-btn');
 
-    async function syncAllToCloud() {
+    async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null) {
         if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
 
-        // collect all records across all names and dates
-        const currentMatrix = updateAndProcessData(true); // Get the recordsMap
-        if (!currentMatrix) { alert("저장할 데이터가 없습니다. 먼저 엑셀 파일을 업로드해주세요."); return; }
+        // 자동 호출 시엔 이미 만들어진 matrix 사용, 버튼 클릭 시엔 직접 계산
+        const currentMatrix = prebuiltMatrix || updateAndProcessData(true);
+        if (!currentMatrix) {
+            if (!skipConfirm) alert("저장할 데이터가 없습니다. 먼저 엑셀 파일을 업로드해주세요.");
+            return;
+        }
 
         const { recordsMap, names, uniqueDates } = currentMatrix;
         const toUpsert = [];
@@ -84,12 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        if (toUpsert.length === 0) { alert("저장할 활동 데이터가 없습니다."); return; }
+        if (toUpsert.length === 0) {
+            if (!skipConfirm) alert("저장할 활동 데이터가 없습니다.");
+            return;
+        }
 
-        if (!confirm(`현재 화면에 로드된 ${toUpsert.length}건의 데이터를 클라우드에 백업하시겠습니까?\n(기존 동일 날짜 데이터는 업데이트됩니다)`)) return;
+        if (!skipConfirm) {
+            if (!confirm(`현재 화면에 로드된 ${toUpsert.length}건의 데이터를 클라우드에 백업하시겠습니까?\n(기존 동일 날짜 데이터는 업데이트됩니다)`)) return;
+        }
 
         cloudSyncAllBtn.disabled = true;
-        cloudSyncAllBtn.textContent = "⏳ 저장 중...";
+        cloudSyncAllBtn.textContent = "저장 중...";
 
         const { error } = await supabase
             .from('attendance_records')
@@ -97,12 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (error) {
             console.error('Cloud Sync Error:', error);
-            alert('저장 중 오류가 발생했습니다: ' + error.message);
+            if (!skipConfirm) alert('저장 중 오류가 발생했습니다: ' + error.message);
         } else {
-            alert(`성공적으로 ${toUpsert.length}건을 클라우드에 저장했습니다.`);
+            console.log(`자동 저장 완료: ${toUpsert.length}건`);
+            cloudSyncAllBtn.textContent = `저장됨 (${toUpsert.length}건)`;
+            setTimeout(() => cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장", 3000);
         }
         cloudSyncAllBtn.disabled = false;
-        cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장";
     }
     async function uploadFileToStorage(file, path) {
         if (!supabase) return;
@@ -121,59 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function autoSyncToCloud(matrix) {
-        if (!supabase) return;
-        if (!matrix) return;
 
-        const { recordsMap, names, uniqueDates } = matrix;
-        const toUpsert = [];
-
-        names.forEach(name => {
-            const userRecs = recordsMap[name] || {};
-            uniqueDates.forEach(date => {
-                const rec = userRecs[date];
-                if (rec) {
-                    const corrKey = `${name}_${date}`;
-                    const corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
-                    toUpsert.push({
-                        manager_key: corrKey,
-                        name: name,
-                        date: date,
-                        shift: rec.shiftStart,
-                        in_time: rec.inTime,
-                        out_time: rec.outTime,
-                        status_in: !!corrData.in,
-                        status_out: !!corrData.out,
-                        status_leave: !!corrData.leave,
-                        manager_reason: manualReasons[corrKey] || "",
-                        employee_explanation: employeeExplanations[corrKey] || "",
-                        reason: rec.reason || "",
-                        early_punch_mode: manualEarlyPunches[corrKey] || "",
-                        is_anomalous: !!(unconfirmedAnomaliesMap[corrKey] && (unconfirmedAnomaliesMap[corrKey].in || unconfirmedAnomaliesMap[corrKey].out))
-                    });
-                }
-            });
-        });
-
-        if (toUpsert.length === 0) {
-            console.log('Sync skipped: No data to upsert.');
-            return;
-        }
-
-        console.log(`Syncing ${toUpsert.length} records to Supabase...`, toUpsert.slice(0, 3));
-
-        const { error } = await supabase
-            .from('attendance_records')
-            .upsert(toUpsert, { onConflict: 'manager_key' });
-
-        if (error) {
-            console.error('Auto Sync Error:', error);
-        } else {
-            console.log(`자동 저장 완료: ${toUpsert.length}건`);
-            cloudSyncAllBtn.textContent = `저장됨 (${toUpsert.length}건)`;
-            setTimeout(() => cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장", 3000);
-        }
-    }
     async function fetchAllFromCloud() {
         if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
 
@@ -604,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // [추가] 클라우드 자동 저장 및 데이터 동기화
                     fileArray.forEach(f => uploadFileToStorage(f, 'attendance'));
-                    await autoSyncToCloud(matrix);
+                    await syncAllToCloud(true, matrix);
                 }
             };
             reader.readAsArrayBuffer(file);
@@ -749,7 +706,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // [추가] 클라우드 자동 저장 및 데이터 동기화
                 uploadFileToStorage(file, 'attendance');
-                await autoSyncToCloud(matrix);
+                await syncAllToCloud(true, matrix);
             }
         };
         reader.readAsArrayBuffer(file);
@@ -886,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // [추가] 클라우드 자동 저장 및 데이터 동기화
                 uploadFileToStorage(file, 'leave');
-                await autoSyncToCloud(matrix);
+                await syncAllToCloud(true, matrix);
             }
         };
         reader.readAsArrayBuffer(file);
