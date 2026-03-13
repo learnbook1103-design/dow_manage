@@ -1141,10 +1141,7 @@ Print Styles (@media print)
                     </button>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <button id="cloud-sync-all-btn" class="primary-btn"
-                        style="background-color: #059669; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                        전체 데이터 클라우드 저장
-                    </button>
+
                     <button id="cloud-fetch-all-btn" class="primary-btn"
                         style="background-color: #0d9488; font-size: 0.9rem; padding: 0.5rem 1rem;">
                         클라우드 데이터 불러오기
@@ -1450,7 +1447,6 @@ Print Styles (@media print)
             // 공휴일 관리 요소
             const openHolidayBtn = document.getElementById('open-holiday-btn');
             const highlightAnomalyBtn = document.getElementById('highlight-anomaly-btn');
-            const cloudSyncAllBtn = document.getElementById('cloud-sync-all-btn');
             const cloudFetchAllBtn = document.getElementById('cloud-fetch-all-btn');
             const holidayModal = document.getElementById('holiday-modal');
             const closeHolidayModalBtn = document.getElementById('close-holiday-modal-btn');
@@ -2031,18 +2027,18 @@ Print Styles (@media print)
                 if (!skipConfirm) {
                     if (!confirm(`현재 화면에 로드된 ${toUpsert.length}건의 데이터를 클라우드에 백업하시겠습니까?\n(기존 동일 날짜 데이터는 업데이트됩니다)`)) return;
                 }
-                cloudSyncAllBtn.disabled = true;
-                cloudSyncAllBtn.textContent = "저장 중...";
+                if (cloudFetchAllBtn) { cloudFetchAllBtn.disabled = true; cloudFetchAllBtn.textContent = "저장 중..."; }
                 const { error } = await supabase.from('attendance_records').upsert(toUpsert, { onConflict: 'manager_key' });
                 if (error) {
                     console.error('Cloud Sync Error:', error);
                     if (!skipConfirm) alert('저장 중 오류가 발생했습니다: ' + error.message);
                 } else {
                     console.log(`자동 저장 완료: ${toUpsert.length}건`);
-                    cloudSyncAllBtn.textContent = `저장됨 (${toUpsert.length}건)`;
-                    setTimeout(() => cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장", 3000);
+                    if (cloudFetchAllBtn) {
+                        cloudFetchAllBtn.textContent = `저장됨 (${toUpsert.length}건)`;
+                        setTimeout(() => { cloudFetchAllBtn.disabled = false; cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기"; }, 3000);
+                    }
                 }
-                cloudSyncAllBtn.disabled = false;
             }
 
             async function fetchAllFromCloud() {
@@ -2463,7 +2459,6 @@ Print Styles (@media print)
                 if (e.target.files.length > 0) handleFiles(e.target.files);
             });
 
-            if (cloudSyncAllBtn) cloudSyncAllBtn.onclick = syncAllToCloud;
             if (cloudFetchAllBtn) cloudFetchAllBtn.onclick = fetchAllFromCloud;
 
             function handleLeaveFiles(files) {
