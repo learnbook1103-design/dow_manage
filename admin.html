@@ -282,16 +282,10 @@
                             선택 항목 확인 해제
                         </button>
                         <div style="width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px;"></div>
-                        <button id="sync-to-cloud-btn" class="secondary-btn" title="선택한 내역을 사원 보완 등록 페이지로 전송"
-                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f0f9ff;">
-                            보완 요청 전송
-                        </button>
 
 
-                        <button id="reset-all-data-btn" class="secondary-btn" title="모든 수동 조치 및 소명 내역을 삭제합니다"
-                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: #fef2f2;">
-                            전체 초기화
-                        </button>
+
+
                         <button id="close-verify-btn" class="close-btn">&times;</button>
                     </div>
                 </div>
@@ -302,7 +296,8 @@
                             내역을
                             보여줍니다.</p>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <label for="verify-group-select" style="font-size: 0.85rem; color: #374151;">모아보기:</label>
+                            <label for="verify-group-select"
+                                style="font-size: 0.85rem; color: #374151; white-space: nowrap;">모아보기:</label>
                             <select id="verify-group-select"
                                 style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; background: white;">
                                 <option value="none">전체 보기 (기본)</option>
@@ -493,7 +488,6 @@
             const verifyTbody = document.getElementById('verify-tbody');
             const verifyEmptyMsg = document.getElementById('verify-empty-msg');
             const bulkUnconfirmBtn = document.getElementById('bulk-unconfirm-btn');
-            const syncToCloudBtn = document.getElementById('sync-to-cloud-btn');
 
             // 메일 대기열 요소
 
@@ -572,20 +566,6 @@
             let manualEarlyPunches = getSafeJSON('manualEarlyPunches', {});
             let sentAnomalyKeys = new Set(getSafeJSON('sentAnomalyKeys', []));
 
-            // Migration from legacy keys if they exist
-            if (Object.keys(manualEarlyPunches).length === 0) {
-                const legacyOffsets = JSON.parse(localStorage.getItem('manualDateOffsets')) || {};
-                const legacyIn = JSON.parse(localStorage.getItem('manualInOverrides')) || {};
-                Object.keys(legacyOffsets).forEach(k => { if (legacyOffsets[k]) manualEarlyPunches[k] = "shift"; });
-                Object.keys(legacyIn).forEach(k => { if (legacyIn[k]) manualEarlyPunches[k] = "forceIn"; });
-                // Save migrated data to new key
-                if (Object.keys(manualEarlyPunches).length > 0) {
-                    localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
-                    // Optionally clear legacy keys
-                    localStorage.removeItem('manualDateOffsets');
-                    localStorage.removeItem('manualInOverrides');
-                }
-            }
 
             // 사원 리스트 데이터 (localStorage에서 불러오기)
             const savedEmployees = localStorage.getItem('employeeConfigList');
@@ -2355,22 +2335,20 @@
                                 tbodyHtml += `<td class="${cls}">${currentReason}</td>`;
                                 r_idx++;
                             } else {
-                                // 빈 사유가 아니고(연속될 가치가 있는 경우) 다음 날짜들과 사유가 같은지 확인
-                                while (r_idx + span < datesChunk.length) {
-                                    const nextDt = datesChunk[r_idx + span];
-                                    const nextIsOutRange = (empInfo.joinDate && nextDt < empInfo.joinDate) || (empInfo.leaveDate && nextDt > empInfo.leaveDate);
+                                // 사유가 6글자 이상인 경우에만 연속 동일 사유 셀 병합
+                                if (currentReason !== '' && currentReason.length >= 6) {
+                                    while (r_idx + span < datesChunk.length) {
+                                        const nextDt = datesChunk[r_idx + span];
+                                        const nextIsOutRange = (empInfo.joinDate && nextDt < empInfo.joinDate) || (empInfo.leaveDate && nextDt > empInfo.leaveDate);
 
-                                    if (nextIsOutRange) break; // 다음 칸이 재직 기간 외면 병합 중단
+                                        if (nextIsOutRange) break;
 
-                                    if (currentReason !== '') {
                                         const nextReason = (recs[nextDt] || {}).reason || '';
                                         if (nextReason === currentReason) {
                                             span++;
                                         } else {
                                             break;
                                         }
-                                    } else {
-                                        break;
                                     }
                                 }
 
@@ -2520,84 +2498,12 @@
                     };
                 }
 
-                // [추가] Supabase 동기화 버튼 핸들러
-                if (syncToCloudBtn) {
-                    syncToCloudBtn.onclick = async () => {
-                        if (!supabase) {
-                            alert('Supabase 설정(URL, Key)이 필요합니다. 코드 상단의 SUPABASE_URL과 SUPABASE_KEY를 입력해주세요.');
-                            return;
-                        }
-                        if (selectedAnomalyKeys.size === 0) {
-                            alert('소명 요청을 보낼 항목을 먼저 선택해주세요.');
-                            return;
-                        }
-
-                        const combinedData = [];
-                        attendanceFilesMap.forEach(data => combinedData.push(...data));
-                        const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
-
-                        const toSync = [];
-                        selectedAnomalyKeys.forEach(key => {
-                            const [name, date] = key.split('_');
-                            const anomaly = anomalies.find(a => a.name === name && (a.originalDate || a.date) === date);
-                            if (anomaly) {
-                                toSync.push({
-                                    manager_key: key,
-                                    name: name,
-                                    date: date,
-                                    reason: anomaly.reason,
-                                    status: 'requested'
-                                });
-                            }
-                        });
-
-                        if (toSync.length === 0) return;
-
-                        if (!confirm(`선택한 ${toSync.length}건을 직원 소명 페이지로 전송하시겠습니까?`)) return;
-
-                        const { data, error } = await supabase
-                            .from('attendance_anomalies')
-                            .upsert(toSync, { onConflict: 'manager_key' });
-
-                        if (error) {
-                            console.error('Sync Error:', error);
-                            alert('전송 중 오류가 발생했습니다: ' + error.message);
-                        } else {
-                            // [추가] 성공 시 발송 상태 즉시 업데이트
-                            toSync.forEach(item => sentAnomalyKeys.add(item.manager_key));
-                            localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
-                            verifyBtn.click(); // 화면 갱신
-                            alert('선택한 항목이 성공적으로 전송되었습니다.');
-                        }
-                    };
-                }
 
 
 
 
 
-                const resetAllDataBtn = document.getElementById('reset-all-data-btn');
-                if (resetAllDataBtn) {
-                    resetAllDataBtn.onclick = () => {
-                        if (!confirm('주의: 모든 수동 확인 내역, 사유, 직원 소명 답변 및 전송 상태 기록이 삭제됩니다. 정말 초기화하시겠습니까?')) return;
 
-                        manualCorrections = {};
-                        manualReasons = {};
-                        employeeExplanations = {};
-                        sentAnomalyKeys.clear();
-                        manualEarlyPunches = {};
-
-                        localStorage.removeItem('manualCorrections');
-                        localStorage.removeItem('manualReasons');
-                        localStorage.removeItem('employeeExplanations');
-                        localStorage.removeItem('sentAnomalyKeys');
-                        localStorage.removeItem('manualEarlyPunches');
-
-                        updateAndProcessData();
-                        verifyBtn.click();
-                        alert('모든 데이터가 초기화되었습니다.');
-                    };
-                }
 
                 verifyBtn.addEventListener('click', () => {
                     const combinedData = [];
@@ -2983,22 +2889,7 @@
                 };
             }
 
-            const resetAllDataBtn = document.getElementById('reset-all-data-btn');
-            if (resetAllDataBtn) {
-                resetAllDataBtn.onclick = () => {
-                    if (!confirm('경고: 모든 수동 수정 내역과 소명 답변 데이터가 삭제됩니다. 정말 초기화하시겠습니까?')) return;
 
-                    const keysToRemove = [
-                        'manualCorrections', 'manualReasons', 'employeeExplanations',
-                        'manualEarlyPunches', 'manualDateOffsets', 'manualInOverrides',
-                        'sentAnomalyKeys'
-                    ];
-                    keysToRemove.forEach(k => localStorage.removeItem(k));
-
-                    alert('모든 데이터가 초기화되었습니다. 페이지를 새로고침합니다.');
-                    location.reload();
-                };
-            }
 
             const closeVerifyBtn = document.getElementById('close-verify-btn');
             if (closeVerifyBtn) closeVerifyBtn.onclick = () => verifyModal.classList.add('hidden');
