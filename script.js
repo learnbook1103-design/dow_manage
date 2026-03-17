@@ -127,6 +127,73 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => cloudSyncAllBtn.textContent = "전체 데이터 클라우드 저장", 3000);
         }
         cloudSyncAllBtn.disabled = false;
+
+        // ── [자동] 이상근태 → attendance_anomalies 동시 저장 ──────────────
+        try {
+            const allData = [];
+            attendanceFilesMap.forEach(data => allData.push(...data));
+
+            // uniqueDates: matrix에서 넘어온 Array → Set으로 변환하여 확실히 사용
+            // (전역 currentUniqueDates는 타이밍에 따라 달라질 수 있으므로 직접 생성)
+            const syncUniqueDates = new Set(Array.isArray(uniqueDates) ? uniqueDates : Array.from(uniqueDates));
+
+            const anomalies = calculateAnomalies(allData, {
+                employeeConfigList,
+                manualEarlyPunches,
+                manualReasons,
+                currentLeaveData,
+                currentUniqueDates: syncUniqueDates
+            });
+
+            console.log('[AUTO ANOMALY] 감지된 이상근태:', anomalies.length, '건 / 검사 날짜 수:', syncUniqueDates.size);
+
+            const currentDateArr = Array.from(uniqueDates).sort();
+            const periodStart = currentDateArr[0];
+            const periodEnd = currentDateArr[currentDateArr.length - 1];
+
+            if (anomalies.length > 0) {
+                // status='auto' 로 저장 — 관리자가 수동 전송한 'requested' 항목은 건드리지 않음
+                const anomalyRows = anomalies.map(a => ({
+                    manager_key: `${a.name}_${a.date}`,
+                    name: a.name,
+                    date: a.date,
+                    reason: a.reason || '',
+                    status: 'auto'
+                }));
+
+                const { error: anomErr } = await supabase
+                    .from('attendance_anomalies')
+                    .upsert(anomalyRows, { onConflict: 'manager_key', ignoreDuplicates: false });
+
+                if (anomErr) {
+                    console.error('[AUTO ANOMALY] upsert 에러:', anomErr);
+                } else {
+                    console.log(`[AUTO ANOMALY] ${anomalyRows.length}건 이상근태 자동 저장`);
+                }
+            }
+
+            // 이번 기간에서 이상 해소된 'auto' 항목 삭제
+            const anomalyKeys = new Set(anomalies.map(a => `${a.name}_${a.date}`));
+            if (periodStart && periodEnd) {
+                const { data: existingAuto } = await supabase
+                    .from('attendance_anomalies')
+                    .select('manager_key')
+                    .eq('status', 'auto')
+                    .gte('date', periodStart)
+                    .lte('date', periodEnd);
+
+                if (existingAuto && existingAuto.length > 0) {
+                    const toDelete = existingAuto.map(r => r.manager_key).filter(k => !anomalyKeys.has(k));
+                    if (toDelete.length > 0) {
+                        await supabase.from('attendance_anomalies').delete().in('manager_key', toDelete);
+                        console.log(`[AUTO ANOMALY] 해소된 이상 ${toDelete.length}건 삭제`);
+                    }
+                }
+            }
+        } catch (anomSyncErr) {
+            console.error('[AUTO ANOMALY] 동기화 오류:', anomSyncErr);
+        }
+        // ─────────────────────────────────────────────────────────────────
     }
     async function uploadFileToStorage(file, path) {
         if (!supabase) return;
@@ -1625,14 +1692,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (supabase) {
                                 const nextStatus = !isCurrentlyConfirmed ? 'processed' : (employeeExplanations[key] ? 'submitted' : 'requested');
                                 console.log(`[Status Sync] Key: ${key}, currentConfirmed: ${isCurrentlyConfirmed}, nextStatus: ${nextStatus}`);
-                                
+
                                 try {
                                     // 1. anomalies 테이블 상태 업데이트
                                     const { error: err1 } = await supabase
                                         .from('attendance_anomalies')
                                         .update({ status: nextStatus })
                                         .eq('manager_key', key);
-                                    
+
                                     if (err1) console.error('[Status Sync] anomalies update failed:', err1);
 
                                     // 2. supplements (사전등록/소명) 테이블 상태 업데이트
@@ -1641,9 +1708,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                         .update({ status: nextStatus })
                                         .eq('name', name)
                                         .eq('date', date);
-                                    
+
                                     if (err2) console.error('[Status Sync] supplements update failed:', err2);
-                                    
+
                                     if (!err1 && !err2) console.log('[Status Sync] Successfully updated status to:', nextStatus);
                                 } catch (syncErr) {
                                     console.error('[Status Sync] Exception during sync:', syncErr);

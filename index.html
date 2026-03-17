@@ -5,17 +5,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DOW 근태관리 시스템</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --accent: #10B981;
-            --accent-hover: #059669;
-            --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --surface: rgba(255, 255, 255, 0.95);
-            --text-main: #111827;
-            --text-muted: #6B7280;
+            --bg: #ffffff;
+            --surface: #f5f5f7;
+            --surface-2: #e8e8ed;
+            --border: rgba(0, 0, 0, 0.08);
+            --text: #1d1d1f;
+            --text-sub: #6e6e73;
+            --text-dim: #a1a1a6;
+            --blue: #0071e3;
+            --blue-dark: #0077ed;
+            --green: #1d8348;
+            --red: #ff3b30;
+            --radius-xl: 22px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
         }
 
         * {
@@ -24,28 +33,496 @@
             padding: 0;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background: var(--bg-gradient);
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
             min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 52px;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1.5rem;
-            color: var(--text-main);
+            z-index: 1000;
         }
 
-        .container {
+        .nav-inner {
             width: 100%;
-            max-width: 900px;
-            text-align: center;
-            animation: fadeIn 0.8s ease-out;
+            max-width: 980px;
+            padding: 0 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        @keyframes fadeIn {
+        .nav-logo {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .nav-logo span {
+            color: var(--blue);
+        }
+
+        .nav-sub {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+        }
+
+        /* HERO */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 120px 22px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 900px;
+            height: 600px;
+            background: radial-gradient(ellipse at center,
+                    rgba(0, 113, 227, 0.07) 0%,
+                    rgba(0, 113, 227, 0.02) 45%,
+                    transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -100px;
+            left: 30%;
+            width: 600px;
+            height: 400px;
+            background: radial-gradient(ellipse at center,
+                    rgba(29, 131, 72, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-eyebrow {
+            font-size: 0.78rem;
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #0071e3;
+            margin-bottom: 1.2rem;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.2s;
+        }
+
+        .hero-title {
+            font-size: clamp(2.8rem, 7vw, 5.2rem);
+            font-weight: 700;
+            line-height: 1.06;
+            letter-spacing: -0.03em;
+            color: var(--text);
+            margin-bottom: 1.2rem;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.35s;
+        }
+
+        .hero-title .accent {
+            background: linear-gradient(135deg, #0071e3 0%, #1d8348 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: clamp(1rem, 2.5vw, 1.3rem);
+            font-weight: 300;
+            color: var(--text-sub);
+            line-height: 1.65;
+            max-width: 520px;
+            margin-bottom: 3.5rem;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.5s;
+        }
+
+        /* CARDS */
+        .cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            width: 100%;
+            max-width: 660px;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.65s;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 2.4rem 2rem;
+            cursor: pointer;
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+                border-color 0.25s;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            transition: opacity 0.3s;
+            border-radius: inherit;
+        }
+
+        .card-admin::before {
+            background: radial-gradient(ellipse at 15% 15%, rgba(0, 113, 227, 0.07) 0%, transparent 55%);
+        }
+
+        .card-staff::before {
+            background: radial-gradient(ellipse at 15% 15%, rgba(29, 131, 72, 0.06) 0%, transparent 55%);
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-admin:hover {
+            border-color: rgba(0, 113, 227, 0.3);
+        }
+
+        .card-staff:hover {
+            border-color: rgba(29, 131, 72, 0.3);
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.35rem;
+        }
+
+        .card-admin .card-icon {
+            background: linear-gradient(145deg, #e8f0fe, #cce0ff);
+            box-shadow: 0 4px 16px rgba(0, 113, 227, 0.15);
+        }
+
+        .card-staff .card-icon {
+            background: linear-gradient(145deg, #d4f1e0, #b0e8c8);
+            box-shadow: 0 4px 16px rgba(29, 131, 72, 0.15);
+        }
+
+        .card-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.45rem;
+        }
+
+        .card-admin .card-label {
+            color: #0071e3;
+        }
+
+        .card-staff .card-label {
+            color: #1d8348;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin-bottom: 0.55rem;
+        }
+
+        .card-desc {
+            font-size: 0.85rem;
+            font-weight: 300;
+            color: var(--text-sub);
+            line-height: 1.55;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: gap 0.2s;
+        }
+
+        .card-admin .card-cta {
+            color: #0071e3;
+        }
+
+        .card-staff .card-cta {
+            color: #1d8348;
+        }
+
+        .card:hover .card-cta {
+            gap: 9px;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            padding: 22px;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius-xl);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 390px;
+            position: relative;
+            transform: scale(0.96) translateY(10px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .modal-overlay.show .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 1.15rem;
+            right: 1.15rem;
+            width: 28px;
+            height: 28px;
+            background: #f5f5f7;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-sub);
+            transition: all 0.2s;
+        }
+
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text);
+        }
+
+        .modal-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.2rem;
+        }
+
+        .modal-admin .modal-icon {
+            background: linear-gradient(145deg, #e8f0fe, #cce0ff);
+        }
+
+        .modal-staff .modal-icon {
+            background: linear-gradient(145deg, #d4f1e0, #b0e8c8);
+        }
+
+        .modal-title {
+            font-size: 1.45rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+
+        .modal-sub {
+            font-size: 0.875rem;
+            color: var(--text-sub);
+            font-weight: 300;
+            margin-bottom: 1.8rem;
+        }
+
+        .field {
+            margin-bottom: 1rem;
+        }
+
+        .field label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-dim);
+            margin-bottom: 0.4rem;
+            letter-spacing: 0.03em;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 0.82rem 1rem;
+            background: #f5f5f7;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            color: var(--text);
+            font-family: inherit;
+            font-weight: 400;
+            transition: all 0.2s;
+            -webkit-appearance: none;
+        }
+
+        .field input::placeholder {
+            color: var(--text-dim);
+        }
+
+        .modal-admin .field input:focus {
+            outline: none;
+            border-color: rgba(41, 151, 255, 0.5);
+            background: rgba(41, 151, 255, 0.06);
+            box-shadow: 0 0 0 3px rgba(41, 151, 255, 0.12);
+        }
+
+        .modal-staff .field input:focus {
+            outline: none;
+            border-color: rgba(48, 209, 88, 0.45);
+            background: rgba(48, 209, 88, 0.05);
+            box-shadow: 0 0 0 3px rgba(48, 209, 88, 0.1);
+        }
+
+        #pin-input {
+            letter-spacing: 0.35rem;
+            font-weight: 600;
+            font-size: 1.05rem;
+        }
+
+        #pin-input::placeholder {
+            letter-spacing: normal;
+            font-weight: 400;
+            font-size: 0.88rem;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 0.88rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
+            color: white;
+        }
+
+        .modal-admin .submit-btn {
+            background: var(--blue-dark);
+        }
+
+        .modal-admin .submit-btn:hover {
+            background: #0077ed;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(0, 113, 227, 0.4);
+        }
+
+        .modal-staff .submit-btn {
+            background: #248a3d;
+        }
+
+        .modal-staff .submit-btn:hover {
+            background: #28a046;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(36, 138, 61, 0.35);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0) !important;
+            box-shadow: none !important;
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none !important;
+            box-shadow: none !important;
+        }
+
+        .error-msg {
+            display: none;
+            margin-top: 0.85rem;
+            padding: 0.65rem 0.9rem;
+            background: rgba(255, 69, 58, 0.1);
+            border: 1px solid rgba(255, 69, 58, 0.22);
+            border-radius: var(--radius-md);
+            font-size: 0.82rem;
+            color: #ff6961;
+            text-align: center;
+        }
+
+        /* FOOTER */
+        .page-footer {
+            text-align: center;
+            padding: 2.5rem 22px 4rem;
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .page-footer p {
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            font-weight: 300;
+        }
+
+        @keyframes fadeUp {
             from {
                 opacity: 0;
-                transform: translateY(20px);
+                transform: translateY(24px);
             }
 
             to {
@@ -54,174 +531,222 @@
             }
         }
 
-        header {
-            margin-bottom: 3.5rem;
-            color: white;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        header h1 {
-            font-size: 3rem;
-            font-weight: 800;
-            margin-bottom: 0.75rem;
-            letter-spacing: -0.025em;
-        }
-
-        header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            font-weight: 400;
-        }
-
-        .roles-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-        }
-
-        .role-card {
-            background: var(--surface);
-            padding: 3rem 2rem;
-            border-radius: 24px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            border: 2px solid transparent;
-        }
-
-        .role-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        .icon-circle {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            background: #f3f4f6;
-            transition: transform 0.3s ease;
-        }
-
-        .role-card:hover .icon-circle {
-            transform: rotate(-10deg) scale(1.1);
-        }
-
-        .admin-card .icon-circle {
-            color: var(--primary);
-            background: #EEF2FF;
-        }
-
-        .user-card .icon-circle {
-            color: var(--accent);
-            background: #ECFDF5;
-        }
-
-        .role-card h2 {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-
-        .role-card p {
-            color: var(--text-muted);
-            line-height: 1.6;
-            margin-bottom: 2rem;
-            font-size: 1.05rem;
-        }
-
-        .action-btn {
-            padding: 0.875rem 2rem;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.2s;
-            width: 100%;
-            text-align: center;
-        }
-
-        .admin-card .action-btn {
-            background: var(--primary);
-            color: white;
-        }
-
-        .user-card .action-btn {
-            background: var(--accent);
-            color: white;
-        }
-
-        .role-card:hover .action-btn {
-            filter: brightness(1.1);
-        }
-
-        footer {
-            margin-top: 4rem;
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 640px) {
-            header h1 {
-                font-size: 2.25rem;
+        @media (max-width: 560px) {
+            .cards {
+                grid-template-columns: 1fr;
+                max-width: 360px;
             }
 
-            .role-card {
-                padding: 2.5rem 1.5rem;
+            .modal {
+                padding: 2rem;
             }
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <header>
-            <h1>DOW Valve</h1>
-            <p>다우 근태관리 시스템에 접속하신 것을 환영합니다.</p>
-        </header>
 
-        <div class="roles-grid">
-            <!-- 관리자 카드 -->
-            <a href="admin.html" class="role-card admin-card">
-                <div class="icon-circle">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        <path d="M12 8v4"></path>
-                        <path d="M12 16h.01"></path>
-                    </svg>
-                </div>
-                <h2>관리자 전용</h2>
-                <p>근태 보고서 생성, 사원 명단 관리 및<br>데이터 클라우드 동기화를 수행합니다.</p>
-                <div class="action-btn">대시보드 접속</div>
-            </a>
-
-            <!-- 직원 카드 -->
-            <a href="supplement.html" class="role-card user-card">
-                <div class="icon-circle">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                </div>
-                <h2>직원 전용</h2>
-                <p>개인 근태 기록 확인 및<br>미확인 근태에 대한 소명 자료를 제출합니다.</p>
-                <div class="action-btn">보완 내역 입력</div>
-            </a>
+    <nav>
+        <div class="nav-inner">
+            <span class="nav-logo">DOW <span>Valve</span></span>
+            <span class="nav-sub">근태관리 시스템</span>
         </div>
+    </nav>
 
-        <footer>
-            &copy; 2026 DOW Valve & Valve Park. All rights reserved.
-        </footer>
+    <main class="hero">
+        <p class="hero-eyebrow">Attendance Management</p>
+        <h1 class="hero-title">
+            다우밸브<br>
+            <span class="accent">근태관리 시스템</span>
+        </h1>
+        <p class="hero-sub">
+            출퇴근 현황 확인부터 보완 사유 등록까지,<br>
+            하나의 플랫폼에서 관리하세요.
+        </p>
+
+        <div class="cards">
+            <div class="card card-admin" onclick="openLogin('admin')">
+                <div class="card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                </div>
+                <p class="card-label">Administrator</p>
+                <h2 class="card-title">관리자 전용</h2>
+                <p class="card-desc">근태 보고서 생성, 사원 명단 관리 및 데이터 클라우드 동기화를 수행합니다.</p>
+                <span class="card-cta">
+                    대시보드 접속
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </span>
+            </div>
+
+            <div class="card card-staff" onclick="openLogin('staff')">
+                <div class="card-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1d8348" stroke-width="1.8">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                    </svg>
+                </div>
+                <p class="card-label">Employee</p>
+                <h2 class="card-title">직원 전용</h2>
+                <p class="card-desc">개인 근태 기록 확인 및 미확인 근태에 대한 소명 자료를 제출합니다.</p>
+                <span class="card-cta">
+                    보완 내역 입력
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5">
+                        <path d="M5 12h14M12 5l7 7-7 7" />
+                    </svg>
+                </span>
+            </div>
+        </div>
+    </main>
+
+    <footer class="page-footer">
+        <p>&copy; 2026 DOW Valve &amp; Valve Park. All rights reserved.</p>
+    </footer>
+
+    <!-- 로그인 모달 -->
+    <div class="modal-overlay" id="login-overlay">
+        <div class="modal modal-admin" id="login-modal">
+            <button class="modal-close" onclick="closeLogin()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+
+            <div class="modal-icon" id="modal-icon"></div>
+            <h3 class="modal-title" id="modal-title">로그인</h3>
+            <p class="modal-sub" id="modal-sub">성함과 확인코드를 입력해주세요.</p>
+
+            <div class="field">
+                <label for="employee-name">성함</label>
+                <input type="text" id="employee-name" placeholder="홍길동" autocomplete="name">
+            </div>
+            <div class="field">
+                <label for="pin-input">확인코드 (PIN)</label>
+                <input type="password" id="pin-input" placeholder="4자리 숫자" maxlength="4" inputmode="numeric"
+                    oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            </div>
+
+            <button class="submit-btn" id="submit-btn" onclick="handleLogin()">접속하기</button>
+            <div class="error-msg" id="error-msg">정보가 일치하지 않습니다. 다시 확인해주세요.</div>
+        </div>
     </div>
+
+    <script>
+        const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        let currentRole = 'staff';
+
+        // 기존 세션 자동 이동
+        (function () {
+            const name = localStorage.getItem('attendance_user_name');
+            const pin = localStorage.getItem('attendance_user_pin');
+            const isAdmin = sessionStorage.getItem('attendance_user_is_admin');
+            if (name && pin && isAdmin !== null) {
+                location.href = isAdmin === 'true' ? 'admin.html' : 'supplement.html';
+            }
+        })();
+
+        const ICONS = {
+            admin: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0071e3" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+            staff: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1d8348" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`
+        };
+
+        function openLogin(role) {
+            currentRole = role;
+            const modal = document.getElementById('login-modal');
+            const overlay = document.getElementById('login-overlay');
+
+            modal.className = 'modal ' + (role === 'admin' ? 'modal-admin' : 'modal-staff');
+            document.getElementById('modal-icon').innerHTML = ICONS[role];
+            document.getElementById('modal-title').innerText = role === 'admin' ? '관리자 로그인' : '직원 로그인';
+            document.getElementById('modal-sub').innerText = '성함과 확인코드를 입력해주세요.';
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('employee-name').value = '';
+            document.getElementById('pin-input').value = '';
+
+            overlay.style.display = 'flex';
+            requestAnimationFrame(() => overlay.classList.add('show'));
+            setTimeout(() => document.getElementById('employee-name').focus(), 300);
+        }
+
+        function closeLogin() {
+            const overlay = document.getElementById('login-overlay');
+            overlay.classList.remove('show');
+            setTimeout(() => overlay.style.display = 'none', 250);
+        }
+
+        async function handleLogin() {
+            const btn = document.getElementById('submit-btn');
+            const errorMsg = document.getElementById('error-msg');
+            const rawName = document.getElementById('employee-name').value.trim();
+            const pin = document.getElementById('pin-input').value.trim();
+
+            if (!rawName) { document.getElementById('employee-name').focus(); return; }
+            if (pin.length !== 4) { document.getElementById('pin-input').focus(); return; }
+
+            btn.disabled = true;
+            btn.innerText = '인증 중...';
+            errorMsg.style.display = 'none';
+
+            try {
+                let name = rawName;
+                if (name === '한옥연') name = '한옥련';
+
+                if (currentRole === 'admin') {
+                    const { count } = await _supabase
+                        .from('employees').select('*', { count: 'exact', head: true }).eq('is_admin', true);
+
+                    if (count === 0) {
+                        const { data: emp } = await _supabase
+                            .from('employees').select('*').eq('name', name).eq('pin', pin).maybeSingle();
+                        if (emp) {
+                            if (confirm(name + '님, 등록된 관리자가 없습니다. 첫 관리자로 등록하시겠습니까?')) {
+                                await _supabase.from('employees').update({ is_admin: true }).eq('name', name).eq('pin', pin);
+                                saveAndGo(name, pin, true);
+                            }
+                        } else { errorMsg.style.display = 'block'; }
+                        return;
+                    }
+                }
+
+                let query = _supabase.from('employees').select('name, pin, is_admin').eq('name', name).eq('pin', pin);
+                if (currentRole === 'admin') query = query.eq('is_admin', true);
+
+                const { data, error } = await query.maybeSingle();
+                if (error) throw error;
+                if (!data) { errorMsg.style.display = 'block'; return; }
+
+                // currentRole 기준으로 이동 (관리자 계정도 직원 카드 선택 시 supplement로)
+                saveAndGo(data.name, data.pin, currentRole === 'admin' ? data.is_admin : false);
+            } catch (err) {
+                alert('로그인 오류: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = '접속하기';
+            }
+        }
+
+        function saveAndGo(name, pin, isAdmin) {
+            localStorage.setItem('attendance_user_name', name);
+            localStorage.setItem('attendance_user_pin', pin);
+            // sessionStorage는 실제 DB의 is_admin 값 저장 (관리자 페이지 접근 권한용)
+            sessionStorage.setItem('attendance_user_is_admin', String(isAdmin));
+            // 페이지 이동은 선택한 카드(currentRole) 기준
+            location.href = currentRole === 'admin' ? 'admin.html' : 'supplement.html';
+        }
+
+        document.getElementById('employee-name').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('pin-input').focus(); });
+        document.getElementById('pin-input').addEventListener('keydown', e => { if (e.key === 'Enter') handleLogin(); });
+        window.addEventListener('keydown', e => { if (e.key === 'Escape') closeLogin(); });
+        document.getElementById('login-overlay').addEventListener('click', e => { if (e.target === document.getElementById('login-overlay')) closeLogin(); });
+    </script>
 </body>
 
 </html>

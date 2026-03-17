@@ -37,7 +37,6 @@
         .container {
             width: 100%;
             max-width: 500px;
-            /* 초기 검색 시 너비 */
             transition: max-width 0.4s ease-in-out;
         }
 
@@ -127,10 +126,9 @@
             box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
         }
 
-        /* PIN 입력 필드 특화 스타일 */
         #employee-pin {
             letter-spacing: 0.3rem;
-            text-align: left; /* 성함 필드와 일관성을 위해 좌측 정렬 */
+            text-align: left;
             font-family: 'Courier New', Courier, monospace;
             font-weight: 700;
             font-size: 1.1rem;
@@ -222,7 +220,6 @@
             gap: 4px;
         }
 
-        /* [추가] 상태 배지 스타일 */
         .status-badge {
             padding: 4px 10px;
             border-radius: 20px;
@@ -251,7 +248,6 @@
             border: 1px solid #BBF7D0;
         }
 
-        /* [추가] 필터 버튼 스타일 */
         .filter-container {
             display: flex;
             gap: 8px;
@@ -282,7 +278,6 @@
             border-color: var(--primary);
         }
 
-        /* [추가] 사전 등록 내역 스타일 */
         .history-section {
             margin-top: 2rem;
             padding-top: 1.5rem;
@@ -402,7 +397,6 @@
             display: none;
         }
 
-        /* [추가] 탭 스타일 */
         .tabs-container {
             display: flex;
             gap: 10px;
@@ -437,7 +431,6 @@
             background-color: var(--primary);
         }
 
-        /* [추가] 달력 스타일 */
         .calendar-wrapper {
             background: white;
             border-radius: 12px;
@@ -520,8 +513,13 @@
             margin-bottom: 2px;
         }
 
-        .day-cell.sun .day-number { color: #ef4444; }
-        .day-cell.sat .day-number { color: #3b82f6; }
+        .day-cell.sun .day-number {
+            color: #ef4444;
+        }
+
+        .day-cell.sat .day-number {
+            color: #3b82f6;
+        }
 
         .cell-data {
             font-size: 0.7rem;
@@ -533,17 +531,85 @@
             text-overflow: ellipsis;
         }
 
-        .time-in { background: #ecfdf5; color: #059669; }
-        .time-out { background: #eff6ff; color: #2563eb; }
-        .day-reason { background: #fff7ed; color: #c2410c; border: 1px solid #ffedd5; font-size: 0.65rem; }
-        .day-leave { background: #fdf2f8; color: #db2777; border: 1px solid #fce7f3; font-size: 0.65rem; font-weight: 700; }
-        .day-anomaly { background: #fef2f2; color: #ef4444; border: 1px solid #fee2e2; font-size: 0.65rem; font-weight: 700; }
-        .day-anomaly.submitted { background: #f0fdf4; color: #16a34a; border: 1px solid #dcfce7; }
+        .time-in {
+            background: #ecfdf5;
+            color: #059669;
+        }
 
-        /* [추가] 하이라이트 애니메이션 */
+        .time-out {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .day-reason {
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #ffedd5;
+            font-size: 0.65rem;
+        }
+
+        .day-leave {
+            background: #fdf2f8;
+            color: #db2777;
+            border: 1px solid #fce7f3;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .day-anomaly {
+            background: #fef2f2;
+            color: #ef4444;
+            border: 1px solid #fee2e2;
+            font-size: 0.65rem;
+            font-weight: 700;
+        }
+
+        .day-anomaly.submitted {
+            background: #f0fdf4;
+            color: #16a34a;
+            border: 1px solid #dcfce7;
+        }
+
+        .day-cell.has-unsubmitted-anomaly {
+            background-color: #fff1f2;
+            border-left: 3px solid #f43f5e;
+            box-shadow: inset 0 0 10px rgba(244, 63, 94, 0.05);
+        }
+
+        .anomaly-summary-bar {
+            background: #fff1f2;
+            color: #e11d48;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #ffe4e6;
+        }
+
+        .anomaly-summary-count {
+            background: #e11d48;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+        }
+
         @keyframes highlight-fade {
-            0% { background-color: #fef3c7; transform: scale(1.02); box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); }
-            100% { background-color: #fff; transform: scale(1); box-shadow: none; }
+            0% {
+                background-color: #fef3c7;
+                transform: scale(1.02);
+                box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+            }
+
+            100% {
+                background-color: #fff;
+                transform: scale(1);
+                box-shadow: none;
+            }
         }
 
         .highlight-entry {
@@ -552,7 +618,6 @@
             z-index: 10;
         }
 
-        /* [추가] PIN 변경 모달 스타일 */
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -573,13 +638,13 @@
             border-radius: 16px;
             width: 100%;
             max-width: 380px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
         }
 
-        .pin-modal h3 { 
-            margin-bottom: 25px; 
-            color: var(--text-main); 
-            text-align: center; 
+        .pin-modal h3 {
+            margin-bottom: 25px;
+            color: var(--text-main);
+            text-align: center;
             font-size: 1.3rem;
             font-weight: 800;
         }
@@ -614,9 +679,9 @@
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
         }
 
-        .pin-modal-btns { 
-            display: flex; 
-            gap: 12px; 
+        .pin-modal-btns {
+            display: flex;
+            gap: 12px;
             margin-top: 10px;
         }
 
@@ -630,10 +695,25 @@
             border: none;
         }
 
-        .save-pin-btn { background: var(--primary); color: white; }
-        .save-pin-btn:hover { background: #4338ca; transform: translateY(-1px); }
-        .cancel-pin-btn { background: #f3f4f6; color: var(--text-sub); border: 1px solid var(--border); }
-        .cancel-pin-btn:hover { background: #e5e7eb; }
+        .save-pin-btn {
+            background: var(--primary);
+            color: white;
+        }
+
+        .save-pin-btn:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+
+        .cancel-pin-btn {
+            background: #f3f4f6;
+            color: var(--text-sub);
+            border: 1px solid var(--border);
+        }
+
+        .cancel-pin-btn:hover {
+            background: #e5e7eb;
+        }
 
         footer {
             text-align: center;
@@ -645,23 +725,38 @@
 </head>
 
 <body>
+    <script>
+        // Session Check
+        (function () {
+            const name = localStorage.getItem('attendance_user_name');
+            const pin = localStorage.getItem('attendance_user_pin');
+            if (!name || !pin) {
+                alert('접속 정보가 없습니다. 메인 페이지로 이동합니다.');
+                location.href = 'index.html';
+            }
+        })();
+
+        // ── 인라인 onclick 참조 오류 방지 ──────────────────────────────
+        // supabase 라이브러리와 IIFE가 하단에 위치하므로,
+        // 라이브러리 로드 전 버튼 클릭 시 ReferenceError 방지용 스텁 선언
+        window.applyStatusFilter = function () { };
+        window.switchTab = function () { };
+        window.changeMonth = function () { };
+        window.selectDateForPreemptive = function () { };
+        window.switchTabAndHighlight = function () { };
+        window.openPinChangeModal = function () { };
+        window.closePinChangeModal = function () { };
+        window.handleUpdatePin = function () { };
+        window.handleSubmitPreemptive = function () { };
+        window.cancelPreemptiveRegistration = function () { };
+        window.handleReset = function () { };
+        // ────────────────────────────────────────────────────────────────
+    </script>
     <div class="container">
         <header>
             <h1>근태 사유 관리 시스템</h1>
             <p>본인의 이름을 입력하여 보완/사유 관리가 필요한 내역을 확인하거나,<br>오늘의 근태(외근/출장 등)를 미리 등록하세요.</p>
         </header>
-
-        <div class="card" id="search-card">
-            <div class="input-group">
-                <label for="employee-name">성함</label>
-                <input type="text" id="employee-name" placeholder="예: 홍길동" autocomplete="name">
-            </div>
-            <div class="input-group">
-                <label for="employee-pin">확인코드 (4자리)</label>
-                <input type="password" id="employee-pin" placeholder="기본코드: 0000" maxlength="4" inputmode="numeric">
-            </div>
-            <button id="search-btn" class="btn btn-primary" onclick="handleSearch()">내역 조회하기</button>
-        </div>
 
         <div id="content-wrapper" class="main-layout" style="display: none;">
             <!-- 왼쪽 컬럼: 접속 정보 및 사전 등록 -->
@@ -674,10 +769,14 @@
                         <span style="color: var(--text-sub); font-size: 0.9rem;">님 접속 중</span>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <button onclick="window.openPinChangeModal()" 
-                            style="background: white; border: 1px solid var(--primary); color: var(--primary); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">PIN 변경</button>
+                        <button id="go-admin-btn" onclick="location.href='admin.html'"
+                            style="display: none; background: var(--primary); border: none; color: white; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">관리자
+                            페이지</button>
+                        <button onclick="window.openPinChangeModal()"
+                            style="background: white; border: 1px solid var(--primary); color: var(--primary); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">PIN
+                            변경</button>
                         <button onclick="handleReset()"
-                            style="background: none; border: 1px solid var(--primary); color: var(--primary); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">초기화</button>
+                            style="background: none; border: 1px solid var(--primary); color: var(--primary); padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">로그아웃</button>
                     </div>
                 </div>
 
@@ -720,7 +819,6 @@
                         onclick="handleSubmitPreemptive()">사전 등록하기</button>
                 </div>
 
-                <!-- [추가] 사전 등록 내역 리스트 영역 -->
                 <div class="history-section" id="preemptive-history-section" style="display: none;">
                     <div class="history-title">
                         <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor"
@@ -743,7 +841,8 @@
                 </div>
 
                 <div id="anomalies-view" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 15px;">
                         <div id="status-display" style="font-size: 0.75rem; color: var(--text-sub); padding-left: 5px;">
                             시스템 연결 완료 ✅
                         </div>
@@ -765,8 +864,8 @@
                             <div class="current-month" id="calendar-title">2024년 03월</div>
                             <button class="nav-btn" onclick="changeMonth(1)">다음 달</button>
                         </div>
+                        <div id="calendar-summary-container" style="padding: 15px 20px 0 20px;"></div>
                         <div class="calendar-grid" id="calendar-grid">
-                            <!-- 헤더 -->
                             <div class="day-header" style="color: #ef4444;">일</div>
                             <div class="day-header">월</div>
                             <div class="day-header">화</div>
@@ -774,7 +873,6 @@
                             <div class="day-header">목</div>
                             <div class="day-header">금</div>
                             <div class="day-header" style="color: #3b82f6;">토</div>
-                            <!-- 날짜 셀들이 여기에 렌더링됨 -->
                         </div>
                     </div>
                     <div id="calendar-loading" class="loading" style="margin-top: 15px;">출퇴근 기록을 불러오는 중...</div>
@@ -782,26 +880,24 @@
             </div>
         </div>
 
-        <!-- [추가] PIN 변경 모달 HTML -->
         <div id="pin-modal-overlay" class="modal-overlay">
             <div class="pin-modal">
                 <h3>확인코드(PIN) 변경</h3>
-                
                 <div class="input-group">
                     <label for="current-pin-input">현재 확인코드</label>
-                    <input type="password" id="current-pin-input" maxlength="4" placeholder="4자리 숫자" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <input type="password" id="current-pin-input" maxlength="4" placeholder="4자리 숫자" inputmode="numeric"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                 </div>
-                
                 <div class="input-group">
                     <label for="new-pin-input">새로운 확인코드</label>
-                    <input type="password" id="new-pin-input" maxlength="4" placeholder="4자리 숫자" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <input type="password" id="new-pin-input" maxlength="4" placeholder="4자리 숫자" inputmode="numeric"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                 </div>
-                
                 <div class="input-group">
                     <label for="new-pin-confirm">새로운 확인코드 확인</label>
-                    <input type="password" id="new-pin-confirm" maxlength="4" placeholder="4자리 숫자" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <input type="password" id="new-pin-confirm" maxlength="4" placeholder="4자리 숫자" inputmode="numeric"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
                 </div>
-
                 <div class="pin-modal-btns">
                     <button class="cancel-pin-btn" onclick="window.closePinChangeModal()">취소</button>
                     <button class="save-pin-btn" onclick="window.handleUpdatePin()">변경하기</button>
@@ -812,7 +908,6 @@
         <footer>&copy; 2026 Dow Valve Attendance System</footer>
     </div>
 
-    <!-- [추가] 사전 등록용 모달/결과 알림용 스타일 -->
     <style>
         #preemptive-section input[type="date"] {
             border: 1px solid #d1d5db;
@@ -823,7 +918,7 @@
         }
     </style>
 
-    <!-- Supabase Library (Moved to bottom for reliability) -->
+    <!-- Supabase Library (하단 위치 — 더 안정적) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
@@ -839,9 +934,7 @@
             }
 
             let supabase = null;
-            let currentAnomalies = []; // [추가] 필터링을 위한 원본 데이터 저장용
-            
-            // [추가] 달력 관련 변수
+            let currentAnomalies = [];
             let currentYear = new Date().getFullYear();
             let currentMonth = new Date().getMonth() + 1;
             let activeTab = 'calendar';
@@ -858,7 +951,6 @@
 
             function tryConnect() {
                 if (supabase) return true;
-
                 if (window.supabase) {
                     try {
                         supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -874,7 +966,6 @@
                 }
             }
 
-            // 전역 노출
             window.handleSearch = async function () {
                 if (!supabase && !tryConnect()) {
                     alert("시스템 연결 중입니다. 잠시 후 시도해 주세요.");
@@ -882,10 +973,21 @@
                 }
 
                 const nameInput = document.getElementById('employee-name');
-                const rawName = nameInput.value.trim();
+                const pinInput = document.getElementById('employee-pin');
+
+                const rawName = nameInput ? nameInput.value.trim() : localStorage.getItem('attendance_user_name');
                 const name = normalizeName(rawName);
                 if (!name) {
-                    alert('성함을 입력해주세요.');
+                    if (nameInput) alert('성함을 입력해주세요.');
+                    return;
+                }
+
+                const pin = pinInput ? pinInput.value.trim() : localStorage.getItem('attendance_user_pin');
+                if (!pin) {
+                    if (pinInput) {
+                        alert('확인코드 4자리를 입력해주세요.');
+                        pinInput.focus();
+                    }
                     return;
                 }
 
@@ -896,22 +998,15 @@
                 loading.style.display = 'block';
                 listContainer.innerHTML = '';
                 emptyMsg.style.display = 'none';
-                searchBtn.disabled = true;
-                searchBtn.innerText = "조회 중...";
+                if (searchBtn) {
+                    searchBtn.disabled = true;
+                    searchBtn.innerText = "조회 중...";
+                }
 
                 try {
-                    // [추가] 사원 마스터 테이블에서 성함과 PIN이 일치하는지 확인
-                    const pinInput = document.getElementById('employee-pin');
-                    const pin = pinInput.value.trim();
-                    if (!pin) {
-                        alert('확인코드 4자리를 입력해주세요.');
-                        pinInput.focus();
-                        return;
-                    }
-
                     const { data: empData, error: empError } = await supabase
                         .from('employees')
-                        .select('name, pin')
+                        .select('name, pin, is_admin')
                         .eq('name', name)
                         .eq('pin', pin)
                         .maybeSingle();
@@ -923,15 +1018,23 @@
                         return;
                     }
 
-                    // [추가] 조회 성공 시 컨테이너 확장 및 레이아웃 변경
-                    document.querySelector('.container').classList.add('wide');
-                    document.getElementById('search-card').style.display = 'none';
-                    document.getElementById('content-wrapper').style.display = 'grid';
-                    document.getElementById('display-user-name').innerText = name;
-                    
-                    // [추가] 접속 성공 시 세션 유지 (localStorage 저장)
+                    const container = document.querySelector('.container');
+                    if (container) container.classList.add('wide');
+
+                    const contentWrapper = document.getElementById('content-wrapper');
+                    if (contentWrapper) contentWrapper.style.display = 'grid';
+
+                    const userNameDisplay = document.getElementById('display-user-name');
+                    if (userNameDisplay) userNameDisplay.innerText = name;
+
                     localStorage.setItem('attendance_user_name', rawName);
                     localStorage.setItem('attendance_user_pin', pin);
+                    sessionStorage.setItem('attendance_user_is_admin', empData.is_admin || false);
+
+                    const adminBtn = document.getElementById('go-admin-btn');
+                    if (adminBtn) {
+                        adminBtn.style.display = empData.is_admin ? 'block' : 'none';
+                    }
 
                     const { data, error } = await supabase
                         .from('attendance_anomalies')
@@ -941,12 +1044,9 @@
 
                     if (error) throw error;
 
-                    currentAnomalies = data || []; // [추가] 데이터 전역 저장
+                    currentAnomalies = data || [];
 
-                    // [추가] 사전 등록 내역 가져오기
                     window.fetchPreemptiveHistory(name);
-
-                    // [추가] 달력 초기 로딩
                     window.fetchMonthlyAttendance(name, currentYear, currentMonth);
 
                     if (currentAnomalies.length === 0) {
@@ -958,8 +1058,10 @@
                     alert('조회 오류: ' + err.message);
                 } finally {
                     loading.style.display = 'none';
-                    searchBtn.disabled = false;
-                    searchBtn.innerText = "내역 조회하기";
+                    if (searchBtn) {
+                        searchBtn.disabled = false;
+                        searchBtn.innerText = "내역 조회하기";
+                    }
                 }
             };
 
@@ -977,9 +1079,8 @@
                 items.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'anomaly-item';
-                    div.id = `anomaly-${item.date}`; // [추가] 날짜별 ID 부여
+                    div.id = `anomaly-${item.date}`;
                     const isSubmitted = item.explanation && item.explanation.trim() !== '';
-                    const hasCustomExplanation = isSubmitted && !['연차', '반차(오전)', '반차(오후)', '외근', '출장', '병가', '공가'].includes(item.explanation);
 
                     div.innerHTML = `
                         <div class="anomaly-header">
@@ -998,41 +1099,28 @@
                             ` : (function () {
                             let reasonsArray = (item.reason || '').split(',').map(r => r.trim()).filter(r => r);
                             if (reasonsArray.length === 0) reasonsArray = [''];
-
                             let combinedHTML = '';
                             reasonsArray.forEach((r, idx) => {
                                 let optionsHTML = '<option value="" disabled selected>사유를 선택해주세요</option>';
                                 let customOptions = [];
-
-                                if (r.includes('출근 기록 없음') || r.includes('지각')) {
-                                    customOptions.push('정상출근', '지각', '외근');
-                                }
-                                if (r.includes('퇴근 기록 없음') || r.includes('조기퇴근')) {
-                                    customOptions.push('정상퇴근', '조기퇴근', '외근');
-                                }
-
+                                if (r.includes('출근 기록 없음') || r.includes('지각')) customOptions.push('정상출근', '지각', '외근');
+                                if (r.includes('퇴근 기록 없음') || r.includes('조기퇴근')) customOptions.push('정상퇴근', '조기퇴근', '외근');
                                 customOptions = [...new Set(customOptions)];
-
-                                if (customOptions.length === 0) {
-                                    customOptions = ['연차', '반차(오전)', '반차(오후)', '외근', '출장', '병가', '공가'];
-                                }
+                                if (customOptions.length === 0) customOptions = ['연차', '반차(오전)', '반차(오후)', '외근', '출장', '병가', '공가'];
                                 customOptions.push('기타');
-
                                 customOptions.forEach(opt => {
                                     optionsHTML += `<option value="${opt}">${opt === '기타' ? '기타 (직접 입력)' : opt}</option>`;
                                 });
-
                                 combinedHTML += `
-                                        <div style="margin-bottom: 12px; padding: 10px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
-                                            <div style="font-size: 0.85rem; color: #4b5563; margin-bottom: 6px; font-weight: 500;">[${r}]에 대한 사유 보완</div>
-                                            <select id="reason-sel-${item.id}-${idx}" onchange="window.toggleCustomExplanation('${item.id}', ${idx})" style="margin-bottom: 8px; width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
-                                                ${optionsHTML}
-                                            </select>
-                                            <textarea id="exp-${item.id}-${idx}" rows="2" placeholder="기타 사유를 상세히 입력해주세요." style="display: none; width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; box-sizing: border-box;"></textarea>
-                                        </div>
-                                    `;
+                                    <div style="margin-bottom: 12px; padding: 10px; background-color: #f9fafb; border-radius: 6px; border: 1px solid #e5e7eb;">
+                                        <div style="font-size: 0.85rem; color: #4b5563; margin-bottom: 6px; font-weight: 500;">[${r}]에 대한 사유 보완</div>
+                                        <select id="reason-sel-${item.id}-${idx}" onchange="window.toggleCustomExplanation('${item.id}', ${idx})" style="margin-bottom: 8px; width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
+                                            ${optionsHTML}
+                                        </select>
+                                        <textarea id="exp-${item.id}-${idx}" rows="2" placeholder="기타 사유를 상세히 입력해주세요." style="display: none; width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; box-sizing: border-box;"></textarea>
+                                    </div>
+                                `;
                             });
-
                             combinedHTML += `<input type="hidden" id="reason-cnt-${item.id}" value="${reasonsArray.length}">`;
                             return combinedHTML;
                         })()}
@@ -1056,51 +1144,38 @@
                 const select = document.getElementById(`reason-sel-${id}-${idx}`);
                 const textarea = document.getElementById(`exp-${id}-${idx}`);
                 if (!select || !textarea) return;
-
                 if (select.value === '기타') {
                     textarea.style.display = 'block';
                     textarea.focus();
                 } else {
                     textarea.style.display = 'none';
-                    textarea.value = ''; // 기타 선택 해제 시 입력 내용 초기화
+                    textarea.value = '';
                 }
             };
 
             window.submitExplanation = async function (id) {
                 const cntInput = document.getElementById(`reason-cnt-${id}`);
                 const count = cntInput ? parseInt(cntInput.value) : 1;
-
                 let explanations = [];
                 for (let i = 0; i < count; i++) {
                     const select = document.getElementById(`reason-sel-${id}-${i}`);
                     if (!select) continue;
-
                     let exp = select.value;
-                    if (!exp) {
-                        alert('모든 이상 사유에 대한 소명을 선택해주세요.');
-                        return;
-                    }
+                    if (!exp) { alert('모든 이상 사유에 대한 소명을 선택해주세요.'); return; }
                     if (exp === '기타') {
                         const textarea = document.getElementById(`exp-${id}-${i}`);
                         exp = textarea.value.trim();
-                        if (!exp) {
-                            alert('기타 사유를 상세히 입력해주세요.');
-                            return;
-                        }
+                        if (!exp) { alert('기타 사유를 상세히 입력해주세요.'); return; }
                     }
                     explanations.push(exp);
                 }
-
                 const finalExplanation = explanations.join(', ');
-
                 if (!confirm('입력하신 사유를 제출하시겠습니까?')) return;
-
                 try {
                     const { error } = await supabase
                         .from('attendance_anomalies')
                         .update({ explanation: finalExplanation, status: 'submitted' })
                         .eq('id', id);
-
                     if (error) throw error;
                     alert('제출되었습니다. 감사합니다.');
                     window.handleSearch();
@@ -1109,72 +1184,35 @@
                 }
             };
 
-            // [추가] 선제적 보완 등록 함수
             window.handleSubmitPreemptive = async function () {
-                if (!supabase && !tryConnect()) {
-                    alert("시스템 연결 중입니다. 잠시 후 시도해 주세요.");
-                    return;
-                }
-
-                const nameInput = document.getElementById('employee-name');
-                const rawName = nameInput.value.trim();
-                const name = normalizeName(rawName);
-                if (!name) {
-                    alert('등록을 위해 먼저 성함을 입력해주세요.');
-                    nameInput.focus();
-                    return;
-                }
-
+                if (!supabase && !tryConnect()) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
+                const savedName = localStorage.getItem('attendance_user_name');
+                const name = normalizeName(savedName);
+                if (!name) { alert('로그인 정보가 없습니다. 메인 페이지로 이동합니다.'); location.href = 'index.html'; return; }
                 const dateInput = document.getElementById('prep-date');
                 const date = dateInput.value;
-                if (!date) {
-                    alert('날짜를 선택해주세요.');
-                    return;
-                }
-
+                if (!date) { alert('날짜를 선택해주세요.'); return; }
                 const typeSelect = document.getElementById('prep-type');
                 const detailsText = document.getElementById('prep-details');
-
                 let type = typeSelect.value;
                 let details = detailsText.value.trim();
-
                 if (!confirm(`${name}님의 ${date} 근태 기록을 '${type}'으로 사전 등록하시겠습니까?`)) return;
-
                 const submitBtn = document.getElementById('submit-prep-btn');
                 submitBtn.disabled = true;
                 submitBtn.innerText = "등록 중...";
-
                 try {
-                    const { error } = await supabase
-                        .from('attendance_supplements')
-                        .upsert({
-                            name: name,
-                            date: date,
-                            type: type,
-                            details: details,
-                            status: 'pending'
-                        }, { onConflict: 'name,date' });
-
+                    const { error } = await supabase.from('attendance_supplements').upsert({
+                        name, date, type, details, status: 'pending'
+                    }, { onConflict: 'name,date' });
                     if (error) throw error;
-
-                    // [추가] attendance_anomalies 테이블에도 선행 데이터 입력 (관리자 매칭용)
                     const managerKey = `${name}_${date}`;
                     const fullExplanation = `${type}${details ? ` (${details})` : ""}`;
-
-                    await supabase
-                        .from('attendance_anomalies')
-                        .upsert({
-                            manager_key: managerKey,
-                            name: name,
-                            date: date,
-                            explanation: fullExplanation,
-                            status: 'submitted'
-                        }, { onConflict: 'manager_key' });
-
+                    await supabase.from('attendance_anomalies').upsert({
+                        manager_key: managerKey, name, date,
+                        explanation: fullExplanation, status: 'submitted'
+                    }, { onConflict: 'manager_key' });
                     alert('성공적으로 등록되었습니다.\n관리자 페이지에 자동으로 반영됩니다.');
                     detailsText.value = '';
-
-                    // [추가] 리스트 갱신
                     window.fetchPreemptiveHistory(name);
                 } catch (err) {
                     alert('등록 오류: ' + err.message);
@@ -1184,15 +1222,10 @@
                 }
             };
 
-            // [추가] 사전 등록 내역 조회 함수
             window.fetchPreemptiveHistory = async function (name) {
                 try {
-                    const { data, error } = await supabase
-                        .from('attendance_supplements')
-                        .select('*')
-                        .eq('name', name)
-                        .order('date', { ascending: false });
-
+                    const { data, error } = await supabase.from('attendance_supplements')
+                        .select('*').eq('name', name).order('date', { ascending: false });
                     if (error) throw error;
                     renderPreemptiveHistory(data);
                 } catch (err) {
@@ -1203,12 +1236,7 @@
             function renderPreemptiveHistory(items) {
                 const container = document.getElementById('preemptive-history-section');
                 const list = document.getElementById('preemptive-history-list');
-
-                if (!items || items.length === 0) {
-                    container.style.display = 'none';
-                    return;
-                }
-
+                if (!items || items.length === 0) { container.style.display = 'none'; return; }
                 container.style.display = 'block';
                 list.innerHTML = items.map(item => {
                     const isPending = item.status === 'pending';
@@ -1217,9 +1245,7 @@
                             <div class="history-header">
                                 <div>
                                     <span class="history-type">${item.type}</span>
-                                    <span class="status-tag ${isPending ? 'tag-pending' : 'tag-processed'}">
-                                        ${isPending ? '대기' : '확인됨'}
-                                    </span>
+                                    <span class="status-tag ${isPending ? 'tag-pending' : 'tag-processed'}">${isPending ? '대기' : '확인됨'}</span>
                                 </div>
                                 <span class="history-date">${item.date}</span>
                             </div>
@@ -1234,67 +1260,64 @@
 
             window.cancelPreemptiveRegistration = async function (id) {
                 if (!confirm('해당 사전 등록 내역을 취소하시겠습니까?')) return;
-
                 try {
-                    // 1. 먼저 해당 데이터의 정보(이름, 날짜)를 가져옴 (anomalies 연동 삭제용)
-                    const { data: itemData, error: fetchErr } = await supabase
-                        .from('attendance_supplements')
-                        .select('name, date')
-                        .eq('id', id)
-                        .single();
+                    // 1. 사전 등록 항목 조회
+                    const { data: item, error: getError } = await supabase
+                        .from('attendance_supplements').select('name, date').eq('id', id).single();
+                    if (getError) throw getError;
 
-                    if (fetchErr) throw fetchErr;
+                    const managerKey = `${item.name}_${item.date}`;
 
-                    // 2. 사전 등록 원본 삭제
-                    const { error } = await supabase
-                        .from('attendance_supplements')
-                        .delete()
-                        .eq('id', id);
+                    // 2. 해당 날짜의 이상근태 행 조회
+                    const { data: anomaly } = await supabase
+                        .from('attendance_anomalies')
+                        .select('id, status, reason')
+                        .eq('manager_key', managerKey)
+                        .maybeSingle();
 
-                    if (error) throw error;
-
-                    // 3. 연동된 anomaly 내역도 제거 (manager_key = name_date)
-                    if (itemData) {
-                        const managerKey = `${itemData.name}_${itemData.date}`;
-                        await supabase
-                            .from('attendance_anomalies')
-                            .delete()
-                            .eq('manager_key', managerKey);
+                    if (anomaly) {
+                        // 관리자가 요청한 보완(auto/requested)이 있으면 → explanation만 비움 (행 유지)
+                        // 사전 등록으로만 생성된 행(status=submitted, reason 없음)이면 → 행 삭제
+                        const isOnlyFromPreemptive = anomaly.status === 'submitted' && !anomaly.reason;
+                        if (isOnlyFromPreemptive) {
+                            await supabase.from('attendance_anomalies').delete().eq('manager_key', managerKey);
+                        } else {
+                            // 관리자 요청 행은 유지하되 explanation만 초기화
+                            await supabase.from('attendance_anomalies')
+                                .update({ explanation: null, status: 'requested' })
+                                .eq('manager_key', managerKey);
+                        }
                     }
 
-                    alert('취소되었습니다.');
+                    // 3. 사전 등록 내역 삭제
+                    const { error } = await supabase.from('attendance_supplements').delete().eq('id', id);
+                    if (error) throw error;
 
-                    const nameInput = document.getElementById('employee-name');
-                    const normalizedNameValue = normalizeName(nameInput.value);
-                    await window.fetchPreemptiveHistory(normalizedNameValue);
-                    await window.handleSearch();
+                    alert('취소되었습니다.');
+                    const savedName = localStorage.getItem('attendance_user_name');
+                    const name = normalizeName(savedName);
+                    if (name) {
+                        window.fetchPreemptiveHistory(name);
+                        window.fetchMonthlyAttendance(name, currentYear, currentMonth);
+                    }
                 } catch (err) {
                     alert('취소 오류: ' + err.message);
                 }
             };
 
-            // [추가] 필터링 함수
             window.applyStatusFilter = function (mode, btn) {
-                // 버튼 활성화 스타일 전환
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-
                 let filtered = [];
-                if (mode === 'all') {
-                    filtered = currentAnomalies;
-                } else if (mode === 'request') {
-                    filtered = currentAnomalies.filter(item => !item.explanation || item.explanation.trim() === '');
-                } else if (mode === 'complete') {
-                    filtered = currentAnomalies.filter(item => item.explanation && item.explanation.trim() !== '');
-                }
+                if (mode === 'all') filtered = currentAnomalies;
+                else if (mode === 'request') filtered = currentAnomalies.filter(item => !item.explanation || item.explanation.trim() === '');
+                else if (mode === 'complete') filtered = currentAnomalies.filter(item => item.explanation && item.explanation.trim() !== '');
                 renderList(filtered);
             };
 
-            // [추가] 탭 전환 함수
             window.switchTab = function (tab) {
                 activeTab = tab;
                 document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-                
                 if (tab === 'anomalies') {
                     document.getElementById('tab-anomalies').classList.add('active');
                     document.getElementById('anomalies-view').style.display = 'block';
@@ -1303,30 +1326,21 @@
                     document.getElementById('tab-calendar').classList.add('active');
                     document.getElementById('anomalies-view').style.display = 'none';
                     document.getElementById('calendar-view').style.display = 'block';
-                    // 달력 탭 선택 시 다시 렌더링 (혹시 모를 레이아웃 깨짐 방지)
-                    const name = normalizeName(document.getElementById('employee-name').value);
+                    const savedName = localStorage.getItem('attendance_user_name');
+                    const name = normalizeName(savedName);
                     if (name) window.fetchMonthlyAttendance(name, currentYear, currentMonth);
                 }
             };
 
-            // [추가] 특정 날짜의 보완항목으로 이동 및 강조
-            window.switchTabAndHighlight = function(date) {
-                // 1. 탭 전환
+            window.switchTabAndHighlight = function (date) {
                 window.switchTab('anomalies');
-                
-                // 2. 필터 초기화 (보안 요청 내역에 해당 날짜가 없을 수도 있으므로 '전체'로 변경 권장하거나 필터 유지)
-                // 여기서는 사용자가 클릭한 날짜가 보완 요청 상태일 것이므로 필터가 'request'여도 보일 확률이 높음.
-                // 안전하게 '전체'로 변경하거나 현재 필터에서 검색
                 const allFilterBtn = document.querySelector('.filter-btn[onclick*="all"]');
                 if (allFilterBtn) window.applyStatusFilter('all', allFilterBtn);
-
-                // 3. 렌더링 대기 후 스크롤 및 하이라이트
                 setTimeout(() => {
                     const target = document.getElementById(`anomaly-${date}`);
                     if (target) {
                         target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         target.classList.add('highlight-entry');
-                        // 애니메이션 종료 후 클래스 제거 (재반복 가능하게)
                         setTimeout(() => target.classList.remove('highlight-entry'), 2000);
                     } else {
                         console.warn(`${date} 내역을 찾을 수 없습니다.`);
@@ -1334,12 +1348,10 @@
                 }, 100);
             };
 
-            // [추가] 달력 날짜 클릭 시 사전 등록 일자 변경
-            window.selectDateForPreemptive = function(date) {
+            window.selectDateForPreemptive = function (date) {
                 const dateInput = document.getElementById('prep-date');
                 if (dateInput) {
                     dateInput.value = date;
-                    // 시각적 피드백: 사전 등록 카드 살짝 강조
                     const section = document.getElementById('preemptive-section');
                     if (section) {
                         section.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.4)';
@@ -1348,63 +1360,36 @@
                 }
             };
 
-            // [추가] 달력 월 변경 함수
             window.changeMonth = function (offset) {
                 currentMonth += offset;
-                if (currentMonth > 12) {
-                    currentMonth = 1;
-                    currentYear++;
-                } else if (currentMonth < 1) {
-                    currentMonth = 12;
-                    currentYear--;
-                }
-                const name = normalizeName(document.getElementById('employee-name').value);
+                if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+                else if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+                const savedName = localStorage.getItem('attendance_user_name');
+                const name = normalizeName(savedName);
                 if (name) window.fetchMonthlyAttendance(name, currentYear, currentMonth);
             };
 
-            // [추가] 월별 근태 기록 조회
             window.fetchMonthlyAttendance = async function (name, year, month) {
                 const title = document.getElementById('calendar-title');
                 if (title) title.innerText = `${year}년 ${String(month).padStart(2, '0')}월`;
-
                 const loader = document.getElementById('calendar-loading');
                 if (loader) loader.style.display = 'block';
-
                 try {
                     const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
                     const lastDay = new Date(year, month, 0).getDate();
                     const endOfMonth = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-
-                    // 1. 출퇴근 기록 조회 (attendance_records)
                     const { data: attendance, error: attError } = await supabase
-                        .from('attendance_records')
-                        .select('date, in_time, out_time, shift, reason')
-                        .eq('name', name)
-                        .gte('date', startOfMonth)
-                        .lte('date', endOfMonth);
-
+                        .from('attendance_records').select('date, in_time, out_time, shift, reason')
+                        .eq('name', name).gte('date', startOfMonth).lte('date', endOfMonth);
                     if (attError) throw attError;
-
-                    // 2. 휴가 데이터 조회 (attendance_supplements) - 달력 표시용
                     const { data: leaves, error: leafError } = await supabase
-                        .from('attendance_supplements')
-                        .select('date, type, details, status')
-                        .eq('name', name)
-                        .gte('date', startOfMonth)
-                        .lte('date', endOfMonth);
-
+                        .from('attendance_supplements').select('date, type, details, status')
+                        .eq('name', name).gte('date', startOfMonth).lte('date', endOfMonth);
                     if (leafError) throw leafError;
-
-                    // 3. 이상 내역 조회 (attendance_anomalies)
                     const { data: anomalies, error: anomError } = await supabase
-                        .from('attendance_anomalies')
-                        .select('date, explanation, status')
-                        .eq('name', name)
-                        .gte('date', startOfMonth)
-                        .lte('date', endOfMonth);
-
+                        .from('attendance_anomalies').select('date, explanation, status')
+                        .eq('name', name).gte('date', startOfMonth).lte('date', endOfMonth);
                     if (anomError) throw anomError;
-
                     renderCalendar(year, month, attendance, leaves, anomalies);
                 } catch (err) {
                     console.error('달력 조회 실패:', err);
@@ -1415,18 +1400,31 @@
 
             function renderCalendar(year, month, attendance, leaves, anomalies) {
                 const grid = document.getElementById('calendar-grid');
+                const summaryContainer = document.getElementById('calendar-summary-container');
                 if (!grid) return;
 
-                // 헤더 제외한 날짜 셀 제거
+                const unsubmittedAnomaliesCount = anomalies.filter(a => !a.explanation || a.explanation.trim() === '').length;
+                if (summaryContainer) {
+                    if (unsubmittedAnomaliesCount > 0) {
+                        summaryContainer.innerHTML = `
+                            <div class="anomaly-summary-bar">
+                                <span class="anomaly-summary-count">${unsubmittedAnomaliesCount}</span>
+                                <span>이번 달에 보완(출퇴근 사유 입력)이 필요한 내역이 ${unsubmittedAnomaliesCount}건 있습니다.</span>
+                            </div>
+                        `;
+                    } else {
+                        summaryContainer.innerHTML = '';
+                    }
+                }
+
                 const headers = grid.querySelectorAll('.day-header');
                 grid.innerHTML = '';
                 headers.forEach(h => grid.appendChild(h));
 
                 const firstDay = new Date(year, month - 1, 1).getDay();
                 const lastDay = new Date(year, month, 0).getDate();
-                
-                // 이전 달의 마지막 날짜들
                 const prevLastDay = new Date(year, month - 1, 0).getDate();
+
                 for (let i = firstDay - 1; i >= 0; i--) {
                     const cell = document.createElement('div');
                     cell.className = 'day-cell other-month';
@@ -1434,34 +1432,25 @@
                     grid.appendChild(cell);
                 }
 
-                // 이번 달 날짜들
                 for (let d = 1; d <= lastDay; d++) {
                     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                     const dayOfWeek = new Date(year, month - 1, d).getDay();
-                    
-                    const cell = document.createElement('div');
-                    cell.className = `day-cell ${dayOfWeek === 0 ? 'sun' : (dayOfWeek === 6 ? 'sat' : '')}`;
-                    cell.onclick = () => window.selectDateForPreemptive(dateStr); // [추가] 클릭 시 일자 선택
-                    
-                    let html = `<div class="day-number">${d}</div>`;
-                    
-                    // 해당 날짜의 근태 기록 찾기
                     const record = attendance.find(r => r.date === dateStr);
                     const leaf = leaves.find(l => l.date === dateStr);
                     const anom = anomalies.find(a => a.date === dateStr);
+                    const isUnsubmittedAnomaly = anom && (!anom.explanation || anom.explanation.trim() === '');
 
+                    const cell = document.createElement('div');
+                    cell.className = `day-cell ${dayOfWeek === 0 ? 'sun' : (dayOfWeek === 6 ? 'sat' : '')} ${isUnsubmittedAnomaly ? 'has-unsubmitted-anomaly' : ''}`;
+                    cell.onclick = () => window.selectDateForPreemptive(dateStr);
+
+                    let html = `<div class="day-number">${d}</div>`;
                     if (record) {
                         if (record.in_time) html += `<div class="cell-data time-in">출 ${record.in_time}</div>`;
                         if (record.out_time) html += `<div class="cell-data time-out">퇴 ${record.out_time}</div>`;
-                        if (record.reason && record.reason.trim()) {
-                            html += `<div class="cell-data day-reason">${record.reason}</div>`;
-                        }
+                        if (record.reason && record.reason.trim()) html += `<div class="cell-data day-reason">${record.reason}</div>`;
                     }
-
-                    if (leaf) {
-                        html += `<div class="cell-data day-leave">${leaf.type}${leaf.status === 'pending' ? '(대기)' : ''}</div>`;
-                    }
-
+                    if (leaf) html += `<div class="cell-data day-leave">${leaf.type}${leaf.status === 'pending' ? '(대기)' : ''}</div>`;
                     if (anom) {
                         const isSubmitted = anom.explanation && anom.explanation.trim() !== '';
                         html += `<div class="cell-data day-anomaly ${isSubmitted ? 'submitted' : ''}" 
@@ -1470,13 +1459,11 @@
                             ${isSubmitted ? '[제출 완료]' : '[보완 요청]'}
                         </div>`;
                     }
-
                     cell.innerHTML = html;
                     grid.appendChild(cell);
                 }
 
-                // 다음 달의 시작 날짜들
-                const remainingCells = 42 - (firstDay + lastDay); // 6줄(42칸) 기준
+                const remainingCells = 42 - (firstDay + lastDay);
                 if (remainingCells > 0 && remainingCells < 14) {
                     for (let i = 1; i <= remainingCells; i++) {
                         const cell = document.createElement('div');
@@ -1487,8 +1474,7 @@
                 }
             }
 
-            // [추가] PIN 변경 관련 함수들
-            window.openPinChangeModal = function() {
+            window.openPinChangeModal = function () {
                 document.getElementById('pin-modal-overlay').style.display = 'flex';
                 document.getElementById('current-pin-input').value = '';
                 document.getElementById('new-pin-input').value = '';
@@ -1496,66 +1482,33 @@
                 document.getElementById('current-pin-input').focus();
             };
 
-            window.closePinChangeModal = function() {
+            window.closePinChangeModal = function () {
                 document.getElementById('pin-modal-overlay').style.display = 'none';
             };
 
-            window.handleUpdatePin = async function() {
+            window.handleUpdatePin = async function () {
                 const currentPinInput = document.getElementById('current-pin-input').value;
                 const newPin = document.getElementById('new-pin-input').value;
                 const confirmPin = document.getElementById('new-pin-confirm').value;
-                
                 const savedPin = localStorage.getItem('attendance_user_pin');
-                const name = normalizeName(document.getElementById('employee-name').value);
+                const savedName = localStorage.getItem('attendance_user_name');
+                const name = normalizeName(savedName);
 
-                if (currentPinInput !== savedPin) {
-                    alert('현재 확인코드가 일치하지 않습니다.');
-                    return;
-                }
-
-                if (newPin.length !== 4 || confirmPin.length !== 4) {
-                    alert('새로운 PIN은 숫자 4자리로 입력해주세요.');
-                    return;
-                }
-
-                if (newPin !== confirmPin) {
-                    alert('새로운 확인코드가 서로 일치하지 않습니다.');
-                    return;
-                }
-
-                if (currentPinInput === newPin) {
-                    alert('현재와 동일한 기존 확인코드입니다. 다른 번호를 입력해주세요.');
-                    return;
-                }
-
+                if (currentPinInput !== savedPin) { alert('현재 확인코드가 일치하지 않습니다.'); return; }
+                if (newPin.length !== 4 || confirmPin.length !== 4) { alert('새로운 PIN은 숫자 4자리로 입력해주세요.'); return; }
+                if (newPin !== confirmPin) { alert('새로운 확인코드가 서로 일치하지 않습니다.'); return; }
+                if (currentPinInput === newPin) { alert('현재와 동일한 기존 확인코드입니다. 다른 번호를 입력해주세요.'); return; }
                 if (!confirm('확인코드를 변경하시겠습니까?')) return;
 
                 try {
-                    // [추가] 동명이인 확인코드 중복 체크
                     const { data: collision, error: checkError } = await supabase
-                        .from('employees')
-                        .select('name')
-                        .eq('name', name)
-                        .eq('pin', newPin)
-                        .maybeSingle();
-
+                        .from('employees').select('name').eq('name', name).eq('pin', newPin).maybeSingle();
                     if (checkError) throw checkError;
-                    if (collision) {
-                        alert('이미 동일한 성함의 다른 분이 해당 확인코드를 사용 중입니다. 다른 코드를 입력해주세요.');
-                        return;
-                    }
-
-                    const { error } = await supabase
-                        .from('employees')
-                        .update({ pin: newPin })
-                        .eq('name', name)
-                        .eq('pin', savedPin); // 정확히 본인 레코드만 업데이트
-
+                    if (collision) { alert('이미 동일한 성함의 다른 분이 해당 확인코드를 사용 중입니다. 다른 코드를 입력해주세요.'); return; }
+                    const { error } = await supabase.from('employees')
+                        .update({ pin: newPin }).eq('name', name).eq('pin', savedPin);
                     if (error) throw error;
-
-                    // 로컬 스토리지 업데이트 (자동 로그인용)
                     localStorage.setItem('attendance_user_pin', newPin);
-                    
                     alert('성공적으로 변경되었습니다.');
                     window.closePinChangeModal();
                 } catch (err) {
@@ -1563,56 +1516,34 @@
                 }
             };
 
-            // [추가] 조회 내용 초기화 및 재조회 함수
             window.handleReset = function () {
-                document.querySelector('.container').classList.remove('wide');
-                document.getElementById('employee-name').value = '';
-                document.getElementById('employee-pin').value = '';
-                document.getElementById('search-card').style.display = 'block';
-                document.getElementById('content-wrapper').style.display = 'none';
-                document.getElementById('anomaly-list').innerHTML = '';
-                document.getElementById('empty-msg').style.display = 'none';
-                
-                // [추가] 세션 정보 삭제
+                if (!confirm('로그아웃 하시겠습니까?')) return;
                 localStorage.removeItem('attendance_user_name');
                 localStorage.removeItem('attendance_user_pin');
-                
-                document.getElementById('employee-name').focus();
+                sessionStorage.removeItem('attendance_user_is_admin');
+                location.href = 'index.html';
             };
 
-            // 초기 날짜 설정
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('prep-date').value = today;
 
-            // 즉시 실행 및 주기적 확인
             if (!tryConnect()) {
                 const checkInt = setInterval(() => {
-                    if (tryConnect()) {
-                        clearInterval(checkInt);
-                        checkAutoLogin();
-                    }
+                    if (tryConnect()) { clearInterval(checkInt); checkAutoLogin(); }
                 }, 500);
             } else {
-                // 이미 연결되었으면 즉시 체크
                 checkAutoLogin();
             }
 
-            // [추가] 자동 로그인 기능
             async function checkAutoLogin() {
                 const savedName = localStorage.getItem('attendance_user_name');
                 const savedPin = localStorage.getItem('attendance_user_pin');
-
                 if (savedName && savedPin) {
-                    const nameInput = document.getElementById('employee-name');
-                    const pinInput = document.getElementById('employee-pin');
-
-                    if (nameInput && pinInput) {
-                        nameInput.value = savedName;
-                        pinInput.value = savedPin;
-                        
-                        console.log('자동 로그인 시도 중...');
-                        await window.handleSearch();
-                    }
+                    console.log('자동 로그인 시도 중...');
+                    await window.handleSearch();
+                    const isAdmin = sessionStorage.getItem('attendance_user_is_admin') === 'true';
+                    const adminBtn = document.getElementById('go-admin-btn');
+                    if (adminBtn) adminBtn.style.display = isAdmin ? 'block' : 'none';
                 }
             }
         })();

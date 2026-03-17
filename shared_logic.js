@@ -89,13 +89,16 @@ function calculateAnomalies(combinedData, config) {
         const isEarly = (inValRaw && inValRaw < '06:00') || (outValRaw && outValRaw < '06:00');
         const mode = manualEarlyPunches[manualKey] || "";
 
+        const empInfo = employeeConfigList.find(e => normalizeName(e.name) === nameVal);
+        const defaultShift = (empInfo && empInfo.shift) ? empInfo.shift : "0800-1700";
+
         // 1. 해당 일자의 기본 정보를 보장 (검증 목록 유지를 위해)
         if (!groupedMap[manualKey]) {
             groupedMap[manualKey] = {
                 date: originalDateStr,
                 name: nameVal,
                 in: "", out: "", minOut: "",
-                shift: "0800-1700",
+                shift: defaultShift,
                 originalDate: originalDateStr,
                 hasEarly: false,
                 reason: manualReasons[manualKey] || "" // [추가] 수동 사유 연동
@@ -118,7 +121,7 @@ function calculateAnomalies(combinedData, config) {
             }
         }
 
-        const shiftStr = String(row["근무조"] || "").trim() || "0800-1700";
+        const shiftStr = String(row["근무조"] || "").trim() || defaultShift;
         groupedMap[manualKey].shift = shiftStr;
 
         if (jsDateOrig && !isNaN(jsDateOrig)) {

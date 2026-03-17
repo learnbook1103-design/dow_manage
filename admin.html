@@ -5,1542 +5,407 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title> Dow 근태 사유 관리</title>
-    <!-- Use a modern Google Font (Inter) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Design System -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="shared_logic.js"></script>
     <style>
-        :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --bg-color: #F3F4F6;
-            --surface: #FFFFFF;
-            --text-main: #111827;
-            --text-muted: #6B7280;
-            --border-color: #E5E7EB;
-            --border-dark: #374151;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
+        /* admin 전용 — 나머지는 style.css */
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            line-height: 1.5;
             padding: 2rem;
         }
 
-        /* UI Container (Non-Printable) */
         #ui-container {
-            max-width: 800px;
-            margin: 0 auto;
-            background: var(--surface);
-            border-radius: 16px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 2.5rem;
-            margin-bottom: 2rem;
+            max-width: 794px;
         }
 
-        header {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
-        header h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.025em;
-        }
-
-        header p {
-            color: var(--text-muted);
-        }
-
-        /* Drag and Drop Zone */
-        .drop-zone-container {
-            display: flex;
-            gap: 1.5rem;
-            /* 간격 살짝 넓힘 */
-            margin-bottom: 1.5rem;
-            align-items: stretch;
-            /* [추가] 두 카드의 높이를 똑같이 맞춤 */
-        }
-
-        /* [추가] 업로드 카드 자체를 flex 컨테이너로 만들어 내부 요소 확장 */
-        .upload-card {
-            flex: 1;
-            /* [추가] 두 카드가 동일한 너비를 가짐 */
-            display: flex;
-            flex-direction: column;
-        }
-
-        .drop-zone {
-            border: 2px dashed var(--primary);
-            border-radius: 12px;
-            padding: 1.75rem 1rem;
-            text-align: center;
-            background: #EEF2FF;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            flex: 1;
-            /* [유지] 카드 내에서 남은 높이를 모두 차지함 */
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .drop-zone:hover,
-        .drop-zone.dragover {
-            background: #E0E7FF;
-            transform: scale(1.02);
-        }
-
-        .drop-zone.loaded {
-            border-color: #10b981;
-            background: #f0fdf4;
-        }
-
-        .drop-zone-content svg {
-            color: var(--primary);
-            margin-bottom: 0.75rem;
-        }
-
-        .drop-zone.loaded .drop-zone-content svg {
-            color: #10b981;
-        }
-
-        .drop-zone-content p {
-            font-size: 0.95rem;
-            font-weight: 500;
-        }
-
-        .file-status {
-            margin-top: 0.5rem;
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: #10b981;
-            min-height: 1.2em;
-        }
-
-        .drop-zone-content strong {
-            color: var(--primary);
-        }
-
-        /* Controls Container */
-        .controls-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1.5rem;
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            white-space: nowrap;
-        }
-
-        .control-group label {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .middle-controls {
-            display: flex;
-            gap: 1rem;
-            align-items: stretch;
-        }
-
-        .settings-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        input[type="date"] {
-            font-family: inherit;
-            padding: 0.5rem 0.75rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 1rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        input[type="date"]:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        }
-
-        .primary-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            background-color: var(--primary);
-            color: white;
-            font-family: inherit;
-            font-weight: 600;
-            font-size: 1rem;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-
-        .primary-btn:hover {
-            background-color: var(--primary-hover);
-        }
-
-        .year-select {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 14px;
-            background-color: white;
-            cursor: pointer;
-        }
-
-        .fetch-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            flex: 1;
-            background-color: #f0f4ff;
-            color: #4f46e5;
-            border: 1px solid #4f46e5;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .fetch-btn:hover {
-            background-color: #4f46e5;
-            color: white;
-        }
-
-        .loader {
-            width: 14px;
-            height: 14px;
-            border: 2px solid #4f46e5;
-            border-bottom-color: transparent;
-            border-radius: 50%;
-            display: inline-block;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-        }
-
-        .fetch-btn:hover .loader {
-            border-color: white;
-            border-bottom-color: transparent;
-        }
-
-        @keyframes rotation {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .modal-divider {
-            margin: 20px 0 10px;
-            font-size: 13px;
-            color: #666;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .modal-divider::before,
-        .modal-divider::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background-color: #eee;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* Modal Styles */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 0;
-            /* [변경] 내용을 나누기 위해 패딩 제거 */
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            overflow: hidden;
-            /* [추가] 헤더 배경색이 둥근 모서리를 넘지 않도록 */
-        }
-
-        /* [추가] 사원 명단 모달은 더 크게 */
-        #employee-modal .modal-content {
-            max-width: 1200px;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: #f1f5f9;
-            /* [추가] 헤더 배경색으로 드래그 영역 강조 */
-            padding: 1rem 1.5rem;
-            /* [추가] 헤더 내부 패딩 */
-            border-bottom: 1px solid #e2e8f0;
-            /* [추가] 구분선 */
-            margin-bottom: 0;
-            cursor: grab;
-            /* [추가] 드래그 가능 핸들 표시 */
-        }
-
-        .modal-header:active {
-            cursor: grabbing;
-            background-color: #e2e8f0;
-        }
-
-        .modal-header h2 {
-            font-size: 1.25rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-muted);
-        }
-
-        .close-btn:hover {
-            color: var(--text-main);
-        }
-
-        /* [추가] 모달 내부 본문 패딩 처리 */
-        .employee-manager-section,
-        .holiday-manager-section,
-        #verify-modal .modal-content>div:not(.modal-header) {
-            padding: 1.5rem;
-        }
-
-        /* Employee Manager UI Styles */
-        .employee-manager-section label {
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-
-        .employee-list-container {
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 0; /* 내부 행들과 정렬을 위해 패딩 제거 */
-            max-height: 450px;
-            overflow-y: auto;
-            scrollbar-gutter: stable;
-            background: #f9fafb;
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            min-width: min-content; /* 내부 행 너비에 맞춰 확장 */
-        }
-
-        /* 사원 관리 모달 레이아웃 최적화 */
-        .employee-manager-scroll-wrapper {
+        /* report 영역 sticky 칼럼 헤더 */
+        .matrix-scroll-container {
             overflow-x: auto;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-m);
+            margin-top: 24px;
+            background: #fff;
         }
 
-        .employee-manager-table-header,
-        .employee-row {
-            min-width: 1200px; /* PIN 컬럼 추가로 인해 너비 확장 */
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            padding: 8px 13px;
-        }
-
-        .employee-manager-table-header {
-            margin-bottom: 0.5rem;
-            font-size: 0.8rem;
-            color: #6b7280;
-            white-space: nowrap;
-        }
-
-        .employee-manager-table-header span {
-            display: inline-block;
-            margin: 0;
-            padding: 0;
-        }
-
-        .employee-row {
-            background-color: white;
-            padding: 4px 13px;
-            border-radius: 6px;
-            cursor: grab;
-            transition: background-color 0.2s, border 0.2s;
-            border: 1px solid transparent;
-            margin-bottom: 0.5rem;
-        }
-
-        /* [추가] 드래그 중인 행 효과 */
-        .employee-row.dragging {
-            opacity: 0.5;
-            background-color: #e0e7ff;
-            border: 1px dashed var(--primary);
-        }
-
-        /* [추가] 드래그 시 마우스가 위치한 곳에 지시선 표시 */
-        .employee-row.dragover {
-            border-top: 3px solid var(--primary) !important;
-            background-color: #f0f4ff;
-        }
-
-        .employee-row input,
-        .employee-row select {
-            font-family: inherit;
-            padding: 0.4rem 0.5rem;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            font-size: 0.9rem;
-            outline: none;
-            background-color: white;
-            flex: none;
-        }
-
-        .employee-row input:focus,
-        .employee-row select:focus {
-            border-color: var(--primary);
-        }
-
-        .remove-btn {
-            background: none;
+        .matrix-table {
+            margin-top: 0;
             border: none;
-            color: #ef4444;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0 0.25rem;
-            transition: color 0.2s;
+            width: max-content;
         }
 
-        .remove-btn:hover {
-            color: #b91c1c;
-        }
-
-        .secondary-btn {
-            background: white;
-            border: 1px solid var(--border-dark);
-            color: var(--text-main);
-            padding: 0.3rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            cursor: pointer;
-            font-weight: 500;
-        }
-
-        .secondary-btn:hover {
-            background: #f3f4f6;
-        }
-
-        #verify-data-btn:hover {
-            background: #ffedd5 !important;
-        }
-
-        /* Verification Table styles */
-        .verify-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-
-        .verify-table th,
-        .verify-table td {
-            padding: 0.5rem;
-            text-align: center;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .verify-table th {
-            background-color: #f9fafb;
-            border-bottom: 2px solid var(--border-color);
-            font-weight: 600;
+        .matrix-table th {
             position: sticky;
             top: 0;
-            z-index: 10;
+            background: var(--gray-50);
+            z-index: 20;
         }
 
-        /* -------------------------------------------
-Report Layout / Matrix View Layout
-------------------------------------------- */
-
-        #report-container {
-            max-width: 1300px;
-            margin: 0 auto;
-        }
-
-        .report-page {
-            background: white;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 10mm;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            border-radius: 0px;
-            margin: 0 auto 3rem auto;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .report-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .report-header h2 {
-            font-size: 1.3rem;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-            padding-top: 0.5rem;
-        }
-
-        .header-rightside {
-            display: flex;
-            align-items: flex-end;
-            gap: 2rem;
-        }
-
-        .approval-table {
-            border-collapse: collapse;
-            width: 200px;
-            table-layout: fixed;
-        }
-
-        .approval-table th,
-        .approval-table td {
-            border: 1px solid var(--border-dark);
-            text-align: center;
-            font-size: 0.60rem;
-        }
-
-        .approval-table th {
-            background-color: #f9fafb;
-            padding: 0.25rem 0;
-            font-weight: 500;
-        }
-
-        .approval-table .sign-space {
-            height: 35px;
-        }
-
-        .approval-table .sign-bottom {
-            height: 15px;
-        }
-
-        .report-meta {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.3rem;
-            font-size: 0.45rem;
-            font-weight: 400;
-        }
-
-        .meta-item {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        /* Matrix Table Specifics */
-        .matrix-table {
-            width: auto;
-            border-collapse: collapse;
-            border-bottom: 1px solid var(--border-dark);
-        }
-
-        .matrix-table th,
-        .matrix-table td {
-            border: 1px solid var(--border-dark);
-            text-align: center;
-            padding: 1px !important;
-            font-size: 0.65rem;
-            line-height: 1.1;
-            white-space: nowrap;
-            width: 52px;
-            min-width: 52px;
-            max-width: 52px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .matrix-table thead th {
-            background-color: #f3f4f6;
-            font-weight: 600;
-        }
-
-        .th-dategroup {
-            font-size: 0.65rem;
-            padding: 2px 0 !important;
-            line-height: 1.1;
-            width: 52px;
-            min-width: 52px;
-            max-width: 52px;
-        }
-
-        .time-cell {
-            width: 52px;
-            min-width: 52px;
-            max-width: 52px;
-            font-family: inherit;
-            font-size: 0.65rem;
-        }
-
-        /* Sticky Columns */
         .sticky-col {
             position: sticky;
-            background-color: #fff;
+            background: #fff;
             z-index: 10;
         }
 
         .td-name {
             left: 0;
             width: 40px;
-            font-weight: 600;
-            font-size: 0.65rem;
-            background-color: #f9fafb !important;
-            border-right: 1px solid var(--border-dark);
+            min-width: 40px;
+            background: #f9fafb !important;
         }
 
         .td-label {
             left: 40px;
             width: 30px;
-            font-size: 0.55rem;
-            font-weight: bold;
-            /* [수정] 볼드체 적용 */
-            border-right: 2px solid var(--border-dark);
+            min-width: 30px;
         }
 
-        .label-in,
-        .label-out {
-            background-color: #4b5563 !important;
-            /* [수정] 짙은 회색 */
-            color: white !important;
-            /* 대비를 위해 흰색 글자 */
-        }
-
-        .label-reason {
-            background-color: #e5e7eb !important;
-            /* [수정] 옅은 회색 */
-            color: #374151 !important;
-        }
-
-        /* [추가] 휴가 가시성 확보를 위한 배경색 */
-        .leave-annual {
-            background-color: #4ade80 !important;
-            /* 초록색 */
-            color: #ffffff !important;
-            font-weight: bold;
-        }
-
-        .leave-half {
-            background-color: #fb923c !important;
-            /* 주황색 */
-            color: #ffffff !important;
-            font-weight: bold;
-        }
-
-        .not-employed {
-            background-color: #94a3b8 !important;
-            /* 슬레이트 회색 */
-            color: transparent !important;
-        }
-
-        .corner-cell {
-            z-index: 20;
-            left: 0;
-            min-width: 70px;
-            border-right: 2px solid var(--border-dark);
-        }
-
-        /* --- 테두리 제거 및 구분선 핵심 로직 --- */
-
-        .verify-action-group {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            align-items: center;
-            justify-content: center;
-            padding: 4px 0;
-        }
-
-        .confirmation-btn,
-        .shift-date-btn {
-            width: 90px;
-            padding: 6px 8px;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-            text-align: center;
-            border: 1px solid var(--border-color);
-            background: white;
-        }
-
-        .confirmation-btn {
-            color: var(--text-muted);
-        }
-
-        .confirmation-btn.confirmed {
-            background-color: #f0fdf4;
-            border-color: #10b981;
-            color: #000;
-            font-weight: 600;
-        }
-
-        .shift-date-btn {
-            border: 1px solid #fcd34d;
-            background-color: #fff9db;
-            color: #92400e;
-        }
-
-        .shift-date-btn:hover {
-            background-color: #fefce8;
-        }
-
-        .shift-date-btn.active {
-            background-color: #fca5a5;
-            border-color: #ef4444;
-            color: #991b1b;
-            font-weight: bold;
-        }
-
-        /* 1. 출근행과 퇴근행의 하단 테두리를 제거 (internal-row) */
-        .matrix-table tbody tr.internal-row td {
-            border-bottom: none !important;
-        }
-
-        .matrix-table tbody tr.internal-row+tr td {
-            border-top: none !important;
-        }
-
-        /* 2. 이름 칸(td-name)은 3행 병합이므로 하단 테두리가 있어야 다음 사람과 구분됨 */
-        .matrix-table td.td-name {
-            border-bottom: 1px solid var(--border-dark) !important;
-        }
-
-        /* 3. 사유행 하단에 굵은 구분선 추가 (직원 단위 구분) */
-        .employee-border-bottom td {
-            border-bottom: 1px solid var(--border-dark) !important;
-        }
-
-        /* -------------------------------------------
-Holiday Modal Styles
-------------------------------------------- */
-        .year-select {
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 14px;
-            background-color: white;
-            cursor: pointer;
-        }
-
-        .fetch-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            flex: 1;
-            background-color: #f0f4ff;
-            color: #4f46e5;
-            border: 1px solid #4f46e5;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .fetch-btn:hover {
-            background-color: #4f46e5;
-            color: white;
-        }
-
-        .loader {
-            width: 14px;
-            height: 14px;
-            border: 2px solid #4f46e5;
-            border-bottom-color: transparent;
-            border-radius: 50%;
-            display: inline-block;
-            box-sizing: border-box;
-            animation: rotation 1s linear infinite;
-        }
-
-        .fetch-btn:hover .loader {
-            border-color: white;
-            border-bottom-color: transparent;
-        }
-
-        @keyframes rotation {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .confirmed-cell {
-            color: #000 !important;
-            background-color: #ecfdf5 !important;
-        }
-
-        .anomaly-highlight {
-            background-color: #fca5a5 !important;
-            /* darker red */
-        }
-
-        .modal-divider {
-            margin: 20px 0 10px;
-            font-size: 13px;
-            color: #666;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .modal-divider span {
-            background-color: white;
-            padding: 0 10px;
-        }
-
-        .holiday-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background-color: white;
-            padding: 8px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            margin-bottom: 6px;
-        }
-
-        .holiday-item>div {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .holiday-date {
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .holiday-name {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .remove-holiday-btn {
-            background: none;
-            border: none;
-            color: #ef4444;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0 0.25rem;
-            line-height: 1;
-            transition: color 0.2s;
-        }
-
-        .remove-holiday-btn:hover {
-            color: #b91c1c;
-        }
-
-        /* -------------------------------------------
-Print Styles (@media print)
-------------------------------------------- */
-        @media print {
-            @page {
-                size: A4 portrait;
-                margin: 0;
-            }
-
-            body {
-                background-color: white;
-                padding: 0;
-            }
-
-            .no-print {
-                display: none !important;
-            }
-
-            #report-container {
-                max-width: 100%;
-                margin: 0;
-                padding: 0;
-            }
-
-            .report-page {
-                width: 100%;
-                min-height: 100%;
-                padding: 10mm;
-                margin: 0;
-                box-shadow: none;
-                border-radius: 0;
-                page-break-after: always;
-                overflow: visible;
-            }
-
-            .report-page:last-child {
-                page-break-after: auto;
-            }
-
-            /* 인쇄 시 테두리 강제 설정 */
-            .matrix-table {
-                border-bottom: 1px solid #333 !important;
-            }
-
-            .approval-table th,
-            .approval-table td,
-            .matrix-table th,
-            .matrix-table td {
-                border: 1px solid #333 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            /* 인쇄 시에도 출근/퇴근행 사이 테두리 제거 유지 */
-            .matrix-table tbody tr.internal-row td {
-                border-bottom: none !important;
-            }
-
-            .matrix-table tbody tr.internal-row+tr td {
-                border-top: none !important;
-            }
-
-            /* 인쇄 시 이름 칸 하단 테두리 유지 */
-            .matrix-table td.td-name {
-                border-bottom: 1px solid #333 !important;
-            }
-
-            .matrix-table th,
-            .td-name,
-            .approval-table th {
-                background-color: #f3f4f6 !important;
-            }
-        }
-
-        .shift-date-btn,
-        .force-in-btn {
-            background-color: #f3f4f6;
-            color: #374151;
-            border: 1px solid #d1d5db;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .shift-date-btn:hover,
-        .force-in-btn:hover {
-            background-color: #e5e7eb;
-        }
-
-        .shift-date-btn.active,
-        .force-in-btn.active {
-            background-color: #374151;
-            color: white;
-            border-color: #374151;
-        }
-
-
-
-        /* [최종수정] 데이터 검증 및 사원 명단 모달 넓은 고정 크기 유지 */
-        #verify-modal .modal-content,
-        #employee-modal .modal-content {
-            width: 1200px !important;
-            max-width: 95vw !important;
-            height: 80vh !important;
-            max-height: 90vh !important;
-            display: flex !important;
-            flex-direction: column !important;
-            overflow: hidden !important;
-        }
-
-        #verify-modal .modal-content>div:not(.modal-header),
-        #employee-modal .modal-content>div:not(.modal-header) {
-            display: flex !important;
-            flex-direction: column !important;
-            padding: 1.5rem !important;
-            height: calc(100% - 60px) !important;
-            overflow: hidden !important;
-        }
-
-        #employee-modal .employee-manager-section {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-
-        #employee-modal .employee-list-container {
-            max-height: none !important;
-            flex: 1;
-            overflow-y: auto !important;
-        }
-
-        #verify-modal .verify-table-container {
-            max-height: none !important;
-            height: 100% !important;
-            flex: 1;
-            overflow-y: auto !important;
-            overflow-x: auto !important;
-        }
-
-        /* 표 내부 글자들이 너무 좁아 찌그러지지 않도록 튼튼하게 보호 */
-        .verify-table {
-            width: 100%;
-            table-layout: auto;
-            min-width: 1000px;
-        }
-
-        .verify-table th,
-        .verify-table td {
-            padding: 10px 8px;
-            word-break: keep-all;
-        }
-
-        .verify-table th:nth-child(4),
-        .verify-table td:nth-child(4) {
-            min-width: 110px;
-        }
-
-        .verify-table td.anomaly-reason {
-            min-width: 250px;
-            word-break: keep-all;
-        }
-
-        .verify-table td .manual-reason-input {
-            min-width: 200px;
-            width: 100%;
-        }
-
-        /* Admin Login Overlay */
-        #admin-login-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .login-card {
-            background: white;
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        .login-card h2 {
-            margin-bottom: 0.5rem;
-            color: var(--text-main);
-            font-weight: 700;
-        }
-
-        .login-card p {
-            color: var(--text-muted);
-            margin-bottom: 2rem;
-            font-size: 0.9rem;
-        }
-
-        .login-input-group {
-            text-align: left;
-            margin-bottom: 1.25rem;
-        }
-
-        .login-input-group label {
-            display: block;
-            font-size: 0.85rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text-main);
-        }
-
-        .login-input-group input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.2s;
-        }
-
-        .login-input-group input:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-        }
-
-        .login-btn {
-            width: 100%;
-            padding: 0.875rem;
-            background: var(--primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            margin-top: 1rem;
-        }
-
-        .login-btn:hover {
-            background: var(--primary-hover);
-        }
-
-        .login-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
+        /* login overlay — index.html에서 처리 */
 
         #main-dashboard-wrap {
-            display: none; /* Hide until auth */
+            display: none;
         }
+
+        /* 인쇄 스타일 — style.css의 @page / @media print 에서 처리 */
+        /* matrix-table은 화면에서만 max-content, 인쇄 시 style.css가 100% 오버라이드 */
     </style>
     <!-- Include SheetJS (xlsx) from CDN for in-browser Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 
 <body>
-    <!-- Admin Login Overlay -->
-    <div id="admin-login-overlay">
-        <div class="login-card">
-            <h2>관리자 로그인</h2>
-            <p>대시보드 접속을 위해 관리자 정보를 입력해주세요.</p>
-            <div class="login-input-group">
-                <label for="admin-name-input">성함</label>
-                <input type="text" id="admin-name-input" placeholder="성함을 입력하세요">
-            </div>
-            <div class="login-input-group">
-                <label for="admin-pin-input">확인코드 (PIN)</label>
-                <input type="password" id="admin-pin-input" maxlength="4" placeholder="••••">
-            </div>
-            <button id="admin-login-btn" class="login-btn">로그인</button>
-            <div id="login-error-msg" style="color: #ef4444; font-size: 0.85rem; margin-top: 1rem; display: none;">
-                일치하는 관리자 정보가 없습니다.
-            </div>
-        </div>
-    </div>
-
-    <div id="main-dashboard-wrap">
+    <script>
+        // Session Check — index.html에서 로그인 후 is_admin=true인 경우만 접근 허용
+        (function () {
+            const isAdmin = sessionStorage.getItem('attendance_user_is_admin') === 'true';
+            const name = localStorage.getItem('attendance_user_name');
+            const pin = localStorage.getItem('attendance_user_pin');
+            if (!isAdmin || !name || !pin) {
+                location.href = 'index.html';
+            }
+        })();
+    </script>
+    <div id="main-dashboard-wrap" style="display:block;">
         <div id="ui-container" class="no-print">
-        <header>
-            <h1>DOW 근태 보고서</h1>
-            <p>출퇴근 엑셀 데이터를 올려 프리미엄 매트릭스 보고서를 만들어 보세요.</p>
-        </header>
+            <header>
+                <h1>DOW 근태 보고서</h1>
+                <p>출퇴근 엑셀 데이터를 올려 프리미엄 매트릭스 보고서를 만들어 보세요.</p>
+            </header>
 
-        <main>
-            <div class="drop-zone-container">
-                <!-- 출퇴근 기록 통합 업로드 -->
-                <div class="upload-card">
-                    <div class="card-header">
-                        <div class="step-badge">1</div>
-                        <div class="step-title">출퇴근 기록 (여러 개 가능)</div>
-                    </div>
-                    <div id="drop-zone-attendance" class="drop-zone">
-                        <div class="drop-text">출퇴근 엑셀 파일들을 드래그하거나 클릭하여 업로드</div>
-                        <div class="drop-subtext">여러 파일을 한 번에 올릴 수 있습니다</div>
-                        <input type="file" id="file-input-attendance" accept=".xlsx, .xls, .csv" multiple hidden>
-                    </div>
-                    <div id="file-list-attendance" class="file-list">
-                        <!-- 업로드된 파일 목록 표시 -->
-                    </div>
-                </div>
-
-                <!-- 휴가/연차 내역 업로드 -->
-                <div class="upload-card">
-                    <div class="card-header">
-                        <div class="step-badge">2</div>
-                        <div class="step-title">휴가/연차 내역</div>
-                    </div>
-                    <div id="drop-zone-leave" class="drop-zone">
-                        <div class="drop-text">휴가 사용 내역 엑셀 업로드</div>
-                        <div class="drop-subtext">여러 파일을 한 번에 올릴 수 있습니다</div>
-                        <input type="file" id="file-input-leave" accept=".xlsx, .xls, .csv" multiple hidden>
-                    </div>
-                    <div id="file-list-leave" class="file-list">
-                        <!-- 업로드된 파일 목록 표시 -->
-                    </div>
-                </div>
-            </div>
-
-            <div class="controls-container no-print">
-                <div class="control-group" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
-                    <!-- Quick Select Group -->
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; width: 100%;">
-                        <input type="month" id="quick-month-select"
-                            style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1; min-width: 0;">
-                        <button id="quick-first-half-btn" type="button"
-                            style="padding: 0.45rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;">
-                            상반월(1~15)
-                        </button>
-                        <button id="quick-second-half-btn" type="button"
-                            style="padding: 0.45rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;">
-                            하반월(16~말)
-                        </button>
-                    </div>
-
-                    <!-- Date Inputs Group -->
-                    <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <label for="report-date-input" style="min-width: 60px; font-weight: 500;">보고일자</label>
-                            <input type="date" id="report-date-input" max="9999-12-31"
-                                style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+            <main>
+                <div class="drop-zone-container">
+                    <!-- 출퇴근 기록 통합 업로드 -->
+                    <div class="upload-card">
+                        <div class="card-header">
+                            <div class="step-badge">1</div>
+                            <div class="step-title">출퇴근 기록 (여러 개 가능)</div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <label for="report-period-start" style="min-width: 60px; font-weight: 500;">시작일자</label>
-                            <input type="date" id="report-period-start" max="9999-12-31"
-                                style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                        <div id="drop-zone-attendance" class="drop-zone">
+                            <div class="drop-text">출퇴근 엑셀 파일들을 드래그하거나 클릭하여 업로드</div>
+                            <div class="drop-subtext">여러 파일을 한 번에 올릴 수 있습니다</div>
+                            <input type="file" id="file-input-attendance" accept=".xlsx, .xls, .csv" multiple hidden>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <label for="report-period-end" style="min-width: 60px; font-weight: 500;">종료일자</label>
-                            <input type="date" id="report-period-end" max="9999-12-31"
-                                style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                        <div id="file-list-attendance" class="file-list">
+                            <!-- 업로드된 파일 목록 표시 -->
+                        </div>
+                    </div>
+
+                    <!-- 휴가/연차 내역 업로드 -->
+                    <div class="upload-card">
+                        <div class="card-header">
+                            <div class="step-badge">2</div>
+                            <div class="step-title">휴가/연차 내역</div>
+                        </div>
+                        <div id="drop-zone-leave" class="drop-zone">
+                            <div class="drop-text">휴가 사용 내역 엑셀 업로드</div>
+                            <div class="drop-subtext">여러 파일을 한 번에 올릴 수 있습니다</div>
+                            <input type="file" id="file-input-leave" accept=".xlsx, .xls, .csv" multiple hidden>
+                        </div>
+                        <div id="file-list-leave" class="file-list">
+                            <!-- 업로드된 파일 목록 표시 -->
                         </div>
                     </div>
                 </div>
-                <div class="middle-controls">
-                    <div class="settings-group">
-                        <button id="open-manager-btn" class="secondary-btn">
-                            사원 관리
+
+                <div class="controls-container no-print">
+                    <div class="control-group" style="flex-direction: column; align-items: flex-start; gap: 0.75rem;">
+                        <!-- Quick Select Group -->
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: nowrap; width: 100%;">
+                            <input type="month" id="quick-month-select"
+                                style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1; min-width: 0;">
+                            <button id="quick-first-half-btn" type="button"
+                                style="padding: 0.45rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;">
+                                상반월(1~15)
+                            </button>
+                            <button id="quick-second-half-btn" type="button"
+                                style="padding: 0.45rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px; background: white; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; white-space: nowrap;">
+                                하반월(16~말)
+                            </button>
+                        </div>
+
+                        <!-- Date Inputs Group -->
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <label for="report-date-input" style="min-width: 60px; font-weight: 500;">보고일자</label>
+                                <input type="date" id="report-date-input" max="9999-12-31"
+                                    style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <label for="report-period-start" style="min-width: 60px; font-weight: 500;">시작일자</label>
+                                <input type="date" id="report-period-start" max="9999-12-31"
+                                    style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <label for="report-period-end" style="min-width: 60px; font-weight: 500;">종료일자</label>
+                                <input type="date" id="report-period-end" max="9999-12-31"
+                                    style="padding: 0.45rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.85rem; flex: 1;">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 왼쪽 4버튼 -->
+                    <div class="middle-controls">
+                        <div class="settings-group" style="flex: 1; align-self: stretch;">
+                            <button id="open-manager-btn" class="secondary-btn" style="flex: 1;">
+                                사원 관리
+                            </button>
+                            <button id="open-holiday-btn" class="secondary-btn"
+                                style="flex: 1; color: #6366f1; background: #f5f3ff; border-color: #ddd6fe;">
+                                공휴일 설정
+                            </button>
+                            <button id="highlight-anomaly-btn" class="secondary-btn"
+                                style="flex: 1; color: #e11d48; background: #fff1f2; border-color: #fecdd3;">
+                                이상 근태 표시
+                            </button>
+                            <button id="verify-data-btn" class="secondary-btn"
+                                style="flex: 1; color: #f97316; background: #fff7ed; border-color: #fed7aa;">
+                                근태 내역 조정
+                            </button>
+                        </div>
+                    </div>
+                    <!-- 오른쪽 4버튼 -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; align-self: stretch;">
+                        <button id="cloud-fetch-all-btn" class="primary-btn"
+                            style="flex: 1; background-color: #0d9488; font-size: 0.9rem;">
+                            클라우드 데이터 불러오기
                         </button>
-                        <button id="open-holiday-btn" class="secondary-btn"
-                            style="color: #6366f1; background: #f5f3ff; border-color: #ddd6fe;">
-                            공휴일 설정
+                        <button id="print-btn" class="primary-btn"
+                            style="flex: 1; background-color: #0d5e94; font-size: 0.9rem;">
+                            보고서 인쇄 및 PDF 저장
                         </button>
-                        <button id="highlight-anomaly-btn" class="secondary-btn"
-                            style="color: #e11d48; background: #fff1f2; border-color: #fecdd3;">
-                            이상 근태 표시
+                        <button onclick="location.href='supplement.html'" class="secondary-btn"
+                            style="flex: 1; background: #f0fdf4; color: #166534; border-color: #bbf7d0;">
+                            직원전용 페이지
+                        </button>
+                        <button id="logout-btn" class="secondary-btn"
+                            style="flex: 1; color: #6b7280; border-color: #e5e7eb;">
+                            로그아웃
                         </button>
                     </div>
-                    <button id="verify-data-btn" class="secondary-btn"
-                        style="color: #f97316; background: #fff7ed; border-color: #fed7aa; display: flex; flex-direction: column; justify-content: center; gap: 8px;">
-                        근태 내역 조정
-                    </button>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+            </main>
+        </div>
 
-                    <button id="cloud-fetch-all-btn" class="primary-btn"
-                        style="background-color: #0d9488; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                        클라우드 데이터 불러오기
-                    </button>
-                    <button id="print-btn" class="primary-btn"
-                        style="background-color: #0d5e94; font-size: 0.9rem; padding: 0.5rem 1rem;">
-                        보고서 인쇄 및 PDF 저장
-                    </button>
-                    <button id="logout-btn" class="secondary-btn"
-                        style="font-size: 0.8rem; padding: 0.4rem; color: #6b7280; border-color: #e5e7eb; margin-top: 0.5rem;">
-                        로그아웃
-                    </button>
-                </div>
-            </div>
-        </main>
-    </div>
+        <!-- The Report Layout (Printable Area, Multi-Page Support) -->
+        <div id="report-container" class="report-container hidden">
+            <!-- Dynamic Tables will be injected here via JS -->
+        </div>
 
-    <!-- The Report Layout (Printable Area, Multi-Page Support) -->
-    <div id="report-container" class="report-container hidden">
-        <!-- Dynamic Tables will be injected here via JS -->
-    </div>
-
-    <!-- Employee Manager Modal -->
-    <div id="employee-modal" class="modal hidden no-print">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>사원 명단 관리</h2>
-                <div style="display: flex; gap: 8px;">
-                    <button id="fetch-employees-btn" class="secondary-btn"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
-                        ☁️ 클라우드 불러오기
-                    </button>
-                    <input type="file" id="upload-employee-file" accept=".xlsx,.xls,.csv" style="display: none;">
-                    <button id="upload-employee-btn" class="secondary-btn" type="button"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #3b82f6; color: #3b82f6; background: #eff6ff;">
-                        📁 엑셀 업로드
-                    </button>
-                    <button id="add-employee-btn" class="secondary-btn" type="button"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f5f3ff;">
-                        + 사원 추가
-                    </button>
-                    <button id="close-modal-btn" class="close-btn" style="margin-left: 8px;">&times;</button>
-                </div>
-            </div>
-            <div class="employee-manager-section">
-                <div class="employee-manager-scroll-wrapper">
-                    <div class="employee-manager-table-header">
-                        <span style="flex: 0 0 120px;">조직</span>
-                        <span style="flex: 0 0 100px;">사원명</span>
-                        <span style="flex: 0 0 100px;">직급</span>
-                        <span style="flex: 0 0 130px;">근무조</span>
-                        <span style="flex: 0 0 80px;">PIN</span>
-                        <span style="flex: 1 1 150px; min-width: 150px;">이메일</span>
-                        <span style="flex: 0 0 130px;">입사일</span>
-                        <span style="flex: 0 0 130px;">퇴사일</span>
-                        <span style="flex: 0 0 60px; text-align: center;">팀장</span>
-                        <span style="flex: 0 0 60px; text-align: center;">관리자</span>
-                        <span style="flex: 0 0 40px; text-align: center;"></span>
-                    </div>
-                    <div id="employee-list-container" class="employee-list-container">
-                        <!-- Rows injected via JS -->
+        <!-- Employee Manager Modal -->
+        <div id="employee-modal" class="modal hidden no-print">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>사원 명단 관리</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="fetch-employees-btn" class="secondary-btn"
+                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
+                            ☁️ 클라우드 불러오기
+                        </button>
+                        <input type="file" id="upload-employee-file" accept=".xlsx,.xls,.csv" style="display: none;">
+                        <button id="upload-employee-btn" class="secondary-btn" type="button"
+                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #3b82f6; color: #3b82f6; background: #eff6ff;">
+                            📁 엑셀 업로드
+                        </button>
+                        <button id="add-employee-btn" class="secondary-btn" type="button"
+                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f5f3ff;">
+                            + 사원 추가
+                        </button>
+                        <button id="close-modal-btn" class="close-btn" style="margin-left: 8px;">&times;</button>
                     </div>
                 </div>
-                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.5rem; display: block;">위 순서대로 보고서에 출력됩니다
-                    (조직, 입/퇴사일은 화면 관리용이며 보고서 표에는 인쇄되지 않습니다).</small>
-                <div style="display: flex; justify-content: center; margin-top: 1.5rem; gap: 1rem;">
-                    <button id="save-employee-btn" class="primary-btn" style="flex: 1; justify-content: center;">로컬
-                        적용</button>
-                    <button id="sync-employees-btn" class="primary-btn"
-                        style="flex: 1; justify-content: center; background-color: #059669;">클라우드 저장 및 적용</button>
+                <div class="employee-manager-section">
+                    <div class="employee-manager-scroll-wrapper">
+                        <div class="employee-manager-table-header">
+                            <span style="flex: 0 0 120px;">조직</span>
+                            <span style="flex: 0 0 100px;">사원명</span>
+                            <span style="flex: 0 0 100px;">직급</span>
+                            <span style="flex: 0 0 130px;">근무조</span>
+                            <span style="flex: 0 0 80px;">PIN</span>
+                            <span style="flex: 1 1 150px; min-width: 150px;">이메일</span>
+                            <span style="flex: 0 0 130px;">입사일</span>
+                            <span style="flex: 0 0 130px;">퇴사일</span>
+                            <span style="flex: 0 0 60px; text-align: center;">팀장</span>
+                            <span style="flex: 0 0 60px; text-align: center;">관리자</span>
+                            <span style="flex: 0 0 40px; text-align: center;"></span>
+                        </div>
+                        <div id="employee-list-container" class="employee-list-container">
+                            <!-- Rows injected via JS -->
+                        </div>
+                    </div>
+                    <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.5rem; display: block;">위 순서대로 보고서에
+                        출력됩니다
+                        (조직, 입/퇴사일은 화면 관리용이며 보고서 표에는 인쇄되지 않습니다).</small>
+                    <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
+                        <button id="sync-employees-btn" class="primary-btn"
+                            style="width: 100%; justify-content: center; background-color: #059669;">클라우드 저장 및
+                            적용</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Verification Modal -->
-    <div id="verify-modal" class="modal hidden no-print">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>근태 내역 조정 결과</h2>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <button id="bulk-confirm-btn" class="secondary-btn"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #f97316; color: #f97316; background: #fff7ed;">
-                        선택 항목 일괄 확인
-                    </button>
-                    <button id="bulk-unconfirm-btn" class="secondary-btn"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #6b7280; color: #6b7280; background: #f3f4f6;">
-                        선택 항목 확인 해제
-                    </button>
-                    <div style="width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px;"></div>
-                    <button id="sync-to-cloud-btn" class="secondary-btn" title="선택한 내역을 사원 보완 등록 페이지로 전송"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f0f9ff;">
-                        보완 요청 전송
-                    </button>
-                    <button id="send-mailto-btn" class="secondary-btn" title="기본 메일 클라이언트를 열어 발송합니다"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #8b5cf6; color: #8b5cf6; background: #f5f3ff;">
-                        메일 임시 발송
-                    </button>
-                    <button id="fetch-from-cloud-btn" class="secondary-btn" title="사원이 입력한 보완 내역 가져오기"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #10b981; color: #10b981; background: #f0fdf4;">
-                        보완 사유 읽기
-                    </button>
-                    <button id="reset-all-data-btn" class="secondary-btn" title="모든 수동 조치 및 소명 내역을 삭제합니다"
-                        style="padding: 4px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: #fef2f2;">
-                        전체 초기화
-                    </button>
-                    <button id="close-verify-btn" class="close-btn">&times;</button>
+        <!-- Verification Modal -->
+        <div id="verify-modal" class="modal hidden no-print">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>근태 내역 조정 결과</h2>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button id="bulk-confirm-btn" class="secondary-btn"
+                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #f97316; color: #f97316; background: #fff7ed;">
+                            선택 항목 일괄 확인
+                        </button>
+                        <button id="bulk-unconfirm-btn" class="secondary-btn"
+                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #6b7280; color: #6b7280; background: #f3f4f6;">
+                            선택 항목 확인 해제
+                        </button>
+                        <div style="width: 1px; height: 20px; background: #e5e7eb; margin: 0 4px;"></div>
+                        <button id="sync-to-cloud-btn" class="secondary-btn" title="선택한 내역을 사원 보완 등록 페이지로 전송"
+                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #4f46e5; color: #4f46e5; background: #f0f9ff;">
+                            보완 요청 전송
+                        </button>
+
+
+                        <button id="reset-all-data-btn" class="secondary-btn" title="모든 수동 조치 및 소명 내역을 삭제합니다"
+                            style="padding: 4px 12px; font-size: 0.85rem; border-color: #ef4444; color: #ef4444; background: #fef2f2;">
+                            전체 초기화
+                        </button>
+                        <button id="close-verify-btn" class="close-btn">&times;</button>
+                    </div>
+                </div>
+                <div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; margin-top: -0.5rem;">
+                        <p style="font-size: 0.85rem; color: #6b7280; margin: 0;">근무조 기준 시간과 실제 출퇴근 시간을 비교하여 지각 및 조기 퇴근
+                            내역을
+                            보여줍니다.</p>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <label for="verify-group-select" style="font-size: 0.85rem; color: #374151;">모아보기:</label>
+                            <select id="verify-group-select"
+                                style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; background: white;">
+                                <option value="none">전체 보기 (기본)</option>
+                                <option value="date">일자별</option>
+                                <option value="name">사원별</option>
+                                <option value="reason">이상사유별</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- 수동 조치 사유 추천 목록 -->
+                    <datalist id="manual-reason-list">
+                        <option value="생일자">
+                        <option value="연차">
+                        <option value="반차">
+                        <option value="오전반차">
+                        <option value="오후반차">
+                        <option value="공가">
+                        <option value="경조">
+                        <option value="조퇴">
+                        <option value="외근">
+                        <option value="출장">
+                    </datalist>
+
+                    <div class="verify-table-container"
+                        style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0 0.5rem 0.5rem 0.5rem; background: #f9fafb; position: relative;">
+                        <table class="verify-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"><input type="checkbox" id="verify-all-checkbox"></th>
+                                    <th>일자</th>
+                                    <th>이름</th>
+                                    <th>근무조</th>
+                                    <th>출근/퇴근</th>
+                                    <th>이상 사유</th>
+                                    <th style="width: 120px;">사원 보완 사유</th>
+                                    <th style="width: 150px;">조치 사유</th>
+                                    <th style="width: 100px;">확인</th>
+                                </tr>
+                            </thead>
+                            <tbody id="verify-tbody">
+                                <!-- Verification results injected here via JS -->
+                            </tbody>
+                        </table>
+                        <div id="verify-empty-msg" class="hidden"
+                            style="text-align: center; padding: 2.5rem; color: #10b981; font-weight: 600;">
+                            모든 직원의 출퇴근 기록이 정상입니다!
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div>
-                <div
-                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; margin-top: -0.5rem;">
-                    <p style="font-size: 0.85rem; color: #6b7280; margin: 0;">근무조 기준 시간과 실제 출퇴근 시간을 비교하여 지각 및 조기 퇴근 내역을
-                        보여줍니다.</p>
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <label for="verify-group-select" style="font-size: 0.85rem; color: #374151;">모아보기:</label>
-                        <select id="verify-group-select"
-                            style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; background: white;">
-                            <option value="none">전체 보기 (기본)</option>
-                            <option value="date">일자별</option>
-                            <option value="name">사원별</option>
-                            <option value="reason">이상사유별</option>
+        </div>
+
+        <!-- Holiday Manager Modal -->
+        <div id="holiday-modal" class="modal hidden no-print">
+            <div class="modal-content" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>공휴일/휴무일 관리</h2>
+                    <button id="close-holiday-modal-btn" class="close-btn">&times;</button>
+                </div>
+                <div class="holiday-manager-section">
+                    <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="date" id="new-holiday-date"
+                            style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                        <button id="add-holiday-btn" class="secondary-btn" style="padding: 0.4rem 0.8rem;">수동
+                            추가</button>
+                    </div>
+                    <div class="modal-divider"
+                        style="margin: 1rem 0; font-size: 0.85rem; color: #6b7280; text-align: center; border-bottom: 1px solid #eee; line-height: 0.1em;">
+                        <span style="background:#fff; padding:0 10px;">또는 공휴일 자동 호출</span>
+                    </div>
+                    <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <select id="holiday-year-select" class="year-select"
+                            style="flex: 1; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <option value="2024">2024년</option>
+                            <option value="2025">2025년</option>
+                            <option value="2026" selected>2026년</option>
+                            <option value="2027">2027년</option>
+                            <option value="2028">2028년</option>
+                            <option value="2029">2029년</option>
+                            <option value="2030">2030년</option>
                         </select>
+                        <button id="auto-fetch-holiday-btn" class="fetch-btn" style="padding: 0.4rem 0.8rem;">
+                            <span class="btn-text">데이터 가져오기</span>
+                            <span class="loader hidden"></span>
+                        </button>
                     </div>
-                </div>
-                <!-- 수동 조치 사유 추천 목록 -->
-                <datalist id="manual-reason-list">
-                    <option value="생일자">
-                    <option value="연차">
-                    <option value="반차">
-                    <option value="오전반차">
-                    <option value="오후반차">
-                    <option value="공가">
-                    <option value="경조">
-                    <option value="조퇴">
-                    <option value="외근">
-                    <option value="출장">
-                </datalist>
-
-                <div class="verify-table-container"
-                    style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0 0.5rem 0.5rem 0.5rem; background: #f9fafb; position: relative;">
-                    <table class="verify-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;"><input type="checkbox" id="verify-all-checkbox"></th>
-                                <th>일자</th>
-                                <th>이름</th>
-                                <th>근무조</th>
-                                <th>출근/퇴근</th>
-                                <th>이상 사유</th>
-                                <th style="width: 120px;">사원 보완 사유</th>
-                                <th style="width: 150px;">조치 사유</th>
-                                <th style="width: 100px;">확인</th>
-                            </tr>
-                        </thead>
-                        <tbody id="verify-tbody">
-                            <!-- Verification results injected here via JS -->
-                        </tbody>
-                    </table>
-                    <div id="verify-empty-msg" class="hidden"
-                        style="text-align: center; padding: 2.5rem; color: #10b981; font-weight: 600;">
-                        모든 직원의 출퇴근 기록이 정상입니다!
+                    <div id="holiday-list-container" class="holiday-list-container"
+                        style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #f9fafb;">
+                        <!-- Holiday items injected via JS -->
+                    </div>
+                    <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">가져오기 버튼을 누르면 2024~2030년 법정 공휴일을
+                        자동으로
+                        불러옵니다.</p>
+                    <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
+                        <button id="save-holiday-btn" class="primary-btn"
+                            style="width: 100%; justify-content: center;">공휴일
+                            설정 저장</button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </div><!-- /#main-dashboard-wrap -->
 
-    <!-- Holiday Manager Modal -->
-    <div id="holiday-modal" class="modal hidden no-print">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2>공휴일/휴무일 관리</h2>
-                <button id="close-holiday-modal-btn" class="close-btn">&times;</button>
-            </div>
-            <div class="holiday-manager-section">
-                <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                    <input type="date" id="new-holiday-date"
-                        style="padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                    <button id="add-holiday-btn" class="secondary-btn" style="padding: 0.4rem 0.8rem;">수동 추가</button>
-                </div>
-                <div class="modal-divider"
-                    style="margin: 1rem 0; font-size: 0.85rem; color: #6b7280; text-align: center; border-bottom: 1px solid #eee; line-height: 0.1em;">
-                    <span style="background:#fff; padding:0 10px;">또는 공휴일 자동 호출</span>
-                </div>
-                <div class="modal-input-group" style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-                    <select id="holiday-year-select" class="year-select"
-                        style="flex: 1; padding: 0.4rem; border: 1px solid var(--border-color); border-radius: 4px;">
-                        <option value="2024">2024년</option>
-                        <option value="2025">2025년</option>
-                        <option value="2026" selected>2026년</option>
-                        <option value="2027">2027년</option>
-                        <option value="2028">2028년</option>
-                        <option value="2029">2029년</option>
-                        <option value="2030">2030년</option>
-                    </select>
-                    <button id="auto-fetch-holiday-btn" class="fetch-btn" style="padding: 0.4rem 0.8rem;">
-                        <span class="btn-text">데이터 가져오기</span>
-                        <span class="loader hidden"></span>
-                    </button>
-                </div>
-                <div id="holiday-list-container" class="holiday-list-container"
-                    style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.5rem; background: #f9fafb;">
-                    <!-- Holiday items injected via JS -->
-                </div>
-                <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">가져오기 버튼을 누르면 2024~2030년 법정 공휴일을 자동으로
-                    불러옵니다.</p>
-                <div style="display: flex; justify-content: center; margin-top: 1.5rem;">
-                    <button id="save-holiday-btn" class="primary-btn" style="width: 100%; justify-content: center;">공휴일
-                        설정 저장</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mail Queue Modal -->
-    <div id="mail-queue-modal" class="modal hidden no-print">
-        <div class="modal-content" style="max-width: 500px;">
-            <div class="modal-header">
-                <h2>메일 발송 대기열</h2>
-                <div style="display: flex; gap: 8px;">
-                    <button id="close-mail-queue-btn" class="close-btn">&times;</button>
-                </div>
-            </div>
-            <div style="padding: 1rem;">
-                <div
-                    style="background: #f0f9ff; border: 1px solid #bae6fd; padding: 12px; border-radius: 8px; margin-bottom: 1.5rem;">
-                    <p style="font-size: 0.85rem; color: #0369a1; margin-bottom: 8px; font-weight: 600;">⚡ 빠른 일괄 발송 (추천)
-                    </p>
-                    <p style="font-size: 0.8rem; color: #0c4a6e; margin-bottom: 12px; line-height: 1.3;">
-                        모든 대상자에게 <strong>공통 안내 내용</strong>으로 메일을 한 번에 보냅니다.<br>
-                        개별 날짜/사유는 포함되지 않지만 가장 빠릅니다. (숨은 참조 이용)
-                    </p>
-                    <button id="mail-batch-bcc-btn" class="primary-btn"
-                        style="width: 100%; border-radius: 6px; background: #0ea5e9;">
-                        📧 공통 내용으로 한 번에 발송
-                    </button>
-                </div>
-
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 1rem;">
-                    <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
-                    <span style="font-size: 0.75rem; color: #9ca3af; white-space: nowrap;">또는 개별 상세 발송</span>
-                    <div style="flex: 1; height: 1px; background: #e5e7eb;"></div>
-                </div>
-
-                <p style="font-size: 0.8rem; color: #6b7280; margin-bottom: 1rem; line-height: 1.4;">
-                    각 사원별로 <strong>상세 날짜/사유</strong>를 포함하려면 아래 버튼을 각각 눌러주세요.
-                </p>
-                <div id="mail-queue-list"
-                    style="max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;">
-                    <!-- Queue items injected here -->
-                </div>
-            </div>
-            <div
-                style="padding: 1.5rem; text-align: center; border-top: 1px solid var(--border-color); background: #f9fafb; border-radius: 0 0 16px 16px;">
-                <button id="mail-queue-done-btn" class="primary-btn" style="width: 100%; justify-content: center;">완료 및
-                    닫기</button>
-            </div>
-        </div>
-    </div>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // [설정] Supabase 연동 정보 (사용자가 직접 입력 필요)
@@ -1550,119 +415,18 @@ Print Styles (@media print)
 
             if (SUPABASE_URL && SUPABASE_KEY) {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                // [추가] 관리자 세션 체크
-                checkAdminSession();
-                loadAllInitialData();
+                // loadAllInitialData()는 모든 변수 선언 후 하단에서 호출
             }
 
             // [추가] 관리자 세션 처리 함수
-            function checkAdminSession() {
-                const session = localStorage.getItem('admin_session');
-                const overlay = document.getElementById('admin-login-overlay');
-                const wrapper = document.getElementById('main-dashboard-wrap');
-                
-                if (session) {
-                    const auth = JSON.parse(session);
-                    const now = new Date().getTime();
-                    // 24시간 세션 유지
-                    if (now - auth.timestamp < 24 * 60 * 60 * 1000) {
-                        overlay.style.display = 'none';
-                        wrapper.style.display = 'block';
-                        return;
-                    }
-                }
-                overlay.style.display = 'flex';
-                wrapper.style.display = 'none';
-            }
 
-            async function handleAdminLogin() {
-                const nameInput = document.getElementById('admin-name-input');
-                const pinInput = document.getElementById('admin-pin-input');
-                const loginBtn = document.getElementById('admin-login-btn');
-                const errorMsg = document.getElementById('login-error-msg');
-                
-                const name = normalizeName(nameInput.value);
-                const pin = pinInput.value;
-
-                if (!name || pin.length !== 4) {
-                    alert('성함과 4자리 PIN을 올바르게 입력해주세요.');
-                    return;
-                }
-
-                loginBtn.disabled = true;
-                loginBtn.textContent = '인증 중...';
-                errorMsg.style.display = 'none';
-
-                try {
-                    // 1. 관리자가 한 명도 없는지 확인 (최초 설정용)
-                    const { count, error: countError } = await supabase
-                        .from('employees')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('is_admin', true);
-                    
-                    if (countError) throw countError;
-
-                    let isAuthorized = false;
-
-                    if (count === 0) {
-                        // 관리자가 한 명도 없으면, 유효한 사원 정보이기만 하면 첫 관리자로 승격 및 로그인 허용
-                        const { data: emp, error: empError } = await supabase
-                            .from('employees')
-                            .select('*')
-                            .eq('name', name)
-                            .eq('pin', pin)
-                            .maybeSingle();
-                        
-                        if (empError) throw empError;
-                        if (emp) {
-                            if (confirm(`${name}님, 아직 등록된 관리자가 없습니다. 첫 관리자로 등록하고 접속하시겠습니까?`)) {
-                                await supabase.from('employees').update({ is_admin: true }).eq('name', name).eq('pin', pin);
-                                isAuthorized = true;
-                            }
-                        }
-                    } else {
-                        // 일반적인 관리자 로그인 체크
-                        const { data: admin, error: authError } = await supabase
-                            .from('employees')
-                            .select('*')
-                            .eq('name', name)
-                            .eq('pin', pin)
-                            .eq('is_admin', true)
-                            .maybeSingle();
-
-                        if (authError) throw authError;
-                        if (admin) isAuthorized = true;
-                    }
-
-                    if (isAuthorized) {
-                        const sessionData = {
-                            name: name,
-                            timestamp: new Date().getTime()
-                        };
-                        localStorage.setItem('admin_session', JSON.stringify(sessionData));
-                        document.getElementById('admin-login-overlay').style.display = 'none';
-                        document.getElementById('main-dashboard-wrap').style.display = 'block';
-                    } else {
-                        errorMsg.style.display = 'block';
-                    }
-                } catch (err) {
-                    console.error('Admin Login Error:', err);
-                    alert('로그인 처리 중 오류가 발생했습니다: ' + err.message);
-                } finally {
-                    loginBtn.disabled = false;
-                    loginBtn.textContent = '로그인';
-                }
-            }
-
-            document.getElementById('admin-login-btn').onclick = handleAdminLogin;
-            document.getElementById('admin-pin-input').onkeypress = (e) => {
-                if (e.key === 'Enter') handleAdminLogin();
-            };
 
             document.getElementById('logout-btn').onclick = () => {
                 if (confirm('로그아웃 하시겠습니까?')) {
-                    localStorage.removeItem('admin_session');
-                    checkAdminSession();
+                    localStorage.removeItem('attendance_user_name');
+                    localStorage.removeItem('attendance_user_pin');
+                    sessionStorage.removeItem('attendance_user_is_admin');
+                    location.href = 'index.html';
                 }
             };
 
@@ -1696,6 +460,7 @@ Print Styles (@media print)
                     document.getElementById('report-date-input').value = now.toISOString().split('T')[0];
 
                     await fetchAllFromCloud(true); // 해당 기간 데이터 로드
+                    await cleanupOldSupplements();    // 30일 지난 processed 데이터 정리
                     console.log("Initial cloud sync complete.");
                 } catch (err) {
                     console.error("Initial sync failed:", err);
@@ -1717,7 +482,6 @@ Print Styles (@media print)
             const employeeModal = document.getElementById('employee-modal');
             const openManagerBtn = document.getElementById('open-manager-btn');
             const closeModalBtn = document.getElementById('close-modal-btn');
-            const saveEmployeeBtn = document.getElementById('save-employee-btn');
             const fetchEmployeesBtn = document.getElementById('fetch-employees-btn');
             const syncEmployeesBtn = document.getElementById('sync-employees-btn');
             const printBtn = document.getElementById('print-btn');
@@ -1730,14 +494,8 @@ Print Styles (@media print)
             const verifyEmptyMsg = document.getElementById('verify-empty-msg');
             const bulkUnconfirmBtn = document.getElementById('bulk-unconfirm-btn');
             const syncToCloudBtn = document.getElementById('sync-to-cloud-btn');
-            const fetchFromCloudBtn = document.getElementById('fetch-from-cloud-btn');
 
             // 메일 대기열 요소
-            const mailQueueModal = document.getElementById('mail-queue-modal');
-            const mailQueueList = document.getElementById('mail-queue-list');
-            const closeMailQueueBtn = document.getElementById('close-mail-queue-btn');
-            const mailQueueDoneBtn = document.getElementById('mail-queue-done-btn');
-            const mailBatchBccBtn = document.getElementById('mail-batch-bcc-btn');
 
             // 공휴일 관리 요소
             const openHolidayBtn = document.getElementById('open-holiday-btn');
@@ -1795,7 +553,6 @@ Print Styles (@media print)
             makeDraggable(employeeModal);
             makeDraggable(verifyModal);
             makeDraggable(holidayModal);
-            makeDraggable(mailQueueModal);
 
             // [추가] 수동 확인 데이터 (localStorage) - 오류 방지를 위해 try-catch 적용
             function getSafeJSON(key, defaultVal) {
@@ -1889,6 +646,9 @@ Print Styles (@media print)
             function isHoliday(dateStr) {
                 return holidayConfigList.some(h => h.date === dateStr);
             }
+
+            // 모든 변수 선언 완료 후 초기 데이터 로드 실행
+            if (supabase) loadAllInitialData();
 
             // 공휴일 관리 UI 렌더링
             function renderHolidayManager() {
@@ -2318,6 +1078,32 @@ Print Styles (@media print)
                 });
             }
 
+            // 30일 지난 processed 상태 attendance_supplements 자동 삭제
+            async function cleanupOldSupplements() {
+                if (!supabase) return;
+                try {
+                    const cutoff = new Date();
+                    cutoff.setDate(cutoff.getDate() - 30);
+                    const cutoffStr = cutoff.toISOString().split('T')[0];
+
+                    const { data: deleted, error } = await supabase
+                        .from('attendance_supplements')
+                        .delete()
+                        .eq('status', 'processed')
+                        .lt('date', cutoffStr)
+                        .select('id');
+
+                    if (error) {
+                        console.warn('[Cleanup] attendance_supplements 정리 실패:', error.message);
+                    } else if (deleted && deleted.length > 0) {
+                        console.log(`[Cleanup] 만료된 보완 기록 ${deleted.length}건 삭제 (기준: ${cutoffStr})`);
+                    }
+                } catch (e) {
+                    console.warn('[Cleanup] 오류:', e);
+                }
+            }
+
+
             async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false) {
                 if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
                 const currentMatrix = prebuiltMatrix || updateAndProcessData(true, ignorePeriod);
@@ -2357,13 +1143,18 @@ Print Styles (@media print)
                     if (!confirm(`현재 화면에 로드된 ${newRecords.length}건의 데이터를 클라우드에 백업하시겠습니까?\n(기존 동일 날짜 데이터는 업데이트됩니다)`)) return;
                 }
                 if (cloudFetchAllBtn) { cloudFetchAllBtn.disabled = true; cloudFetchAllBtn.textContent = "저장 중..."; }
+                // URL 길이 초과 방지: 100개씩 나눠서 기존 데이터 조회
                 const keys = newRecords.map(r => r.manager_key);
-                const { data: existingData } = await supabase
-                    .from('attendance_records')
-                    .select('manager_key, manager_reason, employee_explanation, early_punch_mode, status_in, status_out, status_leave, in_time, out_time, shift, reason')
-                    .in('manager_key', keys);
+                const CHUNK = 100;
                 const existingMap = {};
-                if (existingData) existingData.forEach(row => { existingMap[row.manager_key] = row; });
+                for (let i = 0; i < keys.length; i += CHUNK) {
+                    const chunk = keys.slice(i, i + CHUNK);
+                    const { data: chunkData } = await supabase
+                        .from('attendance_records')
+                        .select('manager_key, manager_reason, employee_explanation, early_punch_mode, status_in, status_out, status_leave, in_time, out_time, shift, reason')
+                        .in('manager_key', chunk);
+                    if (chunkData) chunkData.forEach(row => { existingMap[row.manager_key] = row; });
+                }
                 const toUpsert = newRecords.map(r => {
                     const ex = existingMap[r.manager_key];
                     if (!ex) return r;
@@ -2392,6 +1183,61 @@ Print Styles (@media print)
                         setTimeout(() => { cloudFetchAllBtn.disabled = false; cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기"; }, 3000);
                     }
                 }
+
+                // ── [자동] 이상근태 → attendance_anomalies 동시 저장 ──────────
+                try {
+                    const allData = [];
+                    attendanceFilesMap.forEach(data => allData.push(...data));
+                    const syncUniqueDates = new Set(Array.isArray(uniqueDates) ? uniqueDates : Array.from(uniqueDates));
+                    const anomalies = calculateAnomalies(allData, {
+                        employeeConfigList,
+                        manualEarlyPunches,
+                        manualReasons,
+                        currentLeaveData,
+                        currentUniqueDates: syncUniqueDates
+                    });
+                    console.log(`[AUTO ANOMALY] 감지된 이상근태: ${anomalies.length}건 / 검사 날짜 수: ${syncUniqueDates.size}`);
+
+                    const currentDateArr = Array.from(uniqueDates).sort();
+                    const periodStart = currentDateArr[0];
+                    const periodEnd = currentDateArr[currentDateArr.length - 1];
+
+                    if (anomalies.length > 0) {
+                        const anomalyRows = anomalies.map(a => ({
+                            manager_key: `${a.name}_${a.date}`,
+                            name: a.name,
+                            date: a.date,
+                            reason: a.reason || '',
+                            status: 'auto'
+                        }));
+                        const { error: anomErr } = await supabase
+                            .from('attendance_anomalies')
+                            .upsert(anomalyRows, { onConflict: 'manager_key', ignoreDuplicates: false });
+                        if (anomErr) console.error('[AUTO ANOMALY] upsert 에러:', anomErr);
+                        else console.log(`[AUTO ANOMALY] ${anomalyRows.length}건 저장 완료`);
+                    }
+
+                    // 이번 기간에서 이상 해소된 'auto' 항목 삭제
+                    if (periodStart && periodEnd) {
+                        const anomalyKeys = new Set(anomalies.map(a => `${a.name}_${a.date}`));
+                        const { data: existingAuto } = await supabase
+                            .from('attendance_anomalies')
+                            .select('manager_key')
+                            .eq('status', 'auto')
+                            .gte('date', periodStart)
+                            .lte('date', periodEnd);
+                        if (existingAuto && existingAuto.length > 0) {
+                            const toDelete = existingAuto.map(r => r.manager_key).filter(k => !anomalyKeys.has(k));
+                            if (toDelete.length > 0) {
+                                await supabase.from('attendance_anomalies').delete().in('manager_key', toDelete);
+                                console.log(`[AUTO ANOMALY] 해소된 이상 ${toDelete.length}건 삭제`);
+                            }
+                        }
+                    }
+                } catch (anomSyncErr) {
+                    console.error('[AUTO ANOMALY] 동기화 오류:', anomSyncErr);
+                }
+                // ─────────────────────────────────────────────────────────────
             }
 
             async function fetchAllFromCloud(silent = false) {
@@ -2489,7 +1335,7 @@ Print Styles (@media print)
                         .from('employees')
                         .select('*')
                         .in('name', names);
-                    
+
                     const existingMap = {};
                     if (existingEmployees) existingEmployees.forEach(emp => { existingMap[emp.name] = emp; });
 
@@ -2653,7 +1499,7 @@ Print Styles (@media print)
 
                 try {
                     const { data: ex } = await supabase.from('attendance_records').select('*').eq('manager_key', key).single();
-                    
+
                     const record = {
                         manager_key: key, name, date,
                         shift: rec.shiftStart || (ex ? ex.shift : null),
@@ -3276,20 +2122,22 @@ Print Styles (@media print)
                 Object.entries(manualReasons).forEach(([key, reason]) => {
                     const [name, fDate] = key.split('_');
                     if (name && fDate && reason) {
-                        if (!recordsMap[name]) recordsMap[name] = {};
-                        if (!recordsMap[name][fDate]) recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: "" };
+                        // 실제 출퇴근 데이터가 있는 날짜에만 사유 적용
+                        // (데이터 없이 사유만 표기되는 문제 방지)
+                        if (!recordsMap[name] || !recordsMap[name][fDate]) return;
                         const cleanReason = reason.replace(/^\[사전\]\s*/, '');
                         recordsMap[name][fDate].reason = (recordsMap[name][fDate].reason ? recordsMap[name][fDate].reason + ", " : "") + cleanReason;
                     }
                 });
 
                 // [NEW] 기간 내 모든 평일을 기본 날짜셋으로 구성 (기록이 하나도 없는 날짜도 이상근태로 잡기 위해)
+                // ignorePeriod=true(업로드 시)에는 실행 안 함 — 파일에 없는 날짜가 더미로 저장되는 문제 방지
                 const startInput = document.getElementById('report-period-start');
                 const endInput = document.getElementById('report-period-end');
                 const startBound = startInput ? startInput.value : "";
                 const endBound = endInput ? endInput.value : "";
 
-                if (startBound && endBound) {
+                if (!ignorePeriod && startBound && endBound) {
                     let cur = new Date(startBound);
                     const last = new Date(endBound);
                     while (cur <= last) {
@@ -3303,7 +2151,7 @@ Print Styles (@media print)
 
                 let sortedDates = Array.from(uniqueDates).sort();
 
-                // [수정] 업로드 시에는 기간 제한 없이 저장하기 위해 필터링 건너뜀
+                // 화면 표시(ignorePeriod=false)일 때만 기간으로 필터링
                 if (!ignorePeriod && startBound && endBound) {
                     sortedDates = sortedDates.filter(d => d >= startBound && d <= endBound);
                 }
@@ -3450,10 +2298,11 @@ Print Styles (@media print)
                             else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
 
                             const isConfirmedIn = corrData.in === true;
+                            const hasRec = !!(recs[dt]);  // 실제 데이터 존재 여부
                             let val = (recs[dt] || {}).inTime || '';
 
                             let displayVal = val;
-                            if (val !== '연차' && val !== '반차' && isConfirmedIn) {
+                            if (hasRec && val !== '연차' && val !== '반차' && isConfirmedIn) {
                                 displayVal = val ? val : `✓`;
                             }
 
@@ -3461,7 +2310,7 @@ Print Styles (@media print)
                             if (isOutRange) cls = 'not-employed';
                             else if (val === '연차') cls = 'leave-annual';
                             else if (val === '반차') cls = 'leave-half';
-                            else if (isConfirmedIn) cls = 'confirmed-cell';
+                            else if (hasRec && isConfirmedIn) cls = 'confirmed-cell';
 
                             let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
@@ -3475,10 +2324,11 @@ Print Styles (@media print)
                             else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
 
                             const isConfirmedOut = corrData.out === true;
+                            const hasRecOut = !!(recs[dt]);  // 실제 데이터 존재 여부
                             let val = (recs[dt] || {}).outTime || '';
 
                             let displayVal = val;
-                            if (val !== '연차' && val !== '반차' && isConfirmedOut) {
+                            if (hasRecOut && val !== '연차' && val !== '반차' && isConfirmedOut) {
                                 displayVal = val ? val : `✓`;
                             }
 
@@ -3486,7 +2336,7 @@ Print Styles (@media print)
                             if (isOutRange) cls = 'not-employed';
                             else if (val === '연차') cls = 'leave-annual';
                             else if (val === '반차') cls = 'leave-half';
-                            else if (isConfirmedOut) cls = 'confirmed-cell';
+                            else if (hasRecOut && isConfirmedOut) cls = 'confirmed-cell';
 
                             let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
@@ -3722,127 +2572,9 @@ Print Styles (@media print)
                     };
                 }
 
-                // [추가] Mailto 발송 핸들러
-                const sendMailtoBtn = document.getElementById('send-mailto-btn');
-                if (sendMailtoBtn) {
-                    sendMailtoBtn.onclick = () => {
-                        if (selectedAnomalyKeys.size === 0) {
-                            alert('메일을 발송할 항목을 먼저 선택해주세요.');
-                            return;
-                        }
 
-                        const combinedData = [];
-                        attendanceFilesMap.forEach(data => combinedData.push(...data));
-                        const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates });
 
-                        const emailGroups = {};
-                        selectedAnomalyKeys.forEach(key => {
-                            const [name, date] = key.split('_');
-                            const anomaly = anomalies.find(a => a.name === name && (a.originalDate || a.date) === date);
-                            const empInfo = employeeConfigList.find(e => e.name === name);
 
-                            if (anomaly && empInfo && empInfo.email) {
-                                if (!emailGroups[name]) {
-                                    emailGroups[name] = { email: empInfo.email, items: [] };
-                                }
-                                emailGroups[name].items.push({ date, reason: anomaly.reason });
-                            }
-                        });
-
-                        const groupedNames = Object.keys(emailGroups);
-                        if (groupedNames.length === 0) {
-                            alert('선택한 항목 중 이메일 정보가 등록된 사원이 없습니다.');
-                            return;
-                        }
-
-                        // 대기열 리스트 생성
-                        mailQueueList.innerHTML = '';
-                        groupedNames.forEach((name, idx) => {
-                            const group = emailGroups[name];
-                            const div = document.createElement('div');
-                            div.style = "display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;";
-
-                            const subject = `[근태 소명 요청] ${name}님, 근태 이상 내역 안내`;
-                            const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/supplement.html";
-                            let itemsText = group.items.map(item => `- ${item.date}: ${item.reason}`).join('\n');
-                            const bodyText = `안녕하세요 ${name}님,\n\n아래 날짜들의 근태 기록에 이상 사유가 발생하여 소명이 필요합니다.\n내역을 확인하시고 아래 소명 페이지 링크에 접속하여 답변 부탁드립니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n[이상 내역 리스트]\n${itemsText}\n\n감사합니다.`;
-                            const mailtoUrl = `mailto:${group.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
-
-                            div.innerHTML = `
-                                <div style="display: flex; flex-direction: column;">
-                                    <span style="font-weight: 600; font-size: 0.95rem;">${name} <small style="color:#6b7280; font-weight:normal;">(${group.email})</small></span>
-                                    <span style="font-size: 0.8rem; color: #10b981;">내역 ${group.items.length}건</span>
-                                </div>
-                                <a href="${mailtoUrl}" class="secondary-btn send-item-btn" 
-                                   style="padding: 6px 12px; font-size: 0.85rem; background: #4f46e5; color: white; border: none; text-decoration: none; border-radius: 4px;"
-                                   onclick="this.style.opacity='0.5'; this.innerText='발송됨'; this.style.pointerEvents='none';">
-                                   발송
-                                </a>
-                            `;
-                            mailQueueList.appendChild(div);
-                        });
-
-                        mailQueueModal.classList.remove('hidden');
-
-                        // [추가] 일괄 발송(BCC) 핸들러
-                        if (mailBatchBccBtn) {
-                            mailBatchBccBtn.onclick = () => {
-                                const bccList = groupedNames.map(name => emailGroups[name].email).join(',');
-                                const subject = encodeURIComponent(`[알림] 근태 이상 내역 소명 요청 안내`);
-                                const EXPLANATION_PAGE_URL = "https://learnbook1103-design.github.io/dow_manage/supplement.html";
-
-                                const bodyText = `안녕하세요,\n\n최근 근태 기록에 이상 내역이 발생한 분들께 안내드립니다.\n아래 링크의 소명 페이지에 접속하여 본인의 성명과 날짜를 입력 후 이상 사유를 확인하시고 소명 답변을 작성해 주시기 바랍니다.\n\n▶ 소명 페이지 바로가기:\n${EXPLANATION_PAGE_URL}\n\n감사합니다.`;
-                                const body = encodeURIComponent(bodyText);
-
-                                // 숨은 참조(bcc)로 발송하여 수신자 간 정보 노출 방지
-                                window.open(`mailto:?bcc=${bccList}&subject=${subject}&body=${body}`, '_blank');
-                                mailQueueModal.classList.add('hidden');
-                            };
-                        }
-                    };
-                }
-
-                if (closeMailQueueBtn) closeMailQueueBtn.onclick = () => mailQueueModal.classList.add('hidden');
-                if (mailQueueDoneBtn) mailQueueDoneBtn.onclick = () => mailQueueModal.classList.add('hidden');
-
-                if (fetchFromCloudBtn) {
-                    fetchFromCloudBtn.onclick = async () => {
-                        if (!supabase) {
-                            alert('Supabase 설정(URL, Key)이 필요합니다.');
-                            return;
-                        }
-
-                        if (!confirm('직원들이 입력한 소명 답변을 클라우드에서 가져오시겠습니까?')) return;
-
-                        const { data, error } = await supabase
-                            .from('attendance_anomalies')
-                            .select('manager_key, explanation');
-
-                        if (error) {
-                            alert('데이터를 가져오는 중 오류가 발생했습니다: ' + error.message);
-                            return;
-                        }
-
-                        let updateCount = 0;
-                        if (data && data.length > 0) {
-                            data.forEach(item => {
-                                // 모든 전송된 키 목록 업데이트
-                                sentAnomalyKeys.add(item.manager_key);
-                                if (item.explanation) {
-                                    employeeExplanations[item.manager_key] = item.explanation;
-                                    updateCount++;
-                                }
-                            });
-                            localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
-                            localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
-                            updateAndProcessData();
-                            verifyBtn.click();
-                            alert(`${updateCount}건의 소명 답변을 성공적으로 가져왔습니다.\n(검증 창의 '직원 소명' 열에서 확인 가능합니다)`);
-                        } else {
-                            alert('가져올 새로운 소명 답변이 없습니다.');
-                        }
-                    };
-                }
 
                 const resetAllDataBtn = document.getElementById('reset-all-data-btn');
                 if (resetAllDataBtn) {
@@ -4141,16 +2873,7 @@ Print Styles (@media print)
                 });
             }
 
-            if (saveEmployeeBtn) {
-                saveEmployeeBtn.addEventListener('click', async () => {
-                    employeeConfigList = tempEmployeeConfigList.map(e => ({ ...e })); // 딥카피 개념으로 전체 필드 복사
-                    localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
-                    updateAndProcessData();
-                    // [추가] 클라우드 실시간 동기화
-                    await syncEmployeesToCloud();
-                    employeeModal.classList.add('hidden');
-                });
-            }
+
 
             if (fetchEmployeesBtn) fetchEmployeesBtn.onclick = fetchEmployeesFromCloud;
             if (syncEmployeesBtn) syncEmployeesBtn.onclick = syncEmployeesToCloud;

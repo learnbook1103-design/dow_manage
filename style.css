@@ -1,283 +1,341 @@
+/* ============================================================
+   DOW 근태 관리 — 디자인 시스템
+   Apple.com/kr 기반의 클린 & 정제된 디자인 언어
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap');
+
+/* ── 1. 디자인 토큰 ─────────────────────────────────────── */
 :root {
-    --primary: #4F46E5;
-    --primary-hover: #4338CA;
-    --bg-color: #F3F4F6;
-    --surface: #FFFFFF;
-    --text-main: #111827;
-    --text-muted: #6B7280;
-    --border-color: #E5E7EB;
-    --border-dark: #374151;
+    --blue: #0071e3;
+    --blue-hover: #0077ed;
+    --blue-light: #e8f0fe;
+    --blue-pale: #f0f5ff;
+    --gray-50: #f5f5f7;
+    --gray-100: #e8e8ed;
+    --gray-200: #d2d2d7;
+    --gray-300: #acacb4;
+    --gray-500: #6e6e73;
+    --gray-700: #3a3a3c;
+    --gray-900: #1d1d1f;
+    --success: #34c759;
+    --success-bg: #f0fdf4;
+    --warning: #ff9f0a;
+    --warning-bg: #fff8ec;
+    --danger: #ff3b30;
+    --danger-bg: #fff1f0;
+    --purple: #5e5ce6;
+    --purple-bg: #f5f4ff;
+    --teal: #30d158;
+    --font: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    --radius-s: 6px;
+    --radius-m: 10px;
+    --radius-l: 16px;
+    --radius-xl: 22px;
+    --shadow-s: 0 1px 3px rgba(0, 0, 0, .06), 0 1px 2px rgba(0, 0, 0, .04);
+    --shadow-m: 0 4px 16px rgba(0, 0, 0, .08), 0 1px 3px rgba(0, 0, 0, .04);
+    --shadow-l: 0 16px 48px rgba(0, 0, 0, .12), 0 4px 12px rgba(0, 0, 0, .06);
+    --bg: #f5f5f7;
+    --surface: #ffffff;
+    --surface-2: #fafafa;
+    --border: rgba(0, 0, 0, .08);
+    --border-mid: rgba(0, 0, 0, .14);
+    --text: #1d1d1f;
+    --text-2: #3a3a3c;
+    --text-muted: #6e6e73;
+    --text-light: #acacb4;
+    /* legacy aliases (JS/old HTML 호환) */
+    --primary: #0071e3;
+    --primary-hover: #0077ed;
+    --bg-color: #f5f5f7;
+    --text-main: #1d1d1f;
+    --border-color: rgba(0, 0, 0, .12);
+    --border-dark: #3a3a3c;
 }
 
-* {
+/* ── 2. 리셋 & 베이스 ───────────────────────────────────── */
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-main);
-    line-height: 1.5;
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.55;
+    font-size: 15px;
     padding: 2rem;
 }
 
-/* UI Container (Non-Printable) */
+/* ── 3. UI 컨테이너 ─────────────────────────────────────── */
 #ui-container {
-    max-width: 800px;
-    margin: 0 auto;
+    max-width: 860px;
+    margin: 0 auto 2.5rem;
     background: var(--surface);
-    border-radius: 16px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-m);
     padding: 2.5rem;
-    margin-bottom: 2rem;
+    border: 1px solid var(--border);
 }
 
+/* ── 4. 헤더 ────────────────────────────────────────────── */
 header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 header h1 {
-    font-size: 2rem;
+    font-size: 1.9rem;
     font-weight: 700;
-    color: var(--text-main);
-    margin-bottom: 0.5rem;
-    letter-spacing: -0.025em;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    margin-bottom: .35rem;
 }
 
 header p {
     color: var(--text-muted);
+    font-size: .9rem;
 }
 
-/* Drag and Drop Zone */
+/* ── 5. 버튼 ────────────────────────────────────────────── */
+.primary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    background: var(--blue);
+    color: #fff;
+    font-family: var(--font);
+    font-size: .875rem;
+    font-weight: 600;
+    padding: .6rem 1.25rem;
+    border: none;
+    border-radius: 980px;
+    cursor: pointer;
+    transition: background .18s, transform .1s;
+    white-space: nowrap;
+}
+
+.primary-btn:hover {
+    background: var(--blue-hover);
+}
+
+.primary-btn:active {
+    transform: scale(.97);
+}
+
+.secondary-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .4rem;
+    background: var(--surface);
+    border: 1px solid var(--border-mid);
+    color: var(--text-2);
+    font-family: var(--font);
+    font-size: .875rem;
+    font-weight: 500;
+    padding: .6rem 1.25rem;
+    border-radius: 980px;
+    cursor: pointer;
+    transition: background .18s, border-color .18s;
+    white-space: nowrap;
+}
+
+.secondary-btn:hover {
+    background: var(--gray-50);
+    border-color: var(--gray-300);
+}
+
+.secondary-btn:active {
+    background: var(--gray-100);
+}
+
+/* ── 6. 입력 ────────────────────────────────────────────── */
+input[type="text"],
+input[type="password"],
+input[type="date"],
+input[type="month"],
+input[type="email"],
+select,
+textarea {
+    font-family: var(--font);
+    font-size: .9rem;
+    padding: .55rem .85rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-m);
+    background: var(--surface);
+    color: var(--text);
+    outline: none;
+    transition: border-color .18s, box-shadow .18s;
+    width: 100%;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, .12);
+}
+
+/* ── 7. 드롭존 ──────────────────────────────────────────── */
 .drop-zone-container {
     display: flex;
-    gap: 1.5rem;
-    /* 간격 살짝 넓힘 */
-    margin-bottom: 1.5rem;
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
     align-items: stretch;
-    /* [추가] 두 카드의 높이를 똑같이 맞춤 */
 }
 
-/* [추가] 업로드 카드 자체를 flex 컨테이너로 만들어 내부 요소 확장 */
 .upload-card {
     flex: 1;
-    /* [추가] 두 카드가 동일한 너비를 가짐 */
     display: flex;
     flex-direction: column;
 }
 
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    margin-bottom: .6rem;
+}
+
+.step-badge {
+    width: 22px;
+    height: 22px;
+    background: var(--blue);
+    color: #fff;
+    border-radius: 50%;
+    font-size: .72rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.step-title {
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--text-2);
+}
+
 .drop-zone {
-    border: 2px dashed var(--primary);
-    border-radius: 12px;
+    border: 1.5px dashed var(--gray-200);
+    border-radius: var(--radius-l);
     padding: 1.75rem 1rem;
     text-align: center;
-    background: #EEF2FF;
+    background: var(--gray-50);
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: all .22s ease;
     flex: 1;
-    /* [유지] 카드 내에서 남은 높이를 모두 차지함 */
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: .5rem;
 }
 
 .drop-zone:hover,
 .drop-zone.dragover {
-    background: #E0E7FF;
-    transform: scale(1.02);
+    border-color: var(--blue);
+    background: var(--blue-pale);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, .1);
 }
 
 .drop-zone.loaded {
-    border-color: #10b981;
-    background: #f0fdf4;
+    border-color: var(--success);
+    background: var(--success-bg);
+}
+
+.drop-text {
+    font-size: .875rem;
+    font-weight: 500;
+    color: var(--text-2);
+}
+
+.drop-subtext {
+    font-size: .78rem;
+    color: var(--text-muted);
 }
 
 .drop-zone-content svg {
-    color: var(--primary);
-    margin-bottom: 0.75rem;
+    color: var(--blue);
+    margin-bottom: .5rem;
 }
 
 .drop-zone.loaded .drop-zone-content svg {
-    color: #10b981;
+    color: var(--success);
 }
 
 .drop-zone-content p {
-    font-size: 0.95rem;
+    font-size: .875rem;
     font-weight: 500;
 }
 
+.file-list,
 .file-status {
-    margin-top: 0.5rem;
-    font-size: 0.8rem;
+    margin-top: .5rem;
+    font-size: .78rem;
     font-weight: 500;
-    color: #10b981;
+    color: var(--success);
     min-height: 1.2em;
 }
 
-.drop-zone-content strong {
-    color: var(--primary);
-}
-
-/* Controls Container */
+/* ── 8. 컨트롤 바 ───────────────────────────────────────── */
 .controls-container {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: stretch;
     gap: 1.5rem;
     margin-top: 2rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
+    padding-top: 1.75rem;
+    border-top: 1px solid var(--border);
 }
 
 .control-group {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: .6rem;
     white-space: nowrap;
 }
 
 .control-group label {
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: .9rem;
 }
 
 .middle-controls {
     display: flex;
-    gap: 1rem;
+    gap: .75rem;
     align-items: stretch;
 }
 
 .settings-group {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: .45rem;
 }
 
-input[type="date"] {
-    font-family: inherit;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-input[type="date"]:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-
-.primary-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: var(--primary);
-    color: white;
-    font-family: inherit;
-    font-weight: 600;
-    font-size: 1rem;
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.1s;
-}
-
-.primary-btn:hover {
-    background-color: var(--primary-hover);
-}
-
-.year-select {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 14px;
-    background-color: white;
-    cursor: pointer;
-}
-
-.fetch-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    flex: 1;
-    background-color: #f0f4ff;
-    color: #4f46e5;
-    border: 1px solid #4f46e5;
-    padding: 10px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.fetch-btn:hover {
-    background-color: #4f46e5;
-    color: white;
-}
-
-.loader {
-    width: 14px;
-    height: 14px;
-    border: 2px solid #4f46e5;
-    border-bottom-color: transparent;
-    border-radius: 50%;
-    display: inline-block;
-    box-sizing: border-box;
-    animation: rotation 1s linear infinite;
-}
-
-.fetch-btn:hover .loader {
-    border-color: white;
-    border-bottom-color: transparent;
-}
-
-@keyframes rotation {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-.modal-divider {
-    margin: 20px 0 10px;
-    font-size: 13px;
-    color: #666;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.modal-divider::before,
-.modal-divider::after {
-    content: "";
-    flex: 1;
-    height: 1px;
-    background-color: #eee;
-}
-
+/* ── 9. 유틸 ────────────────────────────────────────────── */
 .hidden {
     display: none !important;
 }
 
-/* Modal Styles */
+/* ── 10. 모달 ───────────────────────────────────────────── */
 .modal {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    inset: 0;
+    background: rgba(0, 0, 0, .36);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -285,200 +343,346 @@ input[type="date"]:focus {
 }
 
 .modal-content {
-    background: white;
-    padding: 0;
-    /* [변경] 내용을 나누기 위해 패딩 제거 */
-    border-radius: 12px;
+    background: var(--surface);
+    border-radius: var(--radius-xl);
     width: 90%;
-    max-width: 500px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-width: 540px;
+    box-shadow: var(--shadow-l);
     overflow: hidden;
-    /* [추가] 헤더 배경색이 둥근 모서리를 넘지 않도록 */
+    border: 1px solid var(--border);
+    animation: modalIn .22s cubic-bezier(.4, 0, .2, 1);
+}
+
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #f1f5f9;
-    /* [추가] 헤더 배경색으로 드래그 영역 강조 */
-    padding: 1rem 1.5rem;
-    /* [추가] 헤더 내부 패딩 */
-    border-bottom: 1px solid #e2e8f0;
-    /* [추가] 구분선 */
-    margin-bottom: 0;
+    background: var(--gray-50);
+    padding: 1rem 1.4rem;
+    border-bottom: 1px solid var(--border);
     cursor: grab;
-    /* [추가] 드래그 가능 핸들 표시 */
 }
 
 .modal-header:active {
     cursor: grabbing;
-    background-color: #e2e8f0;
+    background: var(--gray-100);
 }
 
 .modal-header h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
 }
 
 .close-btn {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
+    line-height: 1;
     cursor: pointer;
     color: var(--text-muted);
+    transition: color .15s;
+    padding: 2px 6px;
 }
 
 .close-btn:hover {
-    color: var(--text-main);
+    color: var(--text);
 }
 
-/* [추가] 모달 내부 본문 패딩 처리 */
 .employee-manager-section,
 .holiday-manager-section,
 #verify-modal .modal-content>div:not(.modal-header) {
-    padding: 1.5rem;
+    padding: 1.4rem;
 }
 
-/* Employee Manager UI Styles */
-.employee-manager-section label {
-    font-weight: 600;
-    font-size: 0.95rem;
-}
-
+/* ── 11. 사원 관리 ──────────────────────────────────────── */
 .employee-list-container {
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    padding: .4rem;
     max-height: 350px;
     overflow-y: auto;
-    background: #f9fafb;
+    background: var(--gray-50);
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: .4rem;
+}
+
+.employee-manager-scroll-wrapper {
+    overflow-x: auto;
+}
+
+.employee-manager-table-header {
+    display: flex;
+    gap: .5rem;
+    padding: .4rem .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: .4rem;
 }
 
 .employee-row {
     display: flex;
-    gap: 0.5rem;
+    gap: .5rem;
     align-items: center;
-    background-color: white;
-    padding: 4px;
-    border-radius: 6px;
+    background: var(--surface);
+    padding: 4px 6px;
+    border-radius: var(--radius-s);
     cursor: grab;
-    transition: background-color 0.2s, border 0.2s;
+    transition: background .15s, border .15s;
     border: 1px solid transparent;
-    /* 위치 보정용 */
 }
 
-/* [추가] 드래그 중인 행 효과 */
 .employee-row.dragging {
-    opacity: 0.5;
-    background-color: #e0e7ff;
-    border: 1px dashed var(--primary);
+    opacity: .45;
+    background: var(--blue-light);
+    border-color: var(--blue);
+    border-style: dashed;
 }
 
-/* [추가] 드래그 시 마우스가 위치한 곳에 지시선 표시 */
 .employee-row.dragover {
-    border-top: 3px solid var(--primary) !important;
-    background-color: #f0f4ff;
+    border-top: 2.5px solid var(--blue) !important;
+    background: var(--blue-pale);
 }
 
 .employee-row input,
 .employee-row select {
-    font-family: inherit;
-    padding: 0.4rem 0.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 0.9rem;
+    font-family: var(--font);
+    padding: .35rem .45rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-s);
+    font-size: .82rem;
     outline: none;
     flex: 1;
-    background-color: white;
+    background: var(--surface);
+    transition: border-color .15s;
 }
 
 .employee-row input:focus,
 .employee-row select:focus {
-    border-color: var(--primary);
-}
-
-.employee-row select.org-select {
-    flex: 0.8;
+    border-color: var(--blue);
 }
 
 .remove-btn {
     background: none;
     border: none;
-    color: #ef4444;
+    color: var(--danger);
     cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0 0.25rem;
-    transition: color 0.2s;
+    font-size: 1.1rem;
+    padding: 0 4px;
+    transition: opacity .15s;
 }
 
 .remove-btn:hover {
-    color: #b91c1c;
+    opacity: .7;
 }
 
-.secondary-btn {
-    background: white;
-    border: 1px solid var(--border-dark);
-    color: var(--text-main);
-    padding: 0.3rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    font-weight: 500;
+/* ── 12. 사원 관리 모달 크기 ───────────────────────────── */
+#employee-modal .modal-content {
+    width: 1200px !important;
+    max-width: 95vw !important;
+    height: 80vh !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
 }
 
-.secondary-btn:hover {
-    background: #f3f4f6;
+#employee-modal .modal-content>div:not(.modal-header) {
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 1.4rem !important;
+    height: calc(100% - 60px) !important;
+    overflow: hidden !important;
 }
 
-#verify-data-btn:hover {
-    background: #ffedd5 !important;
+#employee-modal .employee-manager-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
 }
 
-/* Verification Table styles */
+/* scroll-wrapper가 세로+가로 스크롤 모두 담당 */
+#employee-modal .employee-manager-scroll-wrapper {
+    flex: 1;
+    /* 남은 높이 전부 차지 */
+    overflow-x: auto;
+    /* 가로 스크롤바 표시 */
+    overflow-y: auto;
+    /* 세로 스크롤(휠) 작동 */
+    min-height: 0;
+    /* flex 자식의 overflow 허용 */
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background: var(--gray-50);
+}
+
+/* list-container는 scroll-wrapper 안에서 자연스럽게 늘어남 */
+#employee-modal .employee-list-container {
+    max-height: none !important;
+    overflow: visible !important;
+    /* 스크롤은 scroll-wrapper에서 처리 */
+    border: none !important;
+    background: transparent !important;
+    padding: .4rem;
+}
+
+.employee-manager-table-header,
+.employee-row {
+    min-width: 1100px;
+}
+
+/* ── 13. 검증 모달 ──────────────────────────────────────── */
+#verify-modal .modal-content {
+    width: 1200px !important;
+    max-width: 95vw !important;
+    height: 80vh !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+#verify-modal .modal-content>div:not(.modal-header) {
+    display: flex;
+    flex-direction: column;
+    padding: 1.4rem;
+    height: calc(100% - 60px);
+    overflow: hidden !important;
+}
+
+#verify-modal .verify-table-container {
+    max-height: none !important;
+    height: 100% !important;
+    flex: 1;
+    overflow-y: auto !important;
+    overflow-x: auto !important;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-m);
+    background: var(--gray-50);
+}
+
 .verify-table {
     width: 100%;
+    table-layout: auto;
+    min-width: 1000px;
     border-collapse: collapse;
-    font-size: 0.85rem;
+    font-size: .84rem;
 }
 
 .verify-table th,
 .verify-table td {
-    padding: 0.5rem;
+    padding: 9px 8px;
     text-align: center;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border);
+    word-break: keep-all;
 }
 
 .verify-table th {
-    background-color: #f9fafb;
-    border-bottom: 2px solid var(--border-color);
+    background: var(--gray-50);
+    border-bottom: 1.5px solid var(--border-mid);
     font-weight: 600;
     position: sticky;
     top: 0;
     z-index: 10;
+    font-size: .8rem;
+    color: var(--text-2);
 }
 
-/* -------------------------------------------
-Report Layout / Matrix View Layout
-------------------------------------------- */
+.verify-table th:nth-child(4),
+.verify-table td:nth-child(4) {
+    min-width: 110px;
+}
 
+.verify-table td.anomaly-reason {
+    min-width: 250px;
+    word-break: keep-all;
+}
+
+.verify-table td .manual-reason-input {
+    min-width: 200px;
+    width: 100%;
+}
+
+/* ── 13. 확인/조정 버튼 ─────────────────────────────────── */
+.verify-action-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 0;
+}
+
+.confirmation-btn,
+.shift-date-btn {
+    width: 88px;
+    padding: 5px 7px;
+    border-radius: 980px;
+    font-size: .72rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .18s;
+    white-space: nowrap;
+    text-align: center;
+    border: 1px solid var(--border-mid);
+    background: var(--surface);
+    color: var(--text-muted);
+}
+
+.confirmation-btn.confirmed {
+    background: var(--success-bg);
+    border-color: var(--success);
+    color: var(--text);
+    font-weight: 700;
+}
+
+.shift-date-btn {
+    border-color: #fcd34d;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.shift-date-btn:hover {
+    background: #fef3c7;
+}
+
+.shift-date-btn.active {
+    background: #fee2e2;
+    border-color: var(--danger);
+    color: #991b1b;
+    font-weight: 700;
+}
+
+/* ── 14. 리포트 ─────────────────────────────────────────── */
 #report-container {
     max-width: 1300px;
     margin: 0 auto;
 }
 
 .report-page {
-    background: white;
+    background: var(--surface);
     width: 210mm;
     min-height: 297mm;
     padding: 10mm;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    border-radius: 0px;
-    margin: 0 auto 3rem auto;
+    box-shadow: var(--shadow-m);
+    margin: 0 auto 3rem;
     box-sizing: border-box;
     overflow: hidden;
 }
@@ -487,14 +691,14 @@ Report Layout / Matrix View Layout
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: .5rem;
 }
 
 .report-header h2 {
-    font-size: 1.3rem;
+    font-size: 1.25rem;
     font-weight: 700;
-    letter-spacing: 0.05em;
-    padding-top: 0.5rem;
+    letter-spacing: .04em;
+    padding-top: .5rem;
 }
 
 .header-rightside {
@@ -511,14 +715,14 @@ Report Layout / Matrix View Layout
 
 .approval-table th,
 .approval-table td {
-    border: 1px solid var(--border-dark);
+    border: 1px solid var(--gray-700);
     text-align: center;
-    font-size: 0.60rem;
+    font-size: .6rem;
 }
 
 .approval-table th {
-    background-color: #f9fafb;
-    padding: 0.25rem 0;
+    background: var(--gray-50);
+    padding: .25rem 0;
     font-weight: 500;
 }
 
@@ -534,29 +738,28 @@ Report Layout / Matrix View Layout
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 0.3rem;
-    font-size: 0.45rem;
-    font-weight: 400;
+    gap: .3rem;
+    font-size: .45rem;
 }
 
 .meta-item {
     display: flex;
-    gap: 0.5rem;
+    gap: .5rem;
 }
 
-/* Matrix Table Specifics */
+/* ── 15. 매트릭스 테이블 ────────────────────────────────── */
 .matrix-table {
     width: auto;
     border-collapse: collapse;
-    border-bottom: 1px solid var(--border-dark);
+    border-bottom: 1px solid var(--gray-700);
 }
 
 .matrix-table th,
 .matrix-table td {
-    border: 1px solid var(--border-dark);
+    border: 1px solid var(--gray-700);
     text-align: center;
     padding: 1px !important;
-    font-size: 0.65rem;
+    font-size: .65rem;
     line-height: 1.1;
     white-space: nowrap;
     width: 52px;
@@ -565,12 +768,12 @@ Report Layout / Matrix View Layout
 }
 
 .matrix-table thead th {
-    background-color: #f3f4f6;
+    background: var(--gray-50);
     font-weight: 600;
 }
 
 .th-dategroup {
-    font-size: 0.65rem;
+    font-size: .65rem;
     padding: 2px 0 !important;
     line-height: 1.1;
     width: 52px;
@@ -582,14 +785,13 @@ Report Layout / Matrix View Layout
     width: 52px;
     min-width: 52px;
     max-width: 52px;
-    font-family: inherit;
-    font-size: 0.65rem;
+    font-family: var(--font);
+    font-size: .65rem;
 }
 
-/* Sticky Columns */
 .sticky-col {
     position: sticky;
-    background-color: #fff;
+    background: var(--surface);
     z-index: 10;
 }
 
@@ -597,111 +799,49 @@ Report Layout / Matrix View Layout
     left: 0;
     width: 40px;
     font-weight: 600;
-    font-size: 0.65rem;
-    background-color: #f9fafb !important;
-    border-right: 1px solid var(--border-dark);
+    font-size: .65rem;
+    background: var(--gray-50) !important;
+    border-right: 1px solid var(--gray-700);
 }
 
 .td-label {
     left: 40px;
     width: 30px;
-    font-size: 0.55rem;
-    font-weight: bold;
-    /* [수정] 볼드체 적용 */
-    border-right: 2px solid var(--border-dark);
+    font-size: .55rem;
+    font-weight: 700;
+    border-right: 2px solid var(--gray-700);
 }
 
 .label-in,
 .label-out {
-    background-color: #4b5563 !important;
-    /* [수정] 짙은 회색 */
-    color: white !important;
-    /* 대비를 위해 흰색 글자 */
+    background: #4b5563 !important;
+    color: #fff !important;
 }
 
 .label-reason {
-    background-color: #e5e7eb !important;
-    /* [수정] 옅은 회색 */
-    color: #374151 !important;
+    background: var(--gray-100) !important;
+    color: var(--gray-700) !important;
 }
 
-/* [추가] 휴가 가시성 확보를 위한 배경색 */
 .leave-annual {
-    background-color: #4ade80 !important;
-    /* 초록색 */
-    color: #ffffff !important;
-    font-weight: bold;
+    background: #4ade80 !important;
+    color: #fff !important;
+    font-weight: 700;
 }
 
 .leave-half {
-    background-color: #fb923c !important;
-    /* 주황색 */
-    color: #ffffff !important;
-    font-weight: bold;
+    background: #fb923c !important;
+    color: #fff !important;
+    font-weight: 700;
 }
 
 .corner-cell {
     z-index: 20;
     left: 0;
     min-width: 70px;
-    border-right: 2px solid var(--border-dark);
+    border-right: 2px solid var(--gray-700);
 }
 
-/* --- 테두리 제거 및 구분선 핵심 로직 --- */
-
-.verify-action-group {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: center;
-    justify-content: center;
-    padding: 4px 0;
-}
-
-.confirmation-btn,
-.shift-date-btn {
-    width: 90px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    text-align: center;
-    border: 1px solid var(--border-color);
-    background: white;
-}
-
-.confirmation-btn {
-    color: var(--text-muted);
-}
-
-.confirmation-btn.confirmed {
-    background-color: #f0fdf4;
-    border-color: #10b981;
-    color: #000;
-    font-weight: 600;
-}
-
-.shift-date-btn {
-    border: 1px solid #fcd34d;
-    background-color: #fff9db;
-    color: #92400e;
-}
-
-.shift-date-btn:hover {
-    background-color: #fefce8;
-}
-
-.shift-date-btn.active {
-    background-color: #fca5a5;
-    border-color: #ef4444;
-    color: #991b1b;
-    font-weight: bold;
-}
-
-/* 1. 출근행과 퇴근행의 하단 테두리를 제거 (internal-row) */
 .matrix-table tbody tr.internal-row td {
     border-bottom: none !important;
 }
@@ -710,26 +850,43 @@ Report Layout / Matrix View Layout
     border-top: none !important;
 }
 
-/* 2. 이름 칸(td-name)은 3행 병합이므로 하단 테두리가 있어야 다음 사람과 구분됨 */
 .matrix-table td.td-name {
-    border-bottom: 1px solid var(--border-dark) !important;
+    border-bottom: 1px solid var(--gray-700) !important;
 }
 
-/* 3. 사유행 하단에 굵은 구분선 추가 (직원 단위 구분) */
 .employee-border-bottom td {
-    border-bottom: 1px solid var(--border-dark) !important;
+    border-bottom: 1px solid var(--gray-700) !important;
 }
 
-/* -------------------------------------------
-Holiday Modal Styles
-------------------------------------------- */
+.matrix-table td.reason-cell[colspan] {
+    max-width: none !important;
+    width: auto !important;
+}
+
+/* ── 16. 셀 상태 ────────────────────────────────────────── */
+.not-employed {
+    background: #94a3b8 !important;
+    color: transparent !important;
+}
+
+.confirmed-cell {
+    color: #000 !important;
+    font-weight: 700;
+    background: #ecfdf5 !important;
+}
+
+.anomaly-highlight {
+    background: #fca5a5 !important;
+}
+
+/* ── 17. 공휴일 모달 ────────────────────────────────────── */
 .year-select {
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-family: inherit;
-    font-size: 14px;
-    background-color: white;
+    padding: .5rem .75rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-m);
+    font-family: var(--font);
+    font-size: .875rem;
+    background: var(--surface);
     cursor: pointer;
 }
 
@@ -739,107 +896,310 @@ Holiday Modal Styles
     justify-content: center;
     gap: 8px;
     flex: 1;
-    background-color: #f0f4ff;
-    color: #4f46e5;
-    border: 1px solid #4f46e5;
+    background: var(--blue-pale);
+    color: var(--blue);
+    border: 1px solid var(--blue);
     padding: 10px;
-    border-radius: 8px;
+    border-radius: var(--radius-m);
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all .18s;
 }
 
 .fetch-btn:hover {
-    background-color: #4f46e5;
-    color: white;
+    background: var(--blue);
+    color: #fff;
 }
 
 .loader {
     width: 14px;
     height: 14px;
-    border: 2px solid #4f46e5;
+    border: 2px solid var(--blue);
     border-bottom-color: transparent;
     border-radius: 50%;
     display: inline-block;
-    box-sizing: border-box;
-    animation: rotation 1s linear infinite;
+    animation: spin 1s linear infinite;
 }
 
 .fetch-btn:hover .loader {
-    border-color: white;
+    border-color: #fff;
     border-bottom-color: transparent;
 }
 
-@keyframes rotation {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    100% {
+@keyframes spin {
+    to {
         transform: rotate(360deg);
     }
 }
 
-.confirmed-cell {
-    color: #000 !important;
-    font-weight: 700;
-    background-color: #ecfdf5 !important;
-}
-
-.anomaly-highlight {
-    background-color: #fca5a5 !important;
-    /* darker red */
-}
-
+/* ── 18. 구분선 ─────────────────────────────────────────── */
 .modal-divider {
-    margin: 20px 0 10px;
-    font-size: 13px;
-    color: #666;
+    margin: 18px 0 10px;
+    font-size: 12px;
+    color: var(--text-muted);
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 .modal-divider::before,
 .modal-divider::after {
-    content: "";
+    content: '';
     flex: 1;
     height: 1px;
-    background-color: #eee;
+    background: var(--border);
+}
+
+/* ── 19. 공통 로그인 오버레이 ───────────────────────────── */
+.dow-auth-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(245, 245, 247, .75);
+    backdrop-filter: saturate(180%) blur(28px);
+    -webkit-backdrop-filter: saturate(180%) blur(28px);
+}
+
+.dow-auth-card {
+    background: rgba(255, 255, 255, .94);
+    border: 1px solid rgba(0, 0, 0, .07);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-l);
+    padding: 2.8rem 2.5rem 2.4rem;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    animation: cardIn .38s cubic-bezier(.4, 0, .2, 1);
+}
+
+@keyframes cardIn {
+    from {
+        opacity: 0;
+        transform: translateY(18px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dow-auth-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.6rem;
+}
+
+.dow-auth-logo-mark {
+    width: 44px;
+    height: 44px;
+    background: var(--text);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.dow-auth-logo-mark span {
+    color: #fff;
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+}
+
+.dow-auth-card h2 {
+    font-size: 1.45rem;
+    font-weight: 700;
+    letter-spacing: -.03em;
+    color: var(--text);
+    margin-bottom: .35rem;
+}
+
+.dow-auth-card .auth-subtitle {
+    font-size: .84rem;
+    color: var(--text-muted);
+    margin-bottom: 1.8rem;
+    line-height: 1.5;
+}
+
+.dow-auth-field {
+    text-align: left;
+    margin-bottom: 1rem;
+}
+
+.dow-auth-field label {
+    display: block;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text-2);
+    margin-bottom: .38rem;
+}
+
+.dow-auth-field input {
+    width: 100%;
+    padding: .7rem 1rem;
+    font-size: .95rem;
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-m);
+    background: #fff;
+    font-family: var(--font);
+    transition: border-color .18s, box-shadow .18s;
+}
+
+.dow-auth-field input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, .12);
+    outline: none;
+}
+
+.dow-auth-field input.pin-field {
+    letter-spacing: .5rem;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.dow-auth-submit {
+    width: 100%;
+    padding: .78rem;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 980px;
+    font-size: .95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .18s, transform .1s;
+    margin-top: .6rem;
+    font-family: var(--font);
+}
+
+.dow-auth-submit:hover {
+    background: var(--blue-hover);
+}
+
+.dow-auth-submit:active {
+    transform: scale(.98);
+}
+
+.dow-auth-error {
+    color: var(--danger);
+    font-size: .82rem;
+    margin-top: .85rem;
+    display: none;
+}
+
+.dow-auth-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1.4rem 0 1.2rem;
+}
+
+.dow-auth-link-btn {
+    display: block;
+    width: 100%;
+    padding: .65rem;
+    background: var(--gray-50);
+    border: 1px solid var(--border-mid);
+    border-radius: 980px;
+    font-size: .84rem;
+    font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    text-decoration: none;
+    font-family: var(--font);
+    text-align: center;
+    transition: background .18s, border-color .18s;
+}
+
+.dow-auth-link-btn:hover {
+    background: var(--gray-100);
+    border-color: var(--gray-300);
+}
+
+/* ── 20. 인쇄 ───────────────────────────────────────────── */
+
+@page {
+    size: A4 portrait;
+    margin: 0;
 }
 
 @media print {
-    body {
-        background-color: white;
-        padding: 0;
+
+    /* 전체 배경색 강제 출력 */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 
+    body {
+        background: #fff !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* UI 요소 숨김 */
     #ui-container,
     .controls-container,
     .drop-zone-container,
     .primary-btn,
     .secondary-btn,
-    .modal {
+    .modal,
+    .no-print {
         display: none !important;
     }
 
+    /* report-container 여백 제거 */
+    #report-container {
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    /* report-page: 화면과 동일한 210mm × 10mm padding 유지 */
     .report-page {
-        margin: 0;
-        box-shadow: none;
+        width: 210mm !important;
+        min-height: 297mm !important;
+        padding: 10mm !important;
+        margin: 0 !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
         page-break-after: always;
-        width: 100%;
-        min-height: auto;
+        overflow: visible !important;
+        box-sizing: border-box !important;
     }
 
+    .report-page:last-child {
+        page-break-after: auto;
+    }
+
+    /* matrix-table: 인쇄 영역(190mm) 안에서 자동 축소 */
     .matrix-table {
-        width: 100% !important;
+        width: auto !important;
+        max-width: 190mm !important;
+        border-collapse: collapse !important;
+        border-bottom: 1px solid #374151 !important;
     }
 
+    .matrix-table th,
+    .matrix-table td {
+        border: 1px solid #374151 !important;
+        font-size: 0.65rem !important;
+        padding: 1px !important;
+        white-space: nowrap !important;
+    }
+
+    /* sticky 해제 */
     .sticky-col {
-        position: static;
-        background-color: white !important;
+        position: static !important;
+        background-color: #fff !important;
     }
 
+    /* 배경색 강제 출력 */
     .td-name {
         background-color: #f9fafb !important;
     }
@@ -847,83 +1207,63 @@ Holiday Modal Styles
     .label-in,
     .label-out {
         background-color: #4b5563 !important;
-        color: white !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        color: #fff !important;
+    }
+
+    .label-reason {
+        background-color: #e5e7eb !important;
+        color: #374151 !important;
     }
 
     .leave-annual {
         background-color: #4ade80 !important;
-        color: white !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        color: #fff !important;
+        font-weight: bold !important;
     }
 
     .leave-half {
         background-color: #fb923c !important;
-        color: white !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        color: #fff !important;
+        font-weight: bold !important;
+    }
+
+    .not-employed {
+        background-color: #94a3b8 !important;
+        color: transparent !important;
     }
 
     .confirmed-cell {
         background-color: #ecfdf5 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+    }
+
+    .anomaly-highlight {
+        background-color: #fca5a5 !important;
+    }
+
+    /* 결재란 */
+    .approval-table th,
+    .approval-table td {
+        border: 1px solid #374151 !important;
+    }
+
+    .approval-table th {
+        background-color: #f9fafb !important;
+    }
+
+    /* 행 구분선 유지 */
+    .matrix-table tbody tr.internal-row td {
+        border-bottom: none !important;
+    }
+
+    .matrix-table tbody tr.internal-row+tr td {
+        border-top: none !important;
+    }
+
+    .matrix-table td.td-name {
+        border-bottom: 1px solid #374151 !important;
+    }
+
+    .employee-border-bottom td {
+        border-bottom: 1px solid #374151 !important;
     }
 }
-
-/* [추가] colspan이 적용된 사유 셀은 max-width 해제하여 자연스럽게 늘어나게 함 */
-.matrix-table td.reason-cell[colspan] {
-    max-width: none !important;
-    width: auto !important;
-}
-
-
-
-
-
-
-/* [최종수정] 데이터 검증 모달 넓은 고정 크기 유지 (리사이즈 기능 제거) */
-#verify-modal .modal-content {
-    width: 1200px !important; 
-    max-width: 95vw !important; 
-    height: 80vh !important;
-    max-height: 90vh !important; 
-    display: flex !important;
-    flex-direction: column !important;
-    /* resize: both 기능 완전 제거 */
-    overflow: hidden !important; /* 바깥 창 스크롤 제거 */
-}
-
-#verify-modal .modal-content > div:not(.modal-header) {
-    display: flex;
-    flex-direction: column;
-    padding: 1.5rem;
-    height: calc(100% - 60px); 
-    overflow: hidden !important; 
-}
-
-#verify-modal .verify-table-container {
-    max-height: none !important;
-    height: 100% !important;
-    flex: 1;
-    overflow-y: auto !important; /* 테이블 영역만 깔끔하게 상하 스크롤 */
-    overflow-x: auto !important; /* 가로 스크롤 허용 */
-}
-
-/* 표 내부 글자들이 너무 좁아 찌그러지지 않도록 튼튼하게 보호 */
-.verify-table {
-    width: 100%;
-    table-layout: auto;
-    min-width: 1000px; 
-}
-
-.verify-table th, .verify-table td {
-    padding: 10px 8px;
-    word-break: keep-all; 
-}
-
-.verify-table th:nth-child(4), .verify-table td:nth-child(4) { min-width: 110px; }
-.verify-table td.anomaly-reason { min-width: 250px; word-break: keep-all; }
-.verify-table td .manual-reason-input { min-width: 200px; width: 100%; }
