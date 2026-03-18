@@ -196,6 +196,10 @@
                             style="flex: 1; background-color: #0d5e94; font-size: 0.9rem;">
                             보고서 인쇄 및 PDF 저장
                         </button>
+                        <button id="saved-reports-btn" class="secondary-btn"
+                            style="flex: 1; background: #faf5ff; color: #6d28d9; border-color: #ddd6fe; font-size: 0.9rem;">
+                            저장된 보고서 열람
+                        </button>
                         <button onclick="location.href='supplement.html'" class="secondary-btn"
                             style="flex: 1; background: #f0fdf4; color: #166534; border-color: #bbf7d0;">
                             직원전용 페이지
@@ -1174,7 +1178,8 @@
                         manualEarlyPunches,
                         manualReasons,
                         currentLeaveData,
-                        currentUniqueDates: syncUniqueDates
+                        currentUniqueDates: syncUniqueDates,
+                        preemptiveSupplements
                     });
                     console.log(`[AUTO ANOMALY] 감지된 이상근태: ${anomalies.length}건 / 검사 날짜 수: ${syncUniqueDates.size}`);
 
@@ -1183,13 +1188,27 @@
                     const periodEnd = currentDateArr[currentDateArr.length - 1];
 
                     if (anomalies.length > 0) {
-                        const anomalyRows = anomalies.map(a => ({
-                            manager_key: `${a.name}_${a.date}`,
-                            name: a.name,
-                            date: a.date,
-                            reason: a.reason || '',
-                            status: 'auto'
-                        }));
+                        // 기존 anomalies 레코드 조회 (status 보존을 위해)
+                        const anomalyKeys = anomalies.map(a => `${a.name}_${a.date}`);
+                        const { data: existingAnomalies } = await supabase
+                            .from('attendance_anomalies')
+                            .select('manager_key, status')
+                            .in('manager_key', anomalyKeys);
+                        const existingStatusMap = {};
+                        if (existingAnomalies) existingAnomalies.forEach(r => { existingStatusMap[r.manager_key] = r.status; });
+
+                        const anomalyRows = anomalies.map(a => {
+                            const key = `${a.name}_${a.date}`;
+                            // 기존 status가 있으면 유지 (관리자 처리 결과 보존), 없으면 'auto'
+                            const existingStatus = existingStatusMap[key];
+                            return {
+                                manager_key: key,
+                                name: a.name,
+                                date: a.date,
+                                reason: a.reason || '',
+                                status: existingStatus || 'auto'
+                            };
+                        });
                         const { error: anomErr } = await supabase
                             .from('attendance_anomalies')
                             .upsert(anomalyRows, { onConflict: 'manager_key', ignoreDuplicates: false });
@@ -1197,17 +1216,20 @@
                         else console.log(`[AUTO ANOMALY] ${anomalyRows.length}건 저장 완료`);
                     }
 
-                    // 이번 기간에서 이상 해소된 'auto' 항목 삭제
+                    // 이번 기간에서 이상 해소된 항목 삭제 (status 무관)
                     if (periodStart && periodEnd) {
                         const anomalyKeys = new Set(anomalies.map(a => `${a.name}_${a.date}`));
-                        const { data: existingAuto } = await supabase
+                        const { data: existingAll } = await supabase
                             .from('attendance_anomalies')
-                            .select('manager_key')
-                            .eq('status', 'auto')
+                            .select('manager_key, status')
                             .gte('date', periodStart)
                             .lte('date', periodEnd);
-                        if (existingAuto && existingAuto.length > 0) {
-                            const toDelete = existingAuto.map(r => r.manager_key).filter(k => !anomalyKeys.has(k));
+                        if (existingAll && existingAll.length > 0) {
+                            // 이상이 해소된 항목: auto는 무조건, processed/submitted/requested도 삭제
+                            // (휴가 업로드로 이상이 사라진 경우 사원 화면에서도 제거)
+                            const toDelete = existingAll
+                                .map(r => r.manager_key)
+                                .filter(k => !anomalyKeys.has(k));
                             if (toDelete.length > 0) {
                                 await supabase.from('attendance_anomalies').delete().in('manager_key', toDelete);
                                 console.log(`[AUTO ANOMALY] 해소된 이상 ${toDelete.length}건 삭제`);
@@ -1275,6 +1297,26 @@
                     }
 
                     updateAndProcessData();
+
+                    // 클라우드 데이터 불러오기 완료 후 보고서 저장 (데이터가 있을 때만)
+                    if (data && data.length > 0) {
+                        const matrix = updateAndProcessData(true);
+                        if (matrix && matrix.names && matrix.names.length > 0) {
+                            const allDates = matrix.uniqueDates || [];
+                            if (allDates.length > 0) {
+                                // dateChunks 형태로 변환 (월 상/하반기 단위로 분리)
+                                const chunks = [];
+                                allDates.forEach(dt => {
+                                    const jsDt = new Date(dt);
+                                    const key = `${jsDt.getFullYear()}-${jsDt.getMonth() + 1}-P${jsDt.getDate() <= 15 ? 1 : 2}`;
+                                    if (!chunks.length || chunks[chunks.length - 1].key !== key) chunks.push({ key, dates: [] });
+                                    chunks[chunks.length - 1].dates.push(dt);
+                                });
+                                saveReportToCloud(chunks.map(c => c.dates), matrix.names, matrix.recordsMap);
+                            }
+                        }
+                    }
+
                     if (!silent) alert(`클라우드 데이터를 불러왔습니다.\n(기록: ${data.length}건, 사전등록: ${pData ? pData.length : 0}건)`);
                 } catch (err) {
                     console.error('Cloud Fetch Error:', err);
@@ -2373,6 +2415,82 @@
                 reportContainer.classList.remove('hidden');
             }
 
+            async function saveReportToCloud(dateChunks, names, recordsMap) {
+                if (!supabase) return;
+                try {
+                    const allDates = dateChunks.flat().sort();
+                    if (allDates.length === 0) return;
+
+                    // 보고서 헤더의 종합기간과 동일하게 1~15일 / 16~말일 기준으로 키 생성
+                    const refDate = new Date(allDates[0]);
+                    const yStr = refDate.getFullYear();
+                    const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
+                    const isP1 = refDate.getDate() <= 15;
+                    const periodStart = `${yStr}-${mStr}-${isP1 ? '01' : '16'}`;
+                    const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
+                    const periodEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
+                    const reportKey = `${periodStart}_${periodEnd}`;
+
+                    // 이미 인쇄 완료된 보고서는 덮어쓰지 않음
+                    const { data: existing } = await supabase
+                        .from('attendance_reports')
+                        .select('is_printed')
+                        .eq('report_key', reportKey)
+                        .maybeSingle();
+                    if (existing && existing.is_printed === true) {
+                        console.log(`[REPORT SAVE] 인쇄 완료된 보고서 보호 — 저장 건너뜀 (${reportKey})`);
+                        return;
+                    }
+
+                    const reportDate = reportDateInput.value || new Date().toISOString().split('T')[0];
+
+                    // 보고서에 표시된 데이터만 추출 (보정 정보 포함)
+                    const snapshot = {};
+                    names.forEach(name => {
+                        snapshot[name] = {};
+                        allDates.forEach(dt => {
+                            const rec = (recordsMap[name] || {})[dt];
+                            if (!rec && !manualCorrections[`${name}_${dt}`] && !manualReasons[`${name}_${dt}`]) return;
+                            const corrKey = `${name}_${dt}`;
+                            let corrData = manualCorrections[corrKey];
+                            if (corrData === true) corrData = { in: true, out: true };
+                            else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
+                            snapshot[name][dt] = {
+                                inTime: rec?.inTime || '',
+                                outTime: rec?.outTime || '',
+                                reason: rec?.reason || '',
+                                shift: rec?.shiftStart || '',
+                                confirmedIn: !!corrData.in,
+                                confirmedOut: !!corrData.out,
+                                confirmedLeave: !!corrData.leave,
+                                managerReason: manualReasons[corrKey] || ''
+                            };
+                        });
+                    });
+
+                    const { error } = await supabase
+                        .from('attendance_reports')
+                        .upsert({
+                            report_key: reportKey,
+                            period_start: periodStart,
+                            period_end: periodEnd,
+                            report_date: reportDate,
+                            saved_at: new Date().toISOString(),
+                            names: names,
+                            snapshot: snapshot,
+                            is_printed: false
+                        }, {
+                            onConflict: 'report_key',
+                            ignoreDuplicates: false
+                        });
+
+                    if (error) console.error('[REPORT SAVE] 저장 오류:', error);
+                    else console.log(`[REPORT SAVE] 보고서 저장 완료 (${periodStart} ~ ${periodEnd})`);
+                } catch (e) {
+                    console.error('[REPORT SAVE] 예외 발생:', e);
+                }
+            }
+
             const startInput = document.getElementById('report-period-start');
             const endInput = document.getElementById('report-period-end');
 
@@ -2898,9 +3016,421 @@
                 if (e.target === verifyModal) verifyModal.classList.add('hidden');
                 if (e.target === holidayModal) holidayModal.classList.add('hidden');
             };
-            printBtn.onclick = () => window.print();
+            // ── 저장된 보고서 열람 ────────────────────────────────────────
+            const savedReportsBtn = document.getElementById('saved-reports-btn');
+            const savedReportsModal = document.getElementById('saved-reports-modal');
+            const closeSavedReportsBtn = document.getElementById('close-saved-reports-btn');
+
+            savedReportsBtn.onclick = async () => {
+                savedReportsModal.style.display = 'flex';
+                const loading = document.getElementById('saved-reports-loading');
+                const list = document.getElementById('saved-reports-list');
+                const empty = document.getElementById('saved-reports-empty');
+                loading.style.display = 'block';
+                list.innerHTML = '';
+                empty.style.display = 'none';
+
+                try {
+                    const { data: reports, error } = await supabase
+                        .from('attendance_reports')
+                        .select('report_key, period_start, period_end, report_date, saved_at, printed_at, is_printed')
+                        .order('period_start', { ascending: false });
+
+                    if (error) throw error;
+                    loading.style.display = 'none';
+
+                    if (!reports || reports.length === 0) { empty.style.display = 'block'; return; }
+
+                    reports.forEach(r => {
+                        const item = document.createElement('div');
+                        item.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;border:1px solid #e5e7eb;background:#fafafa;';
+                        const printedBadge = r.is_printed
+                            ? `<span style="background:#dcfce7;color:#166534;border-radius:8px;font-size:0.72rem;font-weight:700;padding:2px 8px;">인쇄완료</span>`
+                            : `<span style="background:#fef9c3;color:#854d0e;border-radius:8px;font-size:0.72rem;font-weight:700;padding:2px 8px;">임시저장</span>`;
+                        const savedDate = r.saved_at
+                            ? new Date(r.saved_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' })
+                            : '';
+                        const printedDate = r.printed_at
+                            ? new Date(r.printed_at).toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                            : '';
+                        item.innerHTML = `
+                            <div style="display:flex;flex-direction:column;gap:3px;">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <span style="font-weight:700;font-size:0.9rem;color:#111827;">${r.period_start} ~ ${r.period_end}</span>
+                                    ${printedBadge}
+                                </div>
+                                <span style="font-size:0.78rem;color:#9ca3af;">
+                                    보고일: ${r.report_date || '-'}
+                                    ${printedDate ? ` &nbsp;·&nbsp; 인쇄: ${printedDate}` : ''}
+                                    ${savedDate ? ` &nbsp;·&nbsp; 저장: ${savedDate}` : ''}
+                                </span>
+                            </div>
+                            <div style="display:flex;gap:6px;">
+                                <button class="view-saved-report-btn" data-key="${r.report_key}"
+                                    style="padding:6px 14px;border-radius:8px;border:1.5px solid #6d28d9;background:#faf5ff;color:#6d28d9;font-size:0.82rem;font-weight:600;cursor:pointer;">
+                                    열람
+                                </button>
+                            </div>
+                        `;
+                        list.appendChild(item);
+                    });
+
+                    list.querySelectorAll('.view-saved-report-btn').forEach(btn => {
+                        btn.onclick = async () => {
+                            const key = btn.getAttribute('data-key');
+                            await renderSavedReport(key);
+                            savedReportsModal.style.display = 'none';
+                        };
+                    });
+                } catch (e) {
+                    loading.textContent = '불러오기 실패: ' + e.message;
+                }
+            };
+
+            closeSavedReportsBtn.onclick = () => { savedReportsModal.style.display = 'none'; };
+            savedReportsModal.addEventListener('click', e => { if (e.target === savedReportsModal) savedReportsModal.style.display = 'none'; });
+
+            async function renderSavedReport(reportKey) {
+                try {
+                    const { data: report, error } = await supabase
+                        .from('attendance_reports')
+                        .select('snapshot, names, period_start, period_end, report_date, is_printed, printed_at')
+                        .eq('report_key', reportKey)
+                        .maybeSingle();
+
+                    if (error || !report) { alert('보고서를 불러올 수 없습니다.'); return; }
+
+                    const { snapshot, names, period_start, period_end, report_date, is_printed, printed_at } = report;
+                    const weekdaysMap = ['일', '월', '화', '수', '목', '금', '토'];
+
+                    // 날짜 목록 — 상/하반기 청크 분리
+                    const dateSet = new Set();
+                    names.forEach(n => { if (snapshot[n]) Object.keys(snapshot[n]).forEach(d => dateSet.add(d)); });
+                    const allDates = Array.from(dateSet).sort();
+
+                    const chunks = [];
+                    allDates.forEach(dt => {
+                        const d = new Date(dt);
+                        const key = `${d.getFullYear()}-${d.getMonth()}-P${d.getDate() <= 15 ? 1 : 2}`;
+                        if (!chunks.length || chunks[chunks.length - 1].key !== key) chunks.push({ key, dates: [] });
+                        chunks[chunks.length - 1].dates.push(dt);
+                    });
+
+                    reportContainer.innerHTML = '';
+
+                    // 인쇄된 보고서 안내 배너 (no-print)
+                    const banner = document.createElement('div');
+                    banner.className = 'no-print';
+                    banner.style.cssText = 'display:flex;align-items:center;justify-content:space-between;background:#f5f3ff;border:1.5px solid #ddd6fe;border-radius:12px;padding:12px 18px;margin-bottom:16px;';
+                    const printedDateStr = printed_at
+                        ? new Date(printed_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                        : '';
+                    banner.innerHTML = `
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <span style="font-size:0.85rem;font-weight:700;color:#6d28d9;">
+                                ${is_printed ? '📌 영구 저장된 보고서' : '📋 임시 저장된 보고서'}
+                            </span>
+                            <span style="font-size:0.8rem;color:#7c3aed;">
+                                ${period_start} ~ ${period_end}
+                                ${printedDateStr ? `&nbsp;·&nbsp; 인쇄: ${printedDateStr}` : ''}
+                            </span>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button onclick="window.print()" style="padding:5px 14px;border-radius:8px;border:1.5px solid #6d28d9;background:#6d28d9;color:#fff;font-size:0.82rem;font-weight:600;cursor:pointer;">인쇄</button>
+                            <button id="close-saved-view-btn" style="padding:5px 14px;border-radius:8px;border:1.5px solid #d1d5db;background:#fff;color:#6b7280;font-size:0.82rem;font-weight:600;cursor:pointer;">닫기</button>
+                        </div>
+                    `;
+                    reportContainer.appendChild(banner);
+                    banner.querySelector('#close-saved-view-btn').onclick = () => {
+                        reportContainer.innerHTML = '';
+                        reportContainer.classList.add('hidden');
+                    };
+
+                    // 청크별 report-page 렌더링 (snapshot 기반)
+                    chunks.forEach(({ dates: datesChunk }) => {
+                        const refDate = new Date(datesChunk[0]);
+                        const yStr = refDate.getFullYear();
+                        const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
+                        const isP1 = refDate.getDate() <= 15;
+                        const startDay = isP1 ? '01' : '16';
+                        const endDayStr = isP1 ? '15' : String(new Date(yStr, refDate.getMonth() + 1, 0).getDate()).padStart(2, '0');
+                        const periodText = `${yStr}-${mStr}-${startDay} ~ ${yStr}-${mStr}-${endDayStr}`;
+
+                        const pageDiv = document.createElement('div');
+                        pageDiv.className = 'report-page';
+                        pageDiv.innerHTML = `
+                            <div class="report-header">
+                                <h2>근태 보고서</h2>
+                                <div class="header-rightside">
+                                    <div class="report-meta">
+                                        <div class="meta-item"><span class="meta-label">보고일자</span><span class="meta-value"><u>${report_date || ''}</u></span></div>
+                                        <div class="meta-item"><span class="meta-label">종합기간</span><span class="meta-value"><u>${periodText}</u></span></div>
+                                    </div>
+                                    <table class="approval-table">
+                                        <tr><th>담당</th><th>부장</th><th>전무</th><th>대표이사</th><th>회장</th></tr>
+                                        <tr><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td></tr>
+                                        <tr><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td></tr>
+                                    </table>
+                                </div>
+                            </div>
+                        `;
+
+                        const table = document.createElement('table');
+                        table.className = 'matrix-table';
+                        let theadHtml = `<thead><tr><th colspan="2" class="sticky-col corner-cell">일자</th>`;
+                        datesChunk.forEach(dt => {
+                            const d = new Date(dt);
+                            theadHtml += `<th class="th-dategroup">${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}<br>(${weekdaysMap[d.getDay()]})</th>`;
+                        });
+                        theadHtml += `</tr></thead>`;
+
+                        let tbodyHtml = `<tbody>`;
+                        names.forEach(name => {
+                            const rec = snapshot[name] || {};
+
+                            // 출근 행
+                            tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
+                            datesChunk.forEach(dt => {
+                                const r = rec[dt];
+                                const val = r?.inTime || '';
+                                let cls = val === '연차' ? 'leave-annual' : val === '반차' ? 'leave-half' : (r?.confirmedIn ? 'confirmed-cell' : '');
+                                const display = val || (r?.confirmedIn ? '✓' : '');
+                                tbodyHtml += `<td class="${cls}">${display}</td>`;
+                            });
+
+                            // 퇴근 행
+                            tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
+                            datesChunk.forEach(dt => {
+                                const r = rec[dt];
+                                const val = r?.outTime || '';
+                                let cls = val === '연차' ? 'leave-annual' : val === '반차' ? 'leave-half' : (r?.confirmedOut ? 'confirmed-cell' : '');
+                                const display = val || (r?.confirmedOut ? '✓' : '');
+                                tbodyHtml += `<td class="${cls}">${display}</td>`;
+                            });
+
+                            // 사유 행 (병합 포함)
+                            tbodyHtml += `</tr><tr class="employee-border-bottom"><td class="sticky-col td-label label-reason">사유</td>`;
+                            let i = 0;
+                            while (i < datesChunk.length) {
+                                const dt = datesChunk[i];
+                                const reason = (rec[dt]?.reason || rec[dt]?.managerReason || '');
+                                let span = 1;
+                                if (reason.length >= 6) {
+                                    while (i + span < datesChunk.length) {
+                                        const next = (rec[datesChunk[i + span]]?.reason || rec[datesChunk[i + span]]?.managerReason || '');
+                                        if (next === reason) span++;
+                                        else break;
+                                    }
+                                }
+                                tbodyHtml += span > 1
+                                    ? `<td class="time-cell reason-cell" colspan="${span}">${reason}</td>`
+                                    : `<td class="time-cell reason-cell">${reason}</td>`;
+                                i += span;
+                            }
+                            tbodyHtml += `</tr>`;
+                        });
+                        tbodyHtml += `</tbody>`;
+
+                        table.innerHTML = theadHtml + tbodyHtml;
+                        pageDiv.appendChild(table);
+                        reportContainer.appendChild(pageDiv);
+                    });
+
+                    reportContainer.classList.remove('hidden');
+                    reportContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } catch (e) {
+                    alert('보고서 렌더링 오류: ' + e.message);
+                }
+            }
+            // ─────────────────────────────────────────────────────────────
+
+            // 인쇄 확인 모달
+            const printConfirmModal = document.getElementById('print-confirm-modal');
+            const printConfirmOk = document.getElementById('print-confirm-ok');
+            const printConfirmCancel = document.getElementById('print-confirm-cancel');
+            const printConfirmPeriod = document.getElementById('print-confirm-period');
+
+            printBtn.onclick = () => {
+                // 데이터 없으면 그냥 인쇄
+                const allDates = Array.from(currentUniqueDates).sort();
+                if (allDates.length === 0) { window.print(); return; }
+
+                // 기간 텍스트 계산해서 모달에 표시
+                const refDate = new Date(allDates[0]);
+                const yStr = refDate.getFullYear();
+                const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
+                const isP1 = refDate.getDate() <= 15;
+                const pStart = `${yStr}-${mStr}-${isP1 ? '01' : '16'}`;
+                const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
+                const pEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
+                printConfirmPeriod.textContent = `${pStart} ~ ${pEnd}`;
+
+                printConfirmModal.style.display = 'flex';
+            };
+
+            printConfirmCancel.onclick = () => {
+                printConfirmModal.style.display = 'none';
+            };
+
+            printConfirmModal.addEventListener('click', (e) => {
+                if (e.target === printConfirmModal) printConfirmModal.style.display = 'none';
+            });
+
+            printConfirmOk.onclick = async () => {
+                printConfirmModal.style.display = 'none';
+                printConfirmOk.disabled = true;
+                printConfirmOk.textContent = '저장 중...';
+
+                try {
+                    // 인쇄 전 보고서 클라우드 저장
+                    const allDates = Array.from(currentUniqueDates).sort();
+                    if (allDates.length > 0 && supabase) {
+                        const refDate = new Date(allDates[0]);
+                        const yStr = refDate.getFullYear();
+                        const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
+                        const isP1 = refDate.getDate() <= 15;
+                        const periodStart = `${yStr}-${mStr}-${isP1 ? '01' : '16'}`;
+                        const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
+                        const periodEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
+                        const reportKey = `${periodStart}_${periodEnd}`;
+                        const reportDate = reportDateInput.value || new Date().toISOString().split('T')[0];
+                        const matrix = updateAndProcessData(true);
+                        if (matrix) {
+                            const { names, recordsMap } = matrix;
+                            const snapshot = {};
+                            names.forEach(name => {
+                                snapshot[name] = {};
+                                allDates.forEach(dt => {
+                                    const rec = (recordsMap[name] || {})[dt];
+                                    const corrKey = `${name}_${dt}`;
+                                    let corrData = manualCorrections[corrKey];
+                                    if (corrData === true) corrData = { in: true, out: true };
+                                    else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
+                                    if (!rec && !corrData.in && !corrData.out && !manualReasons[corrKey]) return;
+                                    snapshot[name][dt] = {
+                                        inTime: rec?.inTime || '',
+                                        outTime: rec?.outTime || '',
+                                        reason: rec?.reason || '',
+                                        shift: rec?.shiftStart || '',
+                                        confirmedIn: !!corrData.in,
+                                        confirmedOut: !!corrData.out,
+                                        confirmedLeave: !!corrData.leave,
+                                        managerReason: manualReasons[corrKey] || ''
+                                    };
+                                });
+                            });
+                            const hasData = Object.values(snapshot).some(s => Object.keys(s).length > 0);
+                            if (hasData) {
+                                await supabase.from('attendance_reports').upsert({
+                                    report_key: reportKey,
+                                    period_start: periodStart,
+                                    period_end: periodEnd,
+                                    report_date: reportDate,
+                                    saved_at: new Date().toISOString(),
+                                    printed_at: new Date().toISOString(),
+                                    is_printed: true,
+                                    names,
+                                    snapshot
+                                }, { onConflict: 'report_key' });
+                                console.log(`[REPORT PRINT] 인쇄 완료 — 보고서 고정 저장 (${reportKey})`);
+                            }
+                        }
+                    }
+                } finally {
+                    printConfirmOk.disabled = false;
+                    printConfirmOk.textContent = '인쇄 및 저장';
+                }
+                window.print();
+            };
         });
     </script>
+
+    <!-- 저장된 보고서 열람 모달 -->
+    <div id="saved-reports-modal" style="
+        display:none; position:fixed; inset:0; z-index:9998;
+        background:rgba(0,0,0,0.45);
+        align-items:flex-start; justify-content:center;
+        padding-top:40px; overflow-y:auto;">
+        <div style="
+            background:#fff; border-radius:20px;
+            width:100%; max-width:560px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.2);
+            margin-bottom:40px; overflow:hidden;">
+            <!-- 헤더 -->
+            <div style="display:flex; align-items:center; justify-content:space-between;
+                padding:20px 24px 16px; border-bottom:1px solid #e5e7eb;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="width:36px;height:36px;border-radius:50%;background:#f5f3ff;
+                        display:flex;align-items:center;justify-content:center;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                            <line x1="16" y1="13" x2="8" y2="13" />
+                            <line x1="16" y1="17" x2="8" y2="17" />
+                            <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                    </div>
+                    <h3 style="font-size:1rem; font-weight:700; color:#111827; margin:0;">저장된 보고서</h3>
+                </div>
+                <button id="close-saved-reports-btn"
+                    style="background:none;border:none;font-size:1.4rem;color:#9ca3af;cursor:pointer;line-height:1;">&times;</button>
+            </div>
+            <!-- 목록 -->
+            <div style="padding:16px 24px;">
+                <div id="saved-reports-loading" style="text-align:center;padding:24px;color:#6b7280;font-size:0.9rem;">
+                    불러오는 중...</div>
+                <div id="saved-reports-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+                <div id="saved-reports-empty"
+                    style="display:none;text-align:center;padding:32px;color:#9ca3af;font-size:0.9rem;">저장된 보고서가 없습니다.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 인쇄 확인 모달 -->
+    <div id="print-confirm-modal" style="
+        display:none; position:fixed; inset:0; z-index:9999;
+        background:rgba(0,0,0,0.45);
+        align-items:center; justify-content:center;">
+        <div style="
+            background:#fff; border-radius:20px;
+            padding:36px 32px 28px;
+            width:100%; max-width:400px;
+            box-shadow:0 20px 60px rgba(0,0,0,0.2);
+            text-align:center; position:relative;">
+            <div style="
+                width:52px; height:52px; border-radius:50%;
+                background:#eff6ff; margin:0 auto 18px;
+                display:flex; align-items:center; justify-content:center;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                    <rect x="6" y="14" width="12" height="8" />
+                </svg>
+            </div>
+            <h3 style="font-size:1.05rem; font-weight:700; color:#111827; margin-bottom:10px;">보고서를 인쇄하시겠습니까?</h3>
+            <p style="font-size:0.875rem; color:#6b7280; line-height:1.6; margin-bottom:8px;">
+                인쇄 시 현재 보고서 내용이 <strong style="color:#1d4ed8;">영구 저장</strong>됩니다.
+            </p>
+            <p id="print-confirm-period"
+                style="font-size:0.82rem; color:#4f46e5; font-weight:600; background:#eef2ff; border-radius:8px; padding:6px 12px; display:inline-block; margin-bottom:24px;">
+            </p>
+            <div style="display:flex; gap:10px;">
+                <button id="print-confirm-cancel" style="
+                    flex:1; padding:11px; border-radius:10px;
+                    border:1.5px solid #e5e7eb; background:#fff;
+                    font-size:0.9rem; font-weight:600; color:#6b7280;
+                    cursor:pointer;">취소</button>
+                <button id="print-confirm-ok" style="
+                    flex:1; padding:11px; border-radius:10px;
+                    border:none; background:#2563eb;
+                    font-size:0.9rem; font-weight:600; color:#fff;
+                    cursor:pointer;">인쇄 및 저장</button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
