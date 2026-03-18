@@ -2312,7 +2312,7 @@
                         const recs = recordsMap[name] || {};
                         const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
 
-                        tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
+                        tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
                             const corrKey = `${name}_${dt}`;
@@ -2831,23 +2831,111 @@
                                             if (hasInAnom) manualCorrections[key].in = true;
                                             if (hasOutAnom) manualCorrections[key].out = true;
 
-                                            // [추가] 소명 답변 자동 사유 반영 로직
+                                            // [추가] 소명 답변 자동 사유 반영 로직 (정규화 포함)
                                             const rawExp = employeeExplanations[key];
                                             if (rawExp) {
                                                 const exps = rawExp.split(',').map(s => s.trim()).filter(s => s);
+
+                                                // ── 사유 정규화 함수 ──────────────────────────
+                                                const normalizeReason = (text, anomalyReason) => {
+                                                    const t = text.replace(/^\[사전\]\s*/, '').trim();
+
+                                                    // 1. 이미 표준 사유이면 그대로
+                                                    const standards = ['정상출근', '정상퇴근', '정상근무', '지각', '조기퇴근',
+                                                        '외근', '출장', '연차', '반차', '오전반차', '오후반차',
+                                                        '병가', '공가', '경조', '대체', '포상'];
+                                                    if (standards.includes(t)) return t;
+
+                                                    // 2. 시간 패턴 추출 (PM06:00 / 오후6시 / 18:00 / 18시 / 6:00PM 등)
+                                                    const timeMatch = t.match(
+                                                        /(?:PM|AM|오전|오후)?\s*(\d{1,2})[:\s시](\d{0,2})(?:분)?(?:\s*(?:PM|AM|퇴근|출근))?/i
+                                                    );
+                                                    if (timeMatch) {
+                                                        let hour = parseInt(timeMatch[1]);
+                                                        const isPM = /PM|오후/i.test(t);
+                                                        const isAM = /AM|오전/i.test(t);
+                                                        if (isPM && hour < 12) hour += 12;
+                                                        if (isAM && hour === 12) hour = 0;
+
+                                                        const isOutContext = /퇴근|퇴|out/i.test(t) ||
+                                                            (anomalyReason && anomalyReason.includes('퇴근'));
+                                                        const isInContext = /출근|출|in/i.test(t) ||
+                                                            (anomalyReason && anomalyReason.includes('출근'));
+
+                                                        // 퇴근 맥락: 정규 퇴근(17~18시) vs 조기퇴근
+                                                        if (isOutContext || (!isInContext && hour >= 11)) {
+                                                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === key.split('_')[0]);
+                                                            const shift = empInfo?.shift || '0800-1700';
+                                                            const expOutStr = shift.split(/[-~]/)[1]?.replace(/[^0-9]/g, '') || '1700';
+                                                            const expOutHour = parseInt(expOutStr.substring(0, 2));
+                                                            return hour >= expOutHour ? '정상퇴근' : `조기퇴근 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 퇴근)`;
+                                                        }
+                                                        // 출근 맥락
+                                                        if (isInContext || hour < 11) {
+                                                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === key.split('_')[0]);
+                                                            const shift = empInfo?.shift || '0800-1700';
+                                                            const expInStr = shift.split(/[-~]/)[0]?.replace(/[^0-9]/g, '') || '0800';
+                                                            const expInHour = parseInt(expInStr.substring(0, 2));
+                                                            const expInMin = parseInt(expInStr.substring(2, 4) || '0');
+                                                            const expInTotal = expInHour * 60 + expInMin;
+                                                            const actualTotal = hour * 60 + parseInt(timeMatch[2] || '0');
+                                                            return actualTotal <= expInTotal + 5 ? '정상출근' : `지각 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 출근)`;
+                                                        }
+                                                    }
+
+                                                    // 3. 키워드 매핑
+                                                    const keywordMap = [
+                                                        [/정상\s*출근|제시간|정시출근/, '정상출근'],
+                                                        [/정상\s*퇴근|정시퇴근/, '정상퇴근'],
+                                                        [/지각|늦게|늦음|늦은/, '지각'],
+                                                        [/조기|일찍|일찍\s*퇴근/, '조기퇴근'],
+                                                        [/외근|현장|현출|현퇴/, '외근'],
+                                                        [/출장/, '출장'],
+                                                        [/연차|휴가/, '연차'],
+                                                        [/오전\s*반차/, '오전반차'],
+                                                        [/오후\s*반차|반차/, '오후반차'],
+                                                        [/병가|아파|몸살|병원/, '병가'],
+                                                        [/공가/, '공가'],
+                                                        [/경조/, '경조'],
+                                                    ];
+                                                    for (const [pattern, standard] of keywordMap) {
+                                                        if (pattern.test(t)) return standard;
+                                                    }
+
+                                                    // 4. 변환 불가 — 원문 그대로 (관리자가 인풋에서 확인)
+                                                    return t;
+                                                };
+                                                // ─────────────────────────────────────────────
+
                                                 if (exps.length === 1) {
-                                                    manualReasons[key] = exps[0].replace(/^\[사전\]\s*/, '');
+                                                    manualReasons[key] = normalizeReason(exps[0], a?.reason || '');
                                                 } else if (exps.length >= 2) {
                                                     const abnormalExps = exps.filter(s => s !== '정상출근' && s !== '정상퇴근');
                                                     if (abnormalExps.length === 0) {
                                                         manualReasons[key] = '정상근무';
                                                     } else if (abnormalExps.length === 1) {
-                                                        manualReasons[key] = abnormalExps[0].replace(/^\[사전\]\s*/, '');
+                                                        manualReasons[key] = normalizeReason(abnormalExps[0], a?.reason || '');
                                                     } else {
-                                                        alert('복합적인 소명 사유가 있습니다. 직접 확인 후 입력해주세요.');
+                                                        // 복합 사유 — 각각 정규화 후 합쳐서 인풋에 채움
+                                                        const normalized = abnormalExps.map(e => normalizeReason(e, a?.reason || ''));
+                                                        manualReasons[key] = normalized.join(', ');
                                                     }
                                                 }
+
+                                                // 정규화 결과를 인풋 필드에 반영 + 하이라이트
                                                 localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                                                setTimeout(() => {
+                                                    const inp = document.querySelector(`.manual-reason-input[data-key="${key}"]`);
+                                                    if (inp) {
+                                                        inp.value = manualReasons[key];
+                                                        inp.style.background = '#fef9c3';
+                                                        inp.style.borderColor = '#f59e0b';
+                                                        setTimeout(() => {
+                                                            inp.style.background = '';
+                                                            inp.style.borderColor = '';
+                                                        }, 2000);
+                                                    }
+                                                }, 100);
                                             }
                                         }
                                     }
@@ -3233,7 +3321,7 @@
                             const rec = snapshot[name] || {};
 
                             // 출근 행
-                            tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
+                            tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
                             datesChunk.forEach(dt => {
                                 const r = rec[dt];
                                 const val = r?.inTime || '';
@@ -3294,12 +3382,12 @@
             const printConfirmCancel = document.getElementById('print-confirm-cancel');
             const printConfirmPeriod = document.getElementById('print-confirm-period');
 
-            printBtn.onclick = () => {
+            printBtn.onclick = async () => {
                 // 데이터 없으면 그냥 인쇄
                 const allDates = Array.from(currentUniqueDates).sort();
                 if (allDates.length === 0) { window.print(); return; }
 
-                // 기간 텍스트 계산해서 모달에 표시
+                // 기간 텍스트 계산
                 const refDate = new Date(allDates[0]);
                 const yStr = refDate.getFullYear();
                 const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
@@ -3308,6 +3396,51 @@
                 const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
                 const pEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
                 printConfirmPeriod.textContent = `${pStart} ~ ${pEnd}`;
+
+                // 이미 인쇄된 보고서인지 확인
+                const warning = document.getElementById('print-already-warning');
+                const warningDate = document.getElementById('print-already-date');
+                const confirmTitle = document.getElementById('print-confirm-title');
+                const confirmDesc = document.getElementById('print-confirm-desc');
+                const confirmIcon = document.getElementById('print-confirm-icon');
+                const confirmOkBtn = document.getElementById('print-confirm-ok');
+
+                // 기본 상태로 초기화
+                warning.style.display = 'none';
+                confirmTitle.textContent = '보고서를 인쇄하시겠습니까?';
+                confirmDesc.style.display = 'block';
+                confirmIcon.style.background = '#eff6ff';
+                confirmIcon.querySelector('svg').setAttribute('stroke', '#2563eb');
+                confirmOkBtn.style.background = '#2563eb';
+                confirmOkBtn.textContent = '인쇄 및 저장';
+
+                if (supabase) {
+                    try {
+                        const reportKey = `${pStart}_${pEnd}`;
+                        const { data: existing } = await supabase
+                            .from('attendance_reports')
+                            .select('is_printed, printed_at')
+                            .eq('report_key', reportKey)
+                            .maybeSingle();
+
+                        if (existing && existing.is_printed === true) {
+                            // 이미 인쇄된 보고서 — 경고 표시
+                            const printedAt = existing.printed_at
+                                ? new Date(existing.printed_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                                : '';
+                            warningDate.textContent = printedAt ? `최초 인쇄: ${printedAt}` : '';
+                            warning.style.display = 'block';
+                            confirmTitle.textContent = '이미 저장된 보고서를 재인쇄합니다';
+                            confirmDesc.style.display = 'none';
+                            confirmIcon.style.background = '#fef2f2';
+                            confirmIcon.querySelector('svg').setAttribute('stroke', '#ef4444');
+                            confirmOkBtn.style.background = '#dc2626';
+                            confirmOkBtn.textContent = '덮어쓰고 인쇄';
+                        }
+                    } catch (e) {
+                        console.warn('[PRINT] is_printed 확인 실패:', e);
+                    }
+                }
 
                 printConfirmModal.style.display = 'flex';
             };
@@ -3443,7 +3576,7 @@
             width:100%; max-width:400px;
             box-shadow:0 20px 60px rgba(0,0,0,0.2);
             text-align:center; position:relative;">
-            <div style="
+            <div id="print-confirm-icon" style="
                 width:52px; height:52px; border-radius:50%;
                 background:#eff6ff; margin:0 auto 18px;
                 display:flex; align-items:center; justify-content:center;">
@@ -3454,8 +3587,25 @@
                     <rect x="6" y="14" width="12" height="8" />
                 </svg>
             </div>
-            <h3 style="font-size:1.05rem; font-weight:700; color:#111827; margin-bottom:10px;">보고서를 인쇄하시겠습니까?</h3>
-            <p style="font-size:0.875rem; color:#6b7280; line-height:1.6; margin-bottom:8px;">
+            <h3 id="print-confirm-title" style="font-size:1.05rem; font-weight:700; color:#111827; margin-bottom:10px;">
+                보고서를 인쇄하시겠습니까?</h3>
+            <!-- 재인쇄 경고 (기본 숨김) -->
+            <div id="print-already-warning"
+                style="display:none; background:#fef2f2; border:1.5px solid #fca5a5; border-radius:10px; padding:12px 14px; margin-bottom:14px; text-align:left;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="#ef4444">
+                        <path fill-rule="evenodd"
+                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span style="font-size:0.85rem; font-weight:700; color:#dc2626;">이미 영구 저장된 보고서입니다</span>
+                </div>
+                <p style="font-size:0.8rem; color:#7f1d1d; margin:0; line-height:1.5;">인쇄 시 현재 내용으로 <strong>기존 영구 저장 내용을
+                        덮어씁니다.</strong><br>사원들이 열람하던 보고서가 변경됩니다.</p>
+                <p id="print-already-date" style="font-size:0.75rem; color:#b91c1c; margin:8px 0 0; font-weight:600;">
+                </p>
+            </div>
+            <p id="print-confirm-desc" style="font-size:0.875rem; color:#6b7280; line-height:1.6; margin-bottom:8px;">
                 인쇄 시 현재 보고서 내용이 <strong style="color:#1d4ed8;">영구 저장</strong>됩니다.
             </p>
             <p id="print-confirm-period"

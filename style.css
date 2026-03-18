@@ -802,6 +802,7 @@ textarea:focus {
     font-size: .65rem;
     background: var(--gray-50) !important;
     border-right: 1px solid var(--gray-700);
+    border-bottom: 1px solid var(--gray-700) !important;
 }
 
 .td-label {
@@ -856,6 +857,14 @@ textarea:focus {
 
 .employee-border-bottom td {
     border-bottom: 1px solid var(--gray-700) !important;
+}
+
+.matrix-table tbody tr:last-child td {
+    border-bottom: 1px solid var(--gray-700) !important;
+}
+
+.matrix-table {
+    border-bottom: 1px solid var(--gray-700);
 }
 
 .matrix-table td.reason-cell[colspan] {
@@ -1202,6 +1211,7 @@ textarea:focus {
     /* 배경색 강제 출력 */
     .td-name {
         background-color: #f9fafb !important;
+        border-bottom: 1px solid #374151 !important;
     }
 
     .label-in,
@@ -1265,5 +1275,13 @@ textarea:focus {
 
     .employee-border-bottom td {
         border-bottom: 1px solid #374151 !important;
+    }
+
+    .matrix-table tbody tr:last-child td {
+        border-bottom: 1px solid #374151 !important;
+    }
+
+    .matrix-table {
+        border-bottom: 1px solid #374151;
     }
 }

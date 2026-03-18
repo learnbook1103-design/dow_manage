@@ -1641,6 +1641,12 @@
             let reportViewMode = 'mine'; // 'mine' | 'all'
 
             window.setReportViewMode = function (mode) {
+                // 권한 체크 — 팀장 아니면 team 모드 차단, 관리자 아니면 all 모드 차단
+                const isAdmin = sessionStorage.getItem('attendance_user_is_admin') === 'true';
+                const isLeader = sessionStorage.getItem('attendance_user_is_leader') === 'true';
+                if (mode === 'team' && !isLeader) return;
+                if (mode === 'all' && !isAdmin) return;
+
                 reportViewMode = mode;
                 document.querySelectorAll('.report-mode-btn').forEach(b => b.classList.remove('active'));
                 const activeBtn = document.getElementById(
@@ -1706,7 +1712,7 @@
                         const pill = document.createElement('button');
                         pill.className = 'report-period-pill';
                         const printedBadge = r.is_printed
-                            ? `<span style="background:#dcfce7; color:#166534; border-radius:10px; font-size:0.72rem; font-weight:700; padding:1px 7px; margin-left:2px;">인쇄완료</span>`
+                            ? `<span style="background:#dcfce7; color:#166534; border-radius:10px; font-size:0.72rem; font-weight:700; padding:1px 7px; margin-left:2px;">완료</span>`
                             : '';
                         pill.innerHTML = `
                             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
@@ -1720,11 +1726,8 @@
                                 window.loadFullReportDetail(r.report_key, `${r.period_start} ~ ${r.period_end}`, null);
                             } else if (reportViewMode === 'team' && isLeader) {
                                 window.loadFullReportDetail(r.report_key, `${r.period_start} ~ ${r.period_end}`, myOrg);
-                            } else if (r.is_printed) {
-                                // 인쇄 완료 보고서 → 전체 내용 열람
-                                window.loadFullReportDetail(r.report_key, `${r.period_start} ~ ${r.period_end}`, null);
                             } else {
-                                // 임시저장 → 본인 기록만
+                                // mine 모드 — 인쇄 완료 여부 무관하게 항상 본인 기록만
                                 window.loadReportDetail(name, r.report_key, `${r.period_start} ~ ${r.period_end}`);
                             }
                         };
