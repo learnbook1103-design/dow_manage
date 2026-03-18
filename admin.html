@@ -1091,7 +1091,7 @@
             }
 
 
-            async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false) {
+            async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false, filesToUpload = []) {
                 if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
                 const currentMatrix = prebuiltMatrix || updateAndProcessData(true, ignorePeriod);
                 if (!currentMatrix) {
@@ -1243,6 +1243,12 @@
                     console.error('[AUTO ANOMALY] 동기화 오류:', anomSyncErr);
                 }
                 // ─────────────────────────────────────────────────────────────
+
+                // ── 구글 드라이브 원자료 업로드 ──────────────────────────────
+                if (filesToUpload && filesToUpload.length > 0) {
+                    console.log('[DRIVE] 원자료 업로드 시작:', filesToUpload.map(f => f.name));
+                    for (const f of filesToUpload) { await uploadFileToDrive(f); }
+                }
             }
 
             async function fetchAllFromCloud(silent = false) {
@@ -1653,12 +1659,7 @@
                             updateAndProcessData();
                             // [추가] 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Attendance files uploaded. Triggering full cloud sync...");
-                            try { await syncAllToCloud(true, null, true); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
-                            // [추가] 구글 드라이브 원자료 백업 — syncAllToCloud 완료 후 즉시 실행
-                            setTimeout(async () => {
-                                console.log('[DRIVE] 출퇴근 원자료 업로드 시작:', fileArray.map(f => f.name));
-                                for (const f of fileArray) { await uploadFileToDrive(f); }
-                            }, 100);
+                            try { await syncAllToCloud(true, null, true, fileArray); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -1974,12 +1975,7 @@
                             updateAndProcessData();
                             // [추가] 휴가 파일 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Leave files uploaded. Triggering full cloud sync...");
-                            try { await syncAllToCloud(true, null, true); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
-                            // [추가] 구글 드라이브 원자료 백업 — syncAllToCloud 완료 후 즉시 실행
-                            setTimeout(async () => {
-                                console.log('[DRIVE] 휴가 원자료 업로드 시작:', fileArray.map(f => f.name));
-                                for (const f of fileArray) { await uploadFileToDrive(f); }
-                            }, 100);
+                            try { await syncAllToCloud(true, null, true, fileArray); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
                         }
                     };
                     reader.readAsArrayBuffer(file);
