@@ -1243,6 +1243,7 @@
                     console.error('[AUTO ANOMALY] 동기화 오류:', anomSyncErr);
                 }
                 // ─────────────────────────────────────────────────────────────
+                console.log('[SYNC] anomaly 처리 완료, filesToUpload 길이:', filesToUpload ? filesToUpload.length : 'null');
 
                 // ── 구글 드라이브 원자료 업로드 ──────────────────────────────
                 if (filesToUpload && filesToUpload.length > 0) {
