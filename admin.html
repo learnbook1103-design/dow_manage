@@ -18,6 +18,12 @@
             padding: 2rem;
         }
 
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         #ui-container {
             max-width: 794px;
         }
@@ -1240,7 +1246,10 @@
                                 .map(r => r.manager_key)
                                 .filter(k => !anomalyKeys.has(k));
                             if (toDelete.length > 0) {
-                                await supabase.from('attendance_anomalies').delete().in('manager_key', toDelete);
+                                const DEL_CHUNK = 50;
+                                for (let i = 0; i < toDelete.length; i += DEL_CHUNK) {
+                                    await supabase.from('attendance_anomalies').delete().in('manager_key', toDelete.slice(i, i + DEL_CHUNK));
+                                }
                                 console.log(`[AUTO ANOMALY] 해소된 이상 ${toDelete.length}건 삭제`);
                             }
                         }
@@ -3501,8 +3510,29 @@
                 printConfirmOk.disabled = true;
                 printConfirmOk.textContent = '저장 중...';
 
+                // 진행 상태 오버레이 표시
+                const progressOverlay = document.createElement('div');
+                progressOverlay.id = 'print-progress-overlay';
+                progressOverlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
+                progressOverlay.innerHTML = `
+                    <div style="background:#fff;border-radius:16px;padding:32px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);min-width:260px;">
+                        <div id="print-progress-spinner" style="width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
+                        <div id="print-progress-text" style="font-size:0.95rem;font-weight:600;color:#111827;">Supabase 저장 중...</div>
+                        <div id="print-progress-sub" style="font-size:0.8rem;color:#6b7280;margin-top:6px;">잠시만 기다려 주세요</div>
+                    </div>
+                `;
+                document.body.appendChild(progressOverlay);
+
+                const setProgress = (text, sub = '') => {
+                    const el = document.getElementById('print-progress-text');
+                    const sub_el = document.getElementById('print-progress-sub');
+                    if (el) el.textContent = text;
+                    if (sub_el) sub_el.textContent = sub;
+                };
+
                 try {
                     // ── 1. Supabase 영구 저장 ─────────────────────────────
+                    setProgress('보고서 저장 중...', 'Supabase에 영구 저장하고 있습니다');
                     const allDates = Array.from(currentUniqueDates).sort();
                     let periodStart = '', periodEnd = '', reportKey = '';
                     if (allDates.length > 0 && supabase) {
@@ -3560,6 +3590,7 @@
 
                     // ── 2. PDF 생성 → 구글 드라이브 업로드 ───────────────
                     try {
+                        setProgress('PDF 생성 중...', '보고서를 PDF로 변환하고 있습니다');
                         printConfirmOk.textContent = 'PDF 생성 중...';
                         const { jsPDF } = window.jspdf;
                         const pages = document.querySelectorAll('.report-page');
@@ -3570,6 +3601,7 @@
                             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
                             for (let i = 0; i < pages.length; i++) {
                                 if (i > 0) pdf.addPage();
+                                setProgress(`PDF 생성 중... (${i + 1}/${pages.length})`, '보고서를 PDF로 변환하고 있습니다');
                                 const canvas = await html2canvas(pages[i], {
                                     scale: 2,
                                     useCORS: true,
@@ -3582,6 +3614,7 @@
                             const pdfBase64 = pdf.output('datauristring').split(',')[1];
                             const fileName = `근태보고서_${pStart}_${pEnd}.pdf`;
 
+                            setProgress('구글 드라이브 업로드 중...', '공유 폴더에 PDF를 저장하고 있습니다');
                             printConfirmOk.textContent = '드라이브 업로드 중...';
                             const res = await fetch(APPS_SCRIPT_URL, {
                                 method: 'POST',
@@ -3591,6 +3624,7 @@
                             });
                             // no-cors 모드에서는 response body 없음 — 업로드 완료로 간주
                             console.log('[DRIVE] PDF 업로드 요청 완료:', fileName);
+                            setProgress('업로드 완료!', '인쇄 창을 열고 있습니다...');
                         } else {
                             console.warn('[PDF] 조건 미충족 — pages:', pages.length, 'jsPDF:', !!jsPDF, 'html2canvas:', !!window.html2canvas);
                         }
@@ -3599,6 +3633,9 @@
                     }
 
                 } finally {
+                    // 오버레이 제거
+                    const overlay = document.getElementById('print-progress-overlay');
+                    if (overlay) overlay.remove();
                     printConfirmOk.disabled = false;
                     printConfirmOk.textContent = '인쇄 및 저장';
                 }
