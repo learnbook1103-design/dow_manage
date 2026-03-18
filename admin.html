@@ -304,7 +304,8 @@
                                 style="font-size: 0.85rem; color: #374151; white-space: nowrap;">모아보기:</label>
                             <select id="verify-group-select"
                                 style="padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85rem; background: white;">
-                                <option value="none">전체 보기 (기본)</option>
+                                <option value="none">전체 보기</option>
+                                <option value="explanation" selected>사원 보완 사유</option>
                                 <option value="date">일자별</option>
                                 <option value="name">사원별</option>
                                 <option value="reason">이상사유별</option>
@@ -2623,7 +2624,7 @@
 
 
 
-                verifyBtn.addEventListener('click', () => {
+                verifyBtn.addEventListener('click', async () => {
                     const combinedData = [];
                     attendanceFilesMap.forEach(data => combinedData.push(...data));
 
@@ -2634,6 +2635,30 @@
 
                     const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, preemptiveSupplements });
                     const mode = groupSelect ? groupSelect.value : 'none';
+
+                    // 사원 보완 사유 모드: 클라우드에서 최신 explanation 동기화
+                    if (mode === 'explanation' && supabase && anomalies.length > 0) {
+                        try {
+                            const keys = anomalies.map(a => `${a.name}_${a.originalDate || a.date}`);
+                            const CHUNK = 100;
+                            for (let i = 0; i < keys.length; i += CHUNK) {
+                                const { data: expData } = await supabase
+                                    .from('attendance_anomalies')
+                                    .select('manager_key, explanation')
+                                    .in('manager_key', keys.slice(i, i + CHUNK));
+                                if (expData) {
+                                    expData.forEach(r => {
+                                        if (r.explanation && r.explanation.trim()) {
+                                            employeeExplanations[r.manager_key] = r.explanation;
+                                        }
+                                    });
+                                }
+                            }
+                            localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                        } catch (e) {
+                            console.warn('[VERIFY] explanation 동기화 실패:', e);
+                        }
+                    }
 
                     verifyTbody.innerHTML = '';
                     if (allCheckbox) allCheckbox.checked = false;
@@ -2649,6 +2674,13 @@
                         let groupedAnomalies = [];
                         if (mode === 'none') {
                             groupedAnomalies = [{ groupTitle: null, items: anomalies.sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)) }];
+                        } else if (mode === 'explanation') {
+                            // 사원 보완 사유 유무로 2그룹 분리
+                            const withExp = anomalies.filter(a => employeeExplanations[`${a.name}_${a.originalDate || a.date}`]?.trim());
+                            const withoutExp = anomalies.filter(a => !employeeExplanations[`${a.name}_${a.originalDate || a.date}`]?.trim());
+                            const sortFn = (a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name);
+                            if (withoutExp.length > 0) groupedAnomalies.push({ groupTitle: `사유 미제출 (${withoutExp.length}건)`, items: withoutExp.sort(sortFn) });
+                            if (withExp.length > 0) groupedAnomalies.push({ groupTitle: `사유 제출 완료 (${withExp.length}건)`, items: withExp.sort(sortFn) });
                         } else {
                             const map = {};
                             anomalies.forEach(a => {
@@ -2670,15 +2702,27 @@
                             if (group.groupTitle) {
                                 const groupHeader = document.createElement('tr');
                                 groupHeader.className = 'verify-group-header';
-                                groupHeader.style.backgroundColor = '#f3f4f6';
                                 groupHeader.style.fontWeight = 'bold';
                                 groupHeader.style.cursor = 'pointer';
+
+                                // 사원 보완 사유 모드일 때 색상 구분
+                                const isExpMode = (groupSelect && groupSelect.value === 'explanation');
+                                const isMissing = isExpMode && group.groupTitle.includes('미제출');
+                                const isDone = isExpMode && group.groupTitle.includes('제출 완료');
+                                groupHeader.style.backgroundColor = isMissing ? '#fff1f2' : isDone ? '#f0fdf4' : '#f3f4f6';
+                                const titleColor = isMissing ? '#b91c1c' : isDone ? '#166534' : '#374151';
+                                const badge = isMissing
+                                    ? `<span style="background:#fee2e2;color:#b91c1c;border-radius:6px;padding:1px 8px;font-size:0.78rem;margin-left:6px;">미제출</span>`
+                                    : isDone
+                                        ? `<span style="background:#dcfce7;color:#166534;border-radius:6px;padding:1px 8px;font-size:0.78rem;margin-left:6px;">제출완료</span>`
+                                        : '';
+
                                 const isGroupFolded = foldedGroups.has(group.groupTitle);
                                 groupHeader.innerHTML = `
                                     <td style="padding: 8px;"><input type="checkbox" class="group-checkbox" data-group="${group.groupTitle}"></td>
-                                    <td colspan="7" style="padding: 8px; font-size: 0.9rem;">
+                                    <td colspan="7" style="padding: 8px; font-size: 0.9rem; color:${titleColor};">
                                         <span class="fold-icon" style="margin-right: 8px;">${isGroupFolded ? '▶' : '▼'}</span>
-                                        ${group.groupTitle} (${group.items.length}건)
+                                        ${group.groupTitle}${badge}
                                     </td>
                                 `;
                                 verifyTbody.appendChild(groupHeader);
