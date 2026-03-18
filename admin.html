@@ -1612,24 +1612,16 @@
             // ── 구글 드라이브 원자료 업로드 ─────────────────────────────
             const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqkzDu2LXSsdgdBRmKmYASzBDQfYGfLosh7bBGssquVuEdEHRBwV8WA9Lhgqh25APbvA/exec';
 
-            async function uploadFileToDrive(file) {
+            async function uploadFileToDrive(fileData) {
                 try {
-                    const base64 = await new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onload = () => resolve(reader.result.split(',')[1]);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(file);
-                    });
-                    const mimeType = file.name.endsWith('.csv') ? 'text/csv'
-                        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    // fileData: { name, base64, mimeType } 형태
                     await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain' },
-                        body: JSON.stringify({ file: base64, fileName: file.name, mimeType })
+                        body: JSON.stringify({ file: fileData.base64, fileName: fileData.name, mimeType: fileData.mimeType })
                     });
-                    // no-cors 모드에서는 response body 없음 — 요청 완료로 간주
-                    console.log('[DRIVE] 원자료 업로드 요청 완료:', file.name);
+                    console.log('[DRIVE] 원자료 업로드 요청 완료:', fileData.name);
                 } catch (err) {
                     console.warn('[DRIVE] 원자료 업로드 오류 (무시):', err);
                 }
@@ -1659,7 +1651,17 @@
                             updateAndProcessData();
                             // [추가] 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Attendance files uploaded. Triggering full cloud sync...");
-                            try { await syncAllToCloud(true, null, true, fileArray); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
+                            // 파일을 미리 base64로 변환
+                            const driveFiles = await Promise.all(fileArray.map(async f => {
+                                const b64 = await new Promise((res, rej) => {
+                                    const r2 = new FileReader();
+                                    r2.onload = () => res(r2.result.split(',')[1]);
+                                    r2.onerror = rej;
+                                    r2.readAsDataURL(f);
+                                });
+                                return { name: f.name, base64: b64, mimeType: f.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+                            }));
+                            try { await syncAllToCloud(true, null, true, driveFiles); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -1975,7 +1977,17 @@
                             updateAndProcessData();
                             // [추가] 휴가 파일 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Leave files uploaded. Triggering full cloud sync...");
-                            try { await syncAllToCloud(true, null, true, fileArray); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
+                            // 파일을 미리 base64로 변환
+                            const driveFiles = await Promise.all(fileArray.map(async f => {
+                                const b64 = await new Promise((res, rej) => {
+                                    const r2 = new FileReader();
+                                    r2.onload = () => res(r2.result.split(',')[1]);
+                                    r2.onerror = rej;
+                                    r2.readAsDataURL(f);
+                                });
+                                return { name: f.name, base64: b64, mimeType: f.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
+                            }));
+                            try { await syncAllToCloud(true, null, true, driveFiles); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
                         }
                     };
                     reader.readAsArrayBuffer(file);
