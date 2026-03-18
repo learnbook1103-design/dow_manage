@@ -1186,6 +1186,12 @@
                     });
                     console.log(`[AUTO ANOMALY] 감지된 이상근태: ${anomalies.length}건 / 검사 날짜 수: ${syncUniqueDates.size}`);
 
+                    // ── 구글 드라이브 원자료 업로드 (Supabase anomaly 처리 전에 실행) ──
+                    if (filesToUpload && filesToUpload.length > 0) {
+                        console.log('[DRIVE] 원자료 업로드 시작:', filesToUpload.map(f => f.name));
+                        for (const f of filesToUpload) { await uploadFileToDrive(f); }
+                    }
+
                     const currentDateArr = Array.from(uniqueDates).sort();
                     const periodStart = currentDateArr[0];
                     const periodEnd = currentDateArr[currentDateArr.length - 1];
@@ -1243,13 +1249,6 @@
                     console.error('[AUTO ANOMALY] 동기화 오류:', anomSyncErr);
                 }
                 // ─────────────────────────────────────────────────────────────
-                console.log('[SYNC] anomaly 처리 완료, filesToUpload 길이:', filesToUpload ? filesToUpload.length : 'null');
-
-                // ── 구글 드라이브 원자료 업로드 ──────────────────────────────
-                if (filesToUpload && filesToUpload.length > 0) {
-                    console.log('[DRIVE] 원자료 업로드 시작:', filesToUpload.map(f => f.name));
-                    for (const f of filesToUpload) { await uploadFileToDrive(f); }
-                }
             }
 
             async function fetchAllFromCloud(silent = false) {
