@@ -75,6 +75,8 @@
     </style>
     <!-- Include SheetJS (xlsx) from CDN for in-browser Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
 <body>
@@ -1601,6 +1603,33 @@
                 });
             }
 
+            // ── 구글 드라이브 원자료 업로드 ─────────────────────────────
+            const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqkzDu2LXSsdgdBRmKmYASzBDQfYGfLosh7bBGssquVuEdEHRBwV8WA9Lhgqh25APbvA/exec';
+
+            async function uploadFileToDrive(file) {
+                try {
+                    const base64 = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result.split(',')[1]);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                    const mimeType = file.name.endsWith('.csv') ? 'text/csv'
+                        : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'text/plain' },
+                        body: JSON.stringify({ file: base64, fileName: file.name, mimeType })
+                    });
+                    // no-cors 모드에서는 response body 없음 — 요청 완료로 간주
+                    console.log('[DRIVE] 원자료 업로드 요청 완료:', file.name);
+                } catch (err) {
+                    console.warn('[DRIVE] 원자료 업로드 오류 (무시):', err);
+                }
+            }
+            // ────────────────────────────────────────────────────────────
+
             function handleFiles(files) {
                 let loadedCount = 0;
                 const fileArray = Array.from(files);
@@ -1624,7 +1653,12 @@
                             updateAndProcessData();
                             // [추가] 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Attendance files uploaded. Triggering full cloud sync...");
-                            await syncAllToCloud(true, null, true);
+                            try { await syncAllToCloud(true, null, true); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
+                            // [추가] 구글 드라이브 원자료 백업 — syncAllToCloud 완료 후 즉시 실행
+                            setTimeout(async () => {
+                                console.log('[DRIVE] 출퇴근 원자료 업로드 시작:', fileArray.map(f => f.name));
+                                for (const f of fileArray) { await uploadFileToDrive(f); }
+                            }, 100);
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -1786,10 +1820,6 @@
                 reader.readAsArrayBuffer(file);
             }
 
-            fileInputAttendance.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) handleFiles(e.target.files);
-            });
-
             if (cloudFetchAllBtn) cloudFetchAllBtn.onclick = fetchAllFromCloud;
 
             function handleLeaveFiles(files) {
@@ -1944,7 +1974,12 @@
                             updateAndProcessData();
                             // [추가] 휴가 파일 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Leave files uploaded. Triggering full cloud sync...");
-                            await syncAllToCloud(true, null, true);
+                            try { await syncAllToCloud(true, null, true); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
+                            // [추가] 구글 드라이브 원자료 백업 — syncAllToCloud 완료 후 즉시 실행
+                            setTimeout(async () => {
+                                console.log('[DRIVE] 휴가 원자료 업로드 시작:', fileArray.map(f => f.name));
+                                for (const f of fileArray) { await uploadFileToDrive(f); }
+                            }, 100);
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -3459,17 +3494,18 @@
                 printConfirmOk.textContent = '저장 중...';
 
                 try {
-                    // 인쇄 전 보고서 클라우드 저장
+                    // ── 1. Supabase 영구 저장 ─────────────────────────────
                     const allDates = Array.from(currentUniqueDates).sort();
+                    let periodStart = '', periodEnd = '', reportKey = '';
                     if (allDates.length > 0 && supabase) {
                         const refDate = new Date(allDates[0]);
                         const yStr = refDate.getFullYear();
                         const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
                         const isP1 = refDate.getDate() <= 15;
-                        const periodStart = `${yStr}-${mStr}-${isP1 ? '01' : '16'}`;
+                        periodStart = `${yStr}-${mStr}-${isP1 ? '01' : '16'}`;
                         const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
-                        const periodEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
-                        const reportKey = `${periodStart}_${periodEnd}`;
+                        periodEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
+                        reportKey = `${periodStart}_${periodEnd}`;
                         const reportDate = reportDateInput.value || new Date().toISOString().split('T')[0];
                         const matrix = updateAndProcessData(true);
                         if (matrix) {
@@ -3513,6 +3549,47 @@
                             }
                         }
                     }
+
+                    // ── 2. PDF 생성 → 구글 드라이브 업로드 ───────────────
+                    try {
+                        printConfirmOk.textContent = 'PDF 생성 중...';
+                        const { jsPDF } = window.jspdf;
+                        const pages = document.querySelectorAll('.report-page');
+                        // periodStart/periodEnd 보장: allDates 없어도 현재 날짜로 fallback
+                        const pStart = periodStart || new Date().toISOString().split('T')[0];
+                        const pEnd = periodEnd || pStart;
+                        if (pages.length > 0 && jsPDF && window.html2canvas) {
+                            const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+                            for (let i = 0; i < pages.length; i++) {
+                                if (i > 0) pdf.addPage();
+                                const canvas = await html2canvas(pages[i], {
+                                    scale: 2,
+                                    useCORS: true,
+                                    backgroundColor: '#ffffff',
+                                    logging: false
+                                });
+                                const imgData = canvas.toDataURL('image/jpeg', 0.92);
+                                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                            }
+                            const pdfBase64 = pdf.output('datauristring').split(',')[1];
+                            const fileName = `근태보고서_${pStart}_${pEnd}.pdf`;
+
+                            printConfirmOk.textContent = '드라이브 업로드 중...';
+                            const res = await fetch(APPS_SCRIPT_URL, {
+                                method: 'POST',
+                                mode: 'no-cors',
+                                headers: { 'Content-Type': 'text/plain' },
+                                body: JSON.stringify({ pdf: pdfBase64, fileName })
+                            });
+                            // no-cors 모드에서는 response body 없음 — 업로드 완료로 간주
+                            console.log('[DRIVE] PDF 업로드 요청 완료:', fileName);
+                        } else {
+                            console.warn('[PDF] 조건 미충족 — pages:', pages.length, 'jsPDF:', !!jsPDF, 'html2canvas:', !!window.html2canvas);
+                        }
+                    } catch (pdfErr) {
+                        console.warn('[PDF] 생성/업로드 오류 (인쇄는 계속 진행):', pdfErr);
+                    }
+
                 } finally {
                     printConfirmOk.disabled = false;
                     printConfirmOk.textContent = '인쇄 및 저장';
