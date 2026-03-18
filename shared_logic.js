@@ -374,23 +374,26 @@ function calculateAnomalies(combinedData, config) {
                 }
             }
         } else if (isAMHalf) {
-            // 오전 반차 (오후 근무)
-            if (!isResolved) {                            // ← 수정 3 동일 패턴
+            // 오전 반차 (오전 휴가 → 오후 출근)
+            // 출근 기록 없음은 정상 (오전 쉬므로), 퇴근만 체크
+            if (!isResolved) {
                 if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
-                    reasons.push("퇴근 기록 없음");
-                    outAnom = true;
+                    // 퇴근 기록도 없으면 이상 — 단, 출근 기록 자체가 없을 때는 제외
+                    // (오전 반차인데 출근 기록도 없으면 아예 안 온 것이므로 이상 아님)
+                    if (isValidTime(inVal)) {
+                        reasons.push("퇴근 기록 없음");
+                        outAnom = true;
+                    }
                 } else if (isValidTime(outVal) && outVal < expOut) {
                     reasons.push("조기퇴근");
                     outAnom = true;
                 }
-                if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
-                    reasons.push("출근 기록 없음");
-                    inAnom = true;
-                }
+                // 출근 기록 없음은 오전 반차이므로 이상 아님 — 체크하지 않음
             }
         } else if (isPMHalf) {
-            // 오후 반차 (오전 근무)
-            if (!isResolved) {                            // ← 수정 3 동일 패턴
+            // 오후 반차 (오전 근무 → 오후 휴가)
+            // 퇴근 기록 없음은 정상 (오후 반차이므로), 출근만 체크
+            if (!isResolved) {
                 if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
                     inAnom = true;
                     reasons.push("출근 기록 없음");
@@ -398,13 +401,7 @@ function calculateAnomalies(combinedData, config) {
                     reasons.push("지각");
                     inAnom = true;
                 }
-                if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
-                    reasons.push("퇴근 기록 없음");
-                    outAnom = true;
-                } else if (isValidTime(outVal) && outVal < '12:00') {
-                    reasons.push("조기퇴근");
-                    outAnom = true;
-                }
+                // 퇴근 기록 없음은 오후 반차이므로 이상 아님 — 체크하지 않음
             }
         }
         const hasEarly = group.hasEarly;
