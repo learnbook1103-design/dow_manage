@@ -1069,9 +1069,13 @@
                             시스템 연결 완료 ✅
                         </div>
                         <div class="filter-container">
-                            <button class="filter-btn active" onclick="applyStatusFilter('all', this)">전체</button>
-                            <button class="filter-btn" onclick="applyStatusFilter('request', this)">보완 요청</button>
+                            <button class="filter-btn" onclick="applyStatusFilter('all', this)">전체</button>
+                            <button class="filter-btn active" onclick="applyStatusFilter('request', this)">보완 요청</button>
                             <button class="filter-btn" onclick="applyStatusFilter('complete', this)">제출 완료</button>
+                            <button class="btn btn-primary" id="bulk-submit-btn" onclick="window.submitAllExplanations()" 
+                                style="margin-left: 10px; padding: 6px 14px; font-size: 0.82rem; background-color: #4F46E5;">
+                                선택한 사유 일괄 제출
+                            </button>
                         </div>
                     </div>
                     <div id="loading" class="loading">데이터를 불러오는 중...</div>
@@ -1311,7 +1315,13 @@
                     if (currentAnomalies.length === 0) {
                         emptyMsg.style.display = 'block';
                     } else {
-                        renderList(currentAnomalies);
+                        // [수정] 기본값: 보완 요청 필터 적용
+                        const reqFilterBtn = document.querySelector('.filter-btn[onclick*="request"]');
+                        if (reqFilterBtn) {
+                            window.applyStatusFilter('request', reqFilterBtn);
+                        } else {
+                            renderList(currentAnomalies);
+                        }
                     }
                 } catch (err) {
                     alert('조회 오류: ' + err.message);
@@ -1338,7 +1348,7 @@
                 items.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'anomaly-item';
-                    div.id = `anomaly-${item.date}`;
+                    div.id = `anomaly-${item.id}`; // [수정] date 대신 고유 id 사용
                     const isSubmitted = item.explanation && item.explanation.trim() !== '';
 
                     div.innerHTML = `
@@ -1409,6 +1419,97 @@
                 } else {
                     textarea.style.display = 'none';
                     textarea.value = '';
+                }
+            };
+
+            // [추가] 단일 항목의 사유 수집 및 성실 기입 검증 (사용자 요청: 한 날짜의 모든 사유 기입 여부 체크)
+            window.gatherItemExplanation = function (itemId) {
+                const cntInput = document.getElementById(`reason-cnt-${itemId}`);
+                if (!cntInput) return null;
+                const count = parseInt(cntInput.value);
+                let explanations = [];
+                let filledCount = 0;
+
+                for (let i = 0; i < count; i++) {
+                    const select = document.getElementById(`reason-sel-${itemId}-${i}`);
+                    if (!select) continue;
+                    let exp = select.value;
+                    if (exp) {
+                        filledCount++;
+                        if (exp === '기타') {
+                            const textarea = document.getElementById(`exp-${itemId}-${i}`);
+                            exp = textarea.value.trim();
+                            if (!exp) return { error: "기타 사유를 입력해주세요.", itemId };
+                        }
+                        explanations.push(exp);
+                    }
+                }
+
+                // 한 건이라도 건드렸으면 나머지도 다 채워야 함 (사용자 요청)
+                if (filledCount > 0 && filledCount < count) {
+                    return { error: "모든 사유를 선택해주세요.", itemId };
+                }
+
+                if (filledCount === 0) return null; // 아무것도 입력 안 함
+
+                return { 
+                    id: itemId, 
+                    explanation: explanations.join(', '), 
+                    status: 'submitted' 
+                };
+            };
+
+            // [추가] 화면의 보완 내역 일괄 제출 로직
+            window.submitAllExplanations = async function () {
+                if (!supabase && !tryConnect()) { alert("시스템 연결 중입니다."); return; }
+                
+                const visibleItems = document.querySelectorAll('.anomaly-item');
+                let updateData = [];
+                let errorOccurred = false;
+
+                visibleItems.forEach(itemDiv => {
+                    if (errorOccurred) return;
+                    const itemId = itemDiv.id.replace('anomaly-', '');
+                    // 기제출된 건은 건너뜀 (제출 버튼 유무로 판단)
+                    if (!itemDiv.querySelector('button[onclick*="submitExplanation"]')) return;
+
+                    const data = window.gatherItemExplanation(itemId);
+                    if (data && data.error) {
+                        const dateLabel = itemDiv.querySelector('.date').innerText;
+                        alert(`[${dateLabel}] ${data.error}`);
+                        errorOccurred = true;
+                        return;
+                    }
+                    if (data) updateData.push(data);
+                });
+
+                if (errorOccurred) return;
+                if (updateData.length === 0) {
+                    alert("제출할 사유를 선택하거나 입력해주세요.");
+                    return;
+                }
+
+                if (!confirm(`총 ${updateData.length}건의 사유를 일괄 제출하시겠습니까?`)) return;
+
+                const bulkBtn = document.getElementById('bulk-submit-btn');
+                bulkBtn.disabled = true;
+                bulkBtn.innerText = "제출 중...";
+
+                try {
+                    // Supabase upsert (id 기반 일괄 업데이트)
+                    const { error } = await supabase
+                        .from('attendance_anomalies')
+                        .upsert(updateData, { onConflict: 'id' });
+
+                    if (error) throw error;
+
+                    alert(`${updateData.length}건의 사유가 성공적으로 제출되었습니다.`);
+                    window.handleSearch(); // 목록 갱신
+                } catch (err) {
+                    alert('일괄 제출 중 오류가 발생했습니다: ' + err.message);
+                } finally {
+                    bulkBtn.disabled = false;
+                    bulkBtn.innerText = "선택한 사유 일괄 제출";
                 }
             };
 

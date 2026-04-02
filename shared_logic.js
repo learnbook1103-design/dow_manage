@@ -1,11 +1,22 @@
 // shared_logic.js
 
+// [추가] 전역 키워드 정의 (이상 근태 판단 시 사용)
+const vacationKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '생일자', '생일'];
+const adjustmentKeywords = ['출장', '외근', '교육', '훈련', '파견', '현장', '예비군', '정상출근', '정상퇴근', '✓'];
+
 function normalizeName(name) {
     if (!name) return "";
-    let n = String(name).trim();
-    if (n === "한옥연") return "한옥련";
-    return n;
-};
+    // [수정] 성함 뒤의 직위/직호 및 공백 제거 로직 강화
+    let clean = name.toString().trim().replace(/\s+/g, "");
+    const titles = ["회장", "대표", "전무", "이사", "부장", "차장", "과장", "대리", "사원", "팀장", "님"];
+    titles.forEach(t => {
+        if (clean.length > t.length && clean.endsWith(t)) {
+            clean = clean.substring(0, clean.length - t.length).trim();
+        }
+    });
+    if (clean === "한옥연") return "한옥련";
+    return clean;
+}
 
 
 function cleanTime(timeStr) {
@@ -19,9 +30,8 @@ function cleanTime(timeStr) {
     const str = String(timeStr).trim();
     if (str === "-") return "";
 
-    // [추가] 휴가 관련 텍스트 키워드 보장 및 확장 (생일자 추가)
-    const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자', '생일'];
-    if (leaveKeywords.some(k => str.includes(k))) return str;
+    // [수정] 전역 정의된 키워드 사용
+    if ([...vacationKeywords, ...adjustmentKeywords].some(k => str.includes(k))) return str;
 
     const t = str.split(' ').length > 1 ? str.split(' ')[1] : str.split(' ')[0];
     const hm = t.split(':');
@@ -58,7 +68,8 @@ function calculateAnomalies(combinedData, config) {
         manualEarlyPunches = {},
         manualReasons = {},
         currentLeaveData = [],
-        currentUniqueDates = new Set()
+        currentUniqueDates = new Set(),
+        ignoreManualReasonsForDetection = false  // [추가] 수동 사유에 의한 자동 해결 제외 (검증 모달용)
     } = config || {};
     const anomalies = [];
     const manualNames = employeeConfigList.map(e => e.name.trim()).filter(n => n.length > 0);
@@ -256,23 +267,29 @@ function calculateAnomalies(combinedData, config) {
         const manualReason = group.reason || "";
         const combinedReason = manualReason;
 
-        const leaveKeywords = ['연차', '반차', '오전반차', '오후반차', '조퇴', '외출', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '출장', '생일자', '생일'];
-        if (leaveKeywords.some(k => combinedReason.includes(k) || String(inVal).includes(k) || String(outVal).includes(k))) {
+        const vacationKeywords = ['연차', '휴가', '경조', '공가', '병가', '청원', '대체', '포상', '반차', '오전반차', '오후반차'];
+        const adjustmentKeywords = ['출장', '외근', '교육', '훈련', '파견', '현장', '외출', '조퇴', '생일자', '생일'];
+
+        const hasVacation = vacationKeywords.some(k => combinedReason.includes(k) || String(inVal).includes(k) || String(outVal).includes(k));
+        const hasAdjustment = adjustmentKeywords.some(k => combinedReason.includes(k) || String(inVal).includes(k) || String(outVal).includes(k));
+
+        if (hasVacation || hasAdjustment) {
             const checkStr = combinedReason + " " + String(inVal) + " " + String(outVal);
-            // [수정] '연차,반차'와 같이 키워드가 섞인 경우 반차로 우선 처리하기 위해 조건 수정
             const isPartialKeyword = checkStr.includes("반차") || checkStr.includes("조퇴") || checkStr.includes("외출") || checkStr.includes("생일자");
-            if ((checkStr.includes("연차") || checkStr.includes("경조") || checkStr.includes("휴가") || checkStr.includes("공가") || checkStr.includes("병가") || checkStr.includes("청원") || checkStr.includes("대체") || checkStr.includes("포상") || checkStr.includes("출장")) && !isPartialKeyword) {
+
+            if (hasVacation && !isPartialKeyword) {
                 isFullLeave = true;
             } else if (checkStr.includes("오전반차")) {
                 isAMHalf = true;
             } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("생일자") || checkStr.includes("생일")) {
-                // [수정] '조퇴' 키워드는 이상 사유이므로 '반차' 판정 키워드에서 제외 (사용자 요청 대응)
                 isPMHalf = true;
-            } else {
+            } else if (hasVacation) {
+                // 기타 휴가 키워드가 포함된 경우만 자동 처리
                 otherLeaveType = checkStr;
-                // [추가] 정식 휴가나 사전 등록 사유가 있는 경우 '처리됨' 플래그 설정
                 isResolved = true;
             }
+            // [중요] hasAdjustment(출장, 외근 등)인 경우는 isResolved를 true로 만들지 않음!
+            // 그래야 이상 근태로 계속 잡혀서 확인 버튼을 누를 수 있고, 보고서에 체크표시(✓)가 나타납니다.
         }
 
         if (currentLeaveData && currentLeaveData.length > 0) {
@@ -319,7 +336,7 @@ function calculateAnomalies(combinedData, config) {
         }
 
         // 승인완료된 연차(isFullLeave)는 검증 대상에서 완전 제외
-        if (isFullLeave) return;                          // ← 수정 1 (319라인)
+        if (isFullLeave) return;
 
         // 기타 휴가(경조, 보건, 외근 등)
         let isLeaveResolved = false;
@@ -345,12 +362,16 @@ function calculateAnomalies(combinedData, config) {
         let outAnom = false;
 
         const isValidTime = (t) => t && t.includes(':') && !isNaN(parseInt(t.replace(':', '')));
-        const isLeaveMarker = (t) => t && leaveKeywords.some(k => t.includes(k));
+        const isLeaveMarker = (t) => t && [...vacationKeywords, ...adjustmentKeywords].some(k => t.includes(k));
 
         if (!isAMHalf && !isPMHalf) {
             // 일반 근무 — isResolved면 전체 건너뜀
-            if (!isResolved) {                            // ← 수정 3 (349라인)
-                if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
+            if (!isResolved || ignoreManualReasonsForDetection) {
+                // [수정] 데이터 존재 여부를 더 엄격히 체크하여 '기록 없음' 오판 방지
+                const hasInRecord = isValidTime(inVal) || isLeaveMarker(inVal);
+                const hasOutRecord = isValidTime(outVal) || isLeaveMarker(outVal);
+
+                if (!hasInRecord) {
                     inAnom = true;
                     reasons.push("출근 기록 없음");
                 } else if (isValidTime(inVal) && inVal > expIn) {
@@ -358,7 +379,7 @@ function calculateAnomalies(combinedData, config) {
                     inAnom = true;
                 }
 
-                if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
+                if (!hasOutRecord) {
                     reasons.push("퇴근 기록 없음");
                     outAnom = true;
                 } else if (isValidTime(outVal) && outVal < expOut) {
@@ -366,17 +387,23 @@ function calculateAnomalies(combinedData, config) {
                     outAnom = true;
                 }
 
-                if (isValidTime(inVal) && isValidTime(outVal) && inVal > outVal) {
-                    reasons.push("출근 기록 없음");
-                    reasons.push("퇴근 기록 없음");
-                    inAnom = true;
-                    outAnom = true;
+                // [수정] 출퇴근 역전(지각/조퇴 동시 발생 가능성) 추가 검증
+                if (isValidTime(inVal) && isValidTime(outVal)) {
+                    const tIn = parseInt(inVal.replace(':', ''));
+                    const tOut = parseInt(outVal.replace(':', ''));
+                    if (tIn > tOut) {
+                        // 시간 자체가 바뀐 경우는 기록 누락급의 심각한 이상으로 간주
+                        if (!reasons.includes("출근 기록 없음")) reasons.push("출근 기록 없음");
+                        if (!reasons.includes("퇴근 기록 없음")) reasons.push("퇴근 기록 없음");
+                        inAnom = true;
+                        outAnom = true;
+                    }
                 }
             }
         } else if (isAMHalf) {
             // 오전 반차 (오전 휴가 → 오후 출근)
             // 출근 기록 없음은 정상 (오전 쉬므로), 퇴근만 체크
-            if (!isResolved) {
+            if (!isResolved || ignoreManualReasonsForDetection) {
                 if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
                     // 퇴근 기록도 없으면 이상 — 단, 출근 기록 자체가 없을 때는 제외
                     // (오전 반차인데 출근 기록도 없으면 아예 안 온 것이므로 이상 아님)
@@ -393,7 +420,7 @@ function calculateAnomalies(combinedData, config) {
         } else if (isPMHalf) {
             // 오후 반차 (오전 근무 → 오후 휴가)
             // 퇴근 기록 없음은 정상 (오후 반차이므로), 출근만 체크
-            if (!isResolved) {
+            if (!isResolved || ignoreManualReasonsForDetection) {
                 if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
                     inAnom = true;
                     reasons.push("출근 기록 없음");
@@ -406,7 +433,11 @@ function calculateAnomalies(combinedData, config) {
         }
         const hasEarly = group.hasEarly;
 
-        if (reasons.length > 0 || hasEarly) {
+        // [수정] 조정 내역 보존: 사유가 있거나 휴가/조정 사항인 경우 이상 근태가 아니더라도 목록에 유지 (사용자 요청)
+        const isManualAdjustment = reasons.length > 0 || hasEarly;
+        const isHistoryPersistent = !!group.reason;
+
+        if (isManualAdjustment || isHistoryPersistent) {
             anomalies.push({
                 date: dateVal,
                 name: nameVal,

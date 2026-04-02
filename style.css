@@ -680,7 +680,7 @@ textarea:focus {
     background: var(--surface);
     width: 210mm;
     min-height: 297mm;
-    padding: 10mm;
+    padding: 7mm 10mm;
     box-shadow: var(--shadow-m);
     margin: 0 auto 3rem;
     box-sizing: border-box;
@@ -691,7 +691,7 @@ textarea:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: .5rem;
+    margin-bottom: .2rem;
 }
 
 .report-header h2 {
@@ -727,7 +727,7 @@ textarea:focus {
 }
 
 .approval-table .sign-space {
-    height: 35px;
+    height: 26px;
 }
 
 .approval-table .sign-bottom {
@@ -738,8 +738,8 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: .3rem;
-    font-size: .45rem;
+    gap: .2rem;
+    font-size: .4rem;
 }
 
 .meta-item {
@@ -759,8 +759,8 @@ textarea:focus {
     border: 1px solid var(--gray-700);
     text-align: center;
     padding: 1px !important;
-    font-size: .65rem;
-    line-height: 1.1;
+    font-size: .62rem;
+    line-height: 1.05;
     white-space: nowrap;
     width: 52px;
     min-width: 52px;

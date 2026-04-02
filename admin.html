@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title> Dow 근태 사유 관리</title>
+    <title>근태 사유 관리</title>
     <!-- Design System -->
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
@@ -36,6 +36,8 @@
             box-shadow: var(--shadow-m);
             margin-top: 24px;
             background: #fff;
+            break-inside: avoid;
+            page-break-after: always;
         }
 
         .matrix-table {
@@ -78,6 +80,81 @@
 
         /* 인쇄 스타일 — style.css의 @page / @media print 에서 처리 */
         /* matrix-table은 화면에서만 max-content, 인쇄 시 style.css가 100% 오버라이드 */
+        /* row-confirmed 스타일 */
+        .row-confirmed {
+            background-color: #f0fdf4 !important;
+        }
+
+        .row-confirmed td {
+            background-color: #f0fdf4 !important;
+            color: #166534 !important;
+        }
+
+        .row-confirmed .anomaly-reason {
+            color: #166534 !important;
+            font-weight: 500;
+        }
+
+        /* [추가] 지각 인원 노란색 강조 스타일 (사유 제출 여부 무관) */
+        .tardy-yellow {
+            background-color: #fef08a !important;
+            color: #854d0e !important;
+        }
+
+        .tardy-summary-section {
+            margin-top: 10px;
+            padding: 8px 0px;
+            break-inside: avoid;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .tardy-summary-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 6px;
+        }
+
+        .tardy-summary-list {
+            display: flex;
+            gap: 20px;
+            font-size: 0.75rem;
+        }
+
+        .tardy-summary-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tardy-summary-item {
+            margin-bottom: 1px;
+            white-space: nowrap;
+            color: #4b5563;
+        }
+
+        .tardy-summary-group {
+            break-inside: avoid;
+            margin-bottom: 4px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tardy-summary-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .tardy-summary-time {
+            font-weight: 700;
+            color: #ef4444;
+        }
+        .report-page {
+            page-break-after: always;
+            break-inside: avoid;
+            padding-bottom: 2mm !important;
+        }
     </style>
     <!-- Include SheetJS (xlsx) from CDN for in-browser Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -200,6 +277,7 @@
                             style="flex: 1; background-color: #0d9488; font-size: 0.9rem;">
                             클라우드 데이터 불러오기
                         </button>
+
                         <button id="print-btn" class="primary-btn"
                             style="flex: 1; background-color: #0d5e94; font-size: 0.9rem;">
                             보고서 인쇄 및 PDF 저장
@@ -447,20 +525,24 @@
                         fetchHolidaysFromCloud(true)
                     ]);
 
-                    // [수정] 최근 1주일 대신 현재 월의 상/하반기 자동 설정
                     const now = new Date();
-                    const year = now.getFullYear();
-                    const month = now.getMonth() + 1;
-                    const day = now.getDate();
+                    let start = localStorage.getItem('report_period_start');
+                    let end = localStorage.getItem('report_period_end');
 
-                    let start, end;
-                    if (day <= 15) {
-                        start = `${year}-${String(month).padStart(2, '0')}-01`;
-                        end = `${year}-${String(month).padStart(2, '0')}-15`;
-                    } else {
-                        start = `${year}-${String(month).padStart(2, '0')}-16`;
-                        const lastDay = new Date(year, month, 0).getDate();
-                        end = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+                    if (!start || !end) {
+                        // [기본] 최근 1주일 대신 현재 월의 상/하반기 자동 설정
+                        const year = now.getFullYear();
+                        const month = now.getMonth() + 1;
+                        const day = now.getDate();
+
+                        if (day <= 15) {
+                            start = `${year}-${String(month).padStart(2, '0')}-01`;
+                            end = `${year}-${String(month).padStart(2, '0')}-15`;
+                        } else {
+                            start = `${year}-${String(month).padStart(2, '0')}-16`;
+                            const lastDay = new Date(year, month, 0).getDate();
+                            end = `${year}-${String(month).padStart(2, '0')}-${lastDay}`;
+                        }
                     }
 
                     document.getElementById('report-period-start').value = start;
@@ -1180,10 +1262,70 @@
 
                 // ── [자동] 이상근태 → attendance_anomalies 동시 저장 ──────────
                 try {
-                    const allData = [];
-                    attendanceFilesMap.forEach(data => allData.push(...data));
-                    const syncUniqueDates = new Set(Array.isArray(uniqueDates) ? uniqueDates : Array.from(uniqueDates));
-                    const anomalies = calculateAnomalies(allData, {
+                    const uiStart = document.getElementById('report-period-start')?.value;
+                    const uiEnd = document.getElementById('report-period-end')?.value;
+                    const cleanupStart = (ignorePeriod && uiStart) ? uiStart : (periodStartRaw || uiStart);
+                    const cleanupEnd = (ignorePeriod && uiEnd) ? uiEnd : (periodEndRaw || uiEnd);
+
+                    console.log(`[SYNC ANOMALY] 클라우드 데이터 통합 시작: ${cleanupStart} ~ ${cleanupEnd}`);
+
+                    // 1. 서버의 기존 기록들을 한꺼번에 가져오기 (Source of Truth 확보)
+                    // [수정] ignorePeriod가 true면 UI 날짜를 무시하고 전체 역사를 가져옵니다 (전수 조사 모드)
+                    const GLOBAL_RANGE_START = "2024-01-01";
+                    const GLOBAL_RANGE_END = "2026-12-31";
+                    const fetchStart = ignorePeriod ? GLOBAL_RANGE_START : cleanupStart;
+                    const fetchEnd = ignorePeriod ? GLOBAL_RANGE_END : cleanupEnd;
+
+                    let cloudCombinedRecords = [];
+                    if (fetchStart && fetchEnd) {
+                        console.log(`[SYNC ANOMALY] 서버 기록 전수 조사 쿼리: ${fetchStart} ~ ${fetchEnd}`);
+                        const { data: cloudRecs, error: recFetchErr } = await supabase
+                            .from('attendance_records')
+                            .select('manager_key, name, date, in_time, out_time, shift, reason')
+                            .gte('date', fetchStart)
+                            .lte('date', fetchEnd);
+
+                        if (!recFetchErr && cloudRecs) {
+                            cloudCombinedRecords = cloudRecs.map(r => ({
+                                '날짜': r.date,
+                                '이름': r.name,
+                                '출근': r.in_time || "",
+                                '퇴근': r.out_time || "",
+                                '근무조': r.shift || "",
+                                '비고': r.reason || ""
+                            }));
+                            console.log(`[SYNC ANOMALY] 서버 기록 ${cloudCombinedRecords.length}건 로드 완료`);
+                        }
+                    }
+
+                    // 2. 현재 세션의 엑셀 데이터와 서버 자료를 병합 (엑셀이 최신이면 덮어씀)
+                    const mergedDataMap = new Map();
+                    // 먼저 서버 데이터 채우기
+                    cloudCombinedRecords.forEach(r => {
+                        const key = `${normalizeName(r['이름'])}_${r['날짜']}`;
+                        mergedDataMap.set(key, r);
+                    });
+                    // 현재 엑셀 데이터로 업데이트/추가
+                    attendanceFilesMap.forEach(fileData => {
+                        fileData.forEach(row => {
+                            const key = `${normalizeName(row['이름'])}_${row['날짜']}`;
+                            // 엑셀에 데이터가 있는 경우만 덮어쓰거나, 아예 새로운 인원이면 추가
+                            mergedDataMap.set(key, row);
+                        });
+                    });
+
+                    const allMergedData = Array.from(mergedDataMap.values());
+
+                    // [수정] 전수 조사 시에는 syncUniqueDates를 병합된 전체 날짜로부터 생성
+                    const syncUniqueDates = ignorePeriod
+                        ? new Set(allMergedData.map(d => d['날짜']))
+                        : new Set(Array.isArray(uniqueDates) ? uniqueDates : Array.from(uniqueDates || []));
+
+                    if (syncUniqueDates.size === 0 && allMergedData.length > 0) {
+                        allMergedData.forEach(d => syncUniqueDates.add(d['날짜']));
+                    }
+
+                    const anomalies = calculateAnomalies(allMergedData, {
                         employeeConfigList,
                         manualEarlyPunches,
                         manualReasons,
@@ -1191,7 +1333,7 @@
                         currentUniqueDates: syncUniqueDates,
                         preemptiveSupplements
                     });
-                    console.log(`[AUTO ANOMALY] 감지된 이상근태: ${anomalies.length}건 / 검사 날짜 수: ${syncUniqueDates.size}`);
+                    console.log(`[AUTO ANOMALY] 감지된 이상근태: ${anomalies.length}건 (서버 전체 역사 ${allMergedData.length}건 기반 조사)`);
 
                     // ── 구글 드라이브 원자료 업로드 (Supabase anomaly 처리 전에 실행) ──
                     if (filesToUpload && filesToUpload.length > 0) {
@@ -1199,23 +1341,57 @@
                         for (const f of filesToUpload) { await uploadFileToDrive(f); }
                     }
 
-                    const currentDateArr = Array.from(uniqueDates).sort();
-                    const periodStart = currentDateArr[0];
-                    const periodEnd = currentDateArr[currentDateArr.length - 1];
+                    // [수정] 1. 기존 '기록 없음' 꼬리표 정제 로직 (글로벌 정제 범위 적용)
+                    const cleanStart = ignorePeriod ? GLOBAL_RANGE_START : cleanupStart;
+                    const cleanEnd = ignorePeriod ? GLOBAL_RANGE_END : cleanupEnd;
 
+                    if (cleanStart && cleanEnd) {
+                        console.log(`[DEEP CLEANUP] 서버 이상 근태 글로벌 전수 대조: ${cleanStart} ~ ${cleanEnd}`);
+                        const { data: existingAnoms, error: anomFetchErr } = await supabase
+                            .from('attendance_anomalies')
+                            .select('manager_key, reason, status')
+                            .gte('date', cleanStart)
+                            .lte('date', cleanEnd);
+
+                        if (existingAnoms && existingAnoms.length > 0) {
+                            const currentAnomalyKeys = new Set(anomalies.map(a => `${a.name}_${a.date}`));
+
+                            // 삭제 대상: 서버에는 있는데 현재 통합 데이터 분석 결과에는 없는 항목 (즉, 서버나 엑셀에 기록이 있어서 해소된 항목)
+                            const toDeleteKeys = existingAnoms
+                                .filter(r => !currentAnomalyKeys.has(r.manager_key))
+                                .map(r => r.manager_key);
+
+                            console.log(`[DEEP CLEANUP] 삭제 예정: ${toDeleteKeys.length}건 (서버에 기록이 존재하는 인원들 포함)`);
+
+                            if (toDeleteKeys.length > 0) {
+                                const DEL_CHUNK = 50;
+                                let deletedCountTotal = 0;
+                                for (let i = 0; i < toDeleteKeys.length; i += DEL_CHUNK) {
+                                    const chunk = toDeleteKeys.slice(i, i + DEL_CHUNK);
+                                    const { error: delErr } = await supabase
+                                        .from('attendance_anomalies')
+                                        .delete()
+                                        .in('manager_key', chunk);
+                                    if (!delErr) deletedCountTotal += chunk.length;
+                                }
+                                console.log(`[DEEP CLEANUP] 총 ${deletedCountTotal}건의 잘못된 이상 근태를 서버에서 삭제 완료`);
+                            }
+                        }
+                    }
+
+                    // [수정] 2. 새로운 이상 근태 업서트
                     if (anomalies.length > 0) {
-                        // 기존 anomalies 레코드 조회 (status 보존을 위해)
                         const anomalyKeys = anomalies.map(a => `${a.name}_${a.date}`);
-                        const { data: existingAnomalies } = await supabase
+                        const { data: existingRecords } = await supabase
                             .from('attendance_anomalies')
                             .select('manager_key, status')
                             .in('manager_key', anomalyKeys);
+
                         const existingStatusMap = {};
-                        if (existingAnomalies) existingAnomalies.forEach(r => { existingStatusMap[r.manager_key] = r.status; });
+                        if (existingRecords) existingRecords.forEach(r => { existingStatusMap[r.manager_key] = r.status; });
 
                         const anomalyRows = anomalies.map(a => {
                             const key = `${a.name}_${a.date}`;
-                            // 기존 status가 있으면 유지 (관리자 처리 결과 보존), 없으면 'auto'
                             const existingStatus = existingStatusMap[key];
                             return {
                                 manager_key: key,
@@ -1225,35 +1401,13 @@
                                 status: existingStatus || 'auto'
                             };
                         });
+
                         const { error: anomErr } = await supabase
                             .from('attendance_anomalies')
-                            .upsert(anomalyRows, { onConflict: 'manager_key', ignoreDuplicates: false });
-                        if (anomErr) console.error('[AUTO ANOMALY] upsert 에러:', anomErr);
-                        else console.log(`[AUTO ANOMALY] ${anomalyRows.length}건 저장 완료`);
-                    }
+                            .upsert(anomalyRows, { onConflict: 'manager_key' });
 
-                    // 이번 기간에서 이상 해소된 항목 삭제 (status 무관)
-                    if (periodStart && periodEnd) {
-                        const anomalyKeys = new Set(anomalies.map(a => `${a.name}_${a.date}`));
-                        const { data: existingAll } = await supabase
-                            .from('attendance_anomalies')
-                            .select('manager_key, status')
-                            .gte('date', periodStart)
-                            .lte('date', periodEnd);
-                        if (existingAll && existingAll.length > 0) {
-                            // 이상이 해소된 항목: auto는 무조건, processed/submitted/requested도 삭제
-                            // (휴가 업로드로 이상이 사라진 경우 사원 화면에서도 제거)
-                            const toDelete = existingAll
-                                .map(r => r.manager_key)
-                                .filter(k => !anomalyKeys.has(k));
-                            if (toDelete.length > 0) {
-                                const DEL_CHUNK = 50;
-                                for (let i = 0; i < toDelete.length; i += DEL_CHUNK) {
-                                    await supabase.from('attendance_anomalies').delete().in('manager_key', toDelete.slice(i, i + DEL_CHUNK));
-                                }
-                                console.log(`[AUTO ANOMALY] 해소된 이상 ${toDelete.length}건 삭제`);
-                            }
-                        }
+                        if (anomErr) console.error('[AUTO ANOMALY] upsert 에러:', anomErr);
+                        else console.log(`[AUTO ANOMALY] ${anomalyRows.length}건 동기화 완료`);
                     }
                 } catch (anomSyncErr) {
                     console.error('[AUTO ANOMALY] 동기화 오류:', anomSyncErr);
@@ -1835,6 +1989,8 @@
 
             if (cloudFetchAllBtn) cloudFetchAllBtn.onclick = fetchAllFromCloud;
 
+
+
             function handleLeaveFiles(files) {
                 let loadedCount = 0;
                 const fileArray = Array.from(files);
@@ -2176,17 +2332,24 @@
                                     }
 
                                     if (detectedAM) {
-                                        recordsMap[name][fDate].inTime = "반차";
+                                        // 오전 반차일 때 출근 기록이 없는 경우에만 "반차" 기입 (시각 보존)
+                                        if (!recordsMap[name][fDate].inTime) recordsMap[name][fDate].inTime = "반차";
                                     } else {
-                                        recordsMap[name][fDate].outTime = "반차";
+                                        // 오후 반차일 때 퇴근 기록이 없는 경우에만 "반차" 기입 (시각 보존)
+                                        if (!recordsMap[name][fDate].outTime) recordsMap[name][fDate].outTime = "반차";
                                     }
                                 } else if (type.includes("연차")) {
                                     recordsMap[name][fDate].inTime = "연차";
                                 } else {
-                                    // 연차, 반차를 제외한 휴가 사항은 사유란에만 입력 (사용자 요청: 출퇴근란 공란)
+                                    // 연차, 반차를 제외한 휴가 사항은 사유란에만 입력
                                     let displayType = type;
                                     if (type.includes("생일자")) displayType = "생일";
-                                    recordsMap[name][fDate].reason = displayType;
+
+                                    // [수정] 중복 방지 및 누적
+                                    const currentR = recordsMap[name][fDate].reason || "";
+                                    if (!currentR.includes(displayType)) {
+                                        recordsMap[name][fDate].reason = (currentR ? currentR + ", " : "") + displayType;
+                                    }
                                 }
                             }
                             curDay.setDate(curDay.getDate() + 1);
@@ -2198,12 +2361,108 @@
                 Object.entries(manualReasons).forEach(([key, reason]) => {
                     const [name, fDate] = key.split('_');
                     if (name && fDate && reason) {
-                        // 실제 출퇴근 데이터가 있는 날짜에만 사유 적용
-                        // (데이터 없이 사유만 표기되는 문제 방지)
-                        if (!recordsMap[name] || !recordsMap[name][fDate]) return;
+                        // 실제 출퇴근 데이터가 없더라도 수동 사유가 있으면 행 생성
+                        if (!recordsMap[name]) recordsMap[name] = {};
+                        if (!recordsMap[name][fDate]) {
+                            // [수정] 수동 사유 생성 시에도 해당 사원의 기본 근무조 정보 보존
+                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
+                            let shiftStart = "";
+                            if (empInfo && empInfo.shift && empInfo.shift.includes("-")) {
+                                shiftStart = empInfo.shift.split("-")[0].replace(/[^0-9]/g, '');
+                            }
+                            recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: shiftStart };
+                            uniqueDates.add(fDate);
+                        }
                         const cleanReason = reason.replace(/^\[사전\]\s*/, '');
-                        recordsMap[name][fDate].reason = (recordsMap[name][fDate].reason ? recordsMap[name][fDate].reason + ", " : "") + cleanReason;
+                        // [수정] 중복 사유 방지 로직 (예: "출장, 출장" 방지)
+                        const existingReason = recordsMap[name][fDate].reason || "";
+                        const reasonList = existingReason ? existingReason.split(',').map(r => r.trim()) : [];
+                        if (!reasonList.includes(cleanReason)) {
+                            recordsMap[name][fDate].reason = (existingReason ? existingReason + ", " : "") + cleanReason;
+                        }
                     }
+                });
+
+                // [NEW] 사유(Reason) 기반 근태 자동 보정 패스 (사용자 요청)
+                // 사유란에 "반차", "연차" 등이 들어있으면 Matrix 상에 자동으로 표시 채움
+                Object.keys(recordsMap).forEach(name => {
+                    Object.keys(recordsMap[name]).forEach(fDate => {
+                        const rec = recordsMap[name][fDate];
+                        const reason = rec.reason || "";
+
+                        const parseM = (t) => {
+                            if (!t) return null;
+                            const c = t.replace(':', '').trim();
+                            if (c.length >= 4) return parseInt(c.substring(0, 2)) * 60 + parseInt(c.substring(2, 4));
+                            return null;
+                        };
+
+                        // [추가] 지각 자동 사유 기입 (사유가 비어있는 지각건 대상, 사용자 요청)
+                        const inMin = parseM(rec.inTime);
+                        if (inMin !== null) {
+                            // [개선] 엑셀 기록 -> 사원 설정 -> 기본값(0800) 순으로 기준 시각 도출
+                            let shiftStartStr = rec.shiftStart || "";
+                            if (!shiftStartStr) {
+                                const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
+                                if (empInfo && empInfo.shift) shiftStartStr = empInfo.shift;
+                            }
+                            // 숫자만 성분 추출 (08:30 -> 0830)
+                            shiftStartStr = shiftStartStr.split(/[-~]/)[0].replace(/[^0-9]/g, '');
+                            if (!shiftStartStr) shiftStartStr = "0800";
+
+                            const sMin = parseInt(shiftStartStr.substring(0, 2)) * 60 + parseInt(shiftStartStr.substring(2, 4));
+                            if (inMin > sMin) {
+                                // 사유가 아예 없거나 기존에 달린 지각만 있는 경우에만 "지각" 자동 기입
+                                if (!reason.trim() || reason.trim() === "지각") rec.reason = "지각";
+                            } else {
+                                // 만약 지각이 아닌데 사유가 "지각"인 경우 (잘못된 자동완성) 삭제 처리
+                                if (rec.reason === "지각") rec.reason = "";
+                            }
+                        }
+
+                        if (reason.includes("연차")) {
+                            if (!rec.inTime) rec.inTime = "연차";
+                            if (!rec.outTime) rec.outTime = "";
+                        }
+                        else if (reason.includes("반차")) {
+                            // 이미 한쪽이 "반차"면 중복 처리 방지
+                            if (rec.inTime === "반차" || rec.outTime === "반차") return;
+                            // 양쪽 다 찍혀있으면 무시
+                            if (rec.inTime && rec.outTime) return;
+
+                            const parseM = (t) => {
+                                if (!t) return null;
+                                const c = t.replace(':', '').trim();
+                                if (c.length >= 4) return parseInt(c.substring(0, 2)) * 60 + parseInt(c.substring(2, 4));
+                                return null;
+                            };
+                            const inMin = parseM(rec.inTime);
+                            const outMin = parseM(rec.outTime);
+
+                            let detectedAM = !reason.includes("오후");
+                            if (inMin !== null) {
+                                if (inMin >= 660) detectedAM = true; // 11시 이후 출근 -> 오전반차
+                                else detectedAM = false;
+                            } else if (outMin !== null) {
+                                if (outMin <= 840) detectedAM = false; // 14시 이전 퇴근 -> 오후반차
+                                else detectedAM = true;
+                            }
+
+                            if (detectedAM) {
+                                if (!rec.inTime) rec.inTime = "반차";
+                            } else {
+                                if (!rec.outTime) rec.outTime = "반차";
+                            }
+                        }
+
+                        // [추가] 사유 기반 보정 후, 사용된 키워드(반차, 연차)는 사유란에서 제거 (중복 방지, 사용자 요청)
+                        const currentReasonForClean = rec.reason || "";
+                        const cleaned = currentReasonForClean.split(',')
+                            .map(r => r.trim())
+                            .filter(r => !r.includes("반차") && !r.includes("연차") && r !== "")
+                            .join(', ');
+                        rec.reason = cleaned;
+                    });
                 });
 
                 // [NEW] 기간 내 모든 평일을 기본 날짜셋으로 구성 (기록이 하나도 없는 날짜도 이상근태로 잡기 위해)
@@ -2306,6 +2565,7 @@
                 reportContainer.innerHTML = '';
                 const reportDate = reportDateInput.value;
                 const weekdaysMap = ["일", "월", "화", "수", "목", "금", "토"];
+                const skipCheckKeywords = ['출장', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '교육', '훈련', '파견', '현장', '반차', '오전반차', '오후반차', '예비군'];
 
                 dateChunks.forEach((datesChunk) => {
                     const chunkStart = datesChunk[0];
@@ -2351,6 +2611,9 @@
 
                     const table = document.createElement('table');
                     table.className = 'matrix-table';
+
+                    // [추가] 이번 페이지의 지각자 명단을 수집할 배열
+                    let pageTardySummary = [];
                     let theadHtml = `<thead><tr><th colspan="2" class="sticky-col corner-cell">일자</th>`;
 
                     // [수정] 실제 데이터가 있는 날짜만 렌더링하도록 루프 변경 (빈 열 삭제)
@@ -2374,21 +2637,62 @@
                             else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
 
                             const isConfirmedIn = corrData.in === true;
+                            const isConfirmedOut = corrData.out === true; // [추가] 양쪽 체크 여부 확인용
                             const hasRec = !!(recs[dt]);  // 실제 데이터 존재 여부
                             let val = (recs[dt] || {}).inTime || '';
+                            let outVal = (recs[dt] || {}).outTime || ''; // [추가] 양쪽 공백 여부 확인용
+                            const currentReason = (recs[dt] || {}).reason || '';
+                            const isSkipCheck = skipCheckKeywords.some(k => currentReason.includes(k));
 
                             let displayVal = val;
+                            // [수정] 출퇴근 모두 체크된 경우 공백 처리 (사용자 요청)
+                            const isDoubleCheckAction = isConfirmedIn && isConfirmedOut && !val && !outVal;
+
                             if (hasRec && val !== '연차' && val !== '반차' && isConfirmedIn) {
-                                displayVal = val ? val : `✓`;
+                                if (isDoubleCheckAction) displayVal = "";
+                                else displayVal = (val || isSkipCheck) ? val : `✓`;
+                            }
+
+                            let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
+
+                            // [추가] 지각 판별 및 노란색 우선 표기 로직 (업무상 사유 및 정상출근 확인건 제외)
+                            let isTardy = false;
+                            let tardyMin = 0; // [추가]
+                            const isNormalConfirmed = currentReason.includes("정상출근") && isConfirmedIn;
+
+                            if (!isSkipCheck && !isNormalConfirmed && val && !isNaN(parseInt(val.replace(':', '')))) {
+                                // [개선] 기준 근무조 시간 도출 (엑셀 데이터 우선 -> 사원 설정 -> 기본값 0800)
+                                let shiftStartStr = (recs[dt] || {}).shiftStart || "";
+                                if (!shiftStartStr && empInfo.shift) {
+                                    shiftStartStr = empInfo.shift.split(/[-~]/)[0].replace(/[^0-9]/g, '');
+                                }
+                                if (!shiftStartStr) shiftStartStr = "0800";
+
+                                const punchStr = val.replace(':', '').trim();
+                                if (punchStr.length >= 4) {
+                                    const pMin = parseInt(punchStr.substring(0, 2)) * 60 + parseInt(punchStr.substring(2, 4));
+                                    const sMin = parseInt(shiftStartStr.substring(0, 2)) * 60 + parseInt(shiftStartStr.substring(2, 4));
+                                    if (pMin > sMin) {
+                                        isTardy = true;
+                                        tardyMin = pMin - sMin; // 지각 시간(분) 계산
+                                    }
+                                }
+                            }
+
+                            if (isTardy) {
+                                // [추가] 지각 요약 데이터 수집
+                                const d_obj = new Date(dt);
+                                const d_str = `${String(d_obj.getMonth() + 1).padStart(2, '0')}/${String(d_obj.getDate()).padStart(2, '0')}`;
+                                pageTardySummary.push({ name, date: d_str, min: tardyMin });
                             }
 
                             let cls = '';
                             if (isOutRange) cls = 'not-employed';
                             else if (val === '연차') cls = 'leave-annual';
                             else if (val === '반차') cls = 'leave-half';
+                            else if (isTardy && !isConfirmedIn) cls = 'tardy-yellow'; 
                             else if (hasRec && isConfirmedIn) cls = 'confirmed-cell';
 
-                            let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
                         tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
@@ -2399,13 +2703,21 @@
                             if (corrData === true) corrData = { in: true, out: true };
                             else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
 
+                            const isConfirmedIn = corrData.in === true; // [추가]
                             const isConfirmedOut = corrData.out === true;
                             const hasRecOut = !!(recs[dt]);  // 실제 데이터 존재 여부
                             let val = (recs[dt] || {}).outTime || '';
+                            let inVal = (recs[dt] || {}).inTime || ''; // [추가]
+                            const currentReason = (recs[dt] || {}).reason || '';
+                            const isSkipCheck = skipCheckKeywords.some(k => currentReason.includes(k));
 
                             let displayVal = val;
+                            // [수정] 출퇴근 모두 체크된 경우 공백 처리 (사용자 요청)
+                            const isDoubleCheckAction = isConfirmedIn && isConfirmedOut && !inVal && !val;
+
                             if (hasRecOut && val !== '연차' && val !== '반차' && isConfirmedOut) {
-                                displayVal = val ? val : `✓`;
+                                if (isDoubleCheckAction) displayVal = "";
+                                else displayVal = (val || isSkipCheck) ? val : `✓`;
                             }
 
                             let cls = '';
@@ -2422,7 +2734,21 @@
                         while (r_idx < datesChunk.length) {
                             const dt = datesChunk[r_idx];
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
-                            const currentReason = isOutRange ? '' : (recs[dt] || {}).reason || '';
+                            
+                            // [수정] 확인 여부 변수(isConfirmedIn)를 해당 루프 안에서 정확히 정의
+                            const corrKey = `${name}_${dt}`;
+                            let corrData = manualCorrections[corrKey];
+                            if (corrData === true) corrData = { in: true, out: true };
+                            else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
+                            const isConfirmedIn = corrData.in === true;
+
+                            const rawReason = (recs[dt] || {}).reason || '';
+                            let currentReason = isOutRange ? '' : rawReason;
+
+                            // [수정] 확인된 지각건은 리포트 사유란에서 '지각' 글자만 골라 지움 (예: '지각, 지문등록' -> '지문등록')
+                            if (isConfirmedIn && currentReason.includes('지각')) {
+                                currentReason = currentReason.replace(/지각,?\s*/g, '').trim().replace(/,$/, '');
+                            }
                             let span = 1;
 
                             // [수정] 재직 기간 외인 경우(isOutRange)는 통합하지 않고 개별 셀로 출력 (사용자 요청)
@@ -2439,7 +2765,10 @@
 
                                         if (nextIsOutRange) break;
 
-                                        const nextReason = (recs[nextDt] || {}).reason || '';
+                                        const nextCorrKey = `${name}_${nextDt}`;
+                                        const nextManualRes = manualReasons[nextCorrKey] || '';
+                                        const nextExcelRes = (recs[nextDt] || {}).reason || '';
+                                        const nextReason = nextIsOutRange ? '' : (nextManualRes || nextExcelRes);
                                         if (nextReason === currentReason) {
                                             span++;
                                         } else {
@@ -2464,6 +2793,62 @@
 
                     table.innerHTML = theadHtml + tbodyHtml;
                     pageDiv.appendChild(table);
+
+                    // [추가] 지각 현황 요약 섹션 렌더링
+                    if (pageTardySummary.length > 0) {
+                        const summaryWrap = document.createElement('div');
+                        summaryWrap.className = 'tardy-summary-section';
+
+                        let summaryHtml = `<div class="tardy-summary-title">지각 내역 및 시간 (${pageTardySummary.length}건)</div>`;
+                        summaryHtml += `<div class="tardy-summary-list">`;
+
+                        // 사원별로 그룹화하되, 출력은 개별 건수([날짜] 이름: 분)로 유지
+                        const groups = {};
+                        pageTardySummary.forEach(item => {
+                            if (!groups[item.name]) groups[item.name] = [];
+                            groups[item.name].push(item);
+                        });
+
+                        const sortedNames = Object.keys(groups).sort();
+                        // [수정] 한 열에 최대 5줄(라인) 리미트 적용 분배
+                        const columns = [[], [], []];
+                        let currentColIdx = 0;
+                        let lineCountInCol = 0;
+                        const MAX_LINES_PER_COL = 12;
+
+                        sortedNames.forEach(name => {
+                            const groupCount = groups[name].length;
+                            // 현재 열에 추가했을 때 12줄을 넘어가면 다음 열로 (최대 3번열까지)
+                            if (lineCountInCol + groupCount > MAX_LINES_PER_COL && currentColIdx < 2) {
+                                currentColIdx++;
+                                lineCountInCol = 0;
+                            }
+                            columns[currentColIdx].push(name);
+                            lineCountInCol += groupCount;
+                        });
+
+                        columns.forEach(colNames => {
+                            summaryHtml += `<div class="tardy-summary-col">`;
+                            colNames.forEach(name => {
+                                // 각 사원 그룹을 통째로 묶어 세로줄 쪼개짐 방지
+                                summaryHtml += `<div class="tardy-summary-group">`;
+                                groups[name].forEach(item => {
+                                    summaryHtml += `<div class="tardy-summary-item">
+                                        [${item.date}] <strong>${item.name}</strong>: <span class="tardy-summary-time" style="color:#ef4444; font-weight:700;">${item.min}분</span>
+                                    </div>`;
+                                });
+                                summaryHtml += `</div>`;
+                            });
+                            summaryHtml += `</div>`;
+                        });
+
+                        summaryHtml += `</div>`;
+                        summaryWrap.innerHTML = summaryHtml;
+                        pageDiv.appendChild(summaryWrap);
+                    }
+
+
+
                     reportContainer.appendChild(pageDiv);
                 });
                 reportContainer.classList.remove('hidden');
@@ -2587,7 +2972,18 @@
             }
 
             if (startInput && endInput) {
-                const handler = () => updateAndProcessData();
+                const handler = () => {
+                    // 기간 정보 저장
+                    localStorage.setItem('report_period_start', startInput.value);
+                    localStorage.setItem('report_period_end', endInput.value);
+
+                    // 기간 변경 시 클라우드 데이터(조치사유 등)도 함께 자동 동기화
+                    if (supabase) {
+                        fetchAllFromCloud(true); // 조용히 동기화
+                    } else {
+                        updateAndProcessData();
+                    }
+                };
                 startInput.addEventListener('change', handler);
                 endInput.addEventListener('change', handler);
             }
@@ -2686,7 +3082,7 @@
                         return;
                     }
 
-                    const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, preemptiveSupplements });
+                    const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, preemptiveSupplements, ignoreManualReasonsForDetection: true });
                     const mode = groupSelect ? groupSelect.value : 'none';
 
                     // 사원 보완 사유 모드: 클라우드에서 최신 explanation 동기화
@@ -2732,8 +3128,8 @@
                             const withExp = anomalies.filter(a => employeeExplanations[`${a.name}_${a.originalDate || a.date}`]?.trim());
                             const withoutExp = anomalies.filter(a => !employeeExplanations[`${a.name}_${a.originalDate || a.date}`]?.trim());
                             const sortFn = (a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name);
-                            if (withoutExp.length > 0) groupedAnomalies.push({ groupTitle: `사유 미제출 (${withoutExp.length}건)`, items: withoutExp.sort(sortFn) });
                             if (withExp.length > 0) groupedAnomalies.push({ groupTitle: `사유 제출 완료 (${withExp.length}건)`, items: withExp.sort(sortFn) });
+                            if (withoutExp.length > 0) groupedAnomalies.push({ groupTitle: `사유 미제출 (${withoutExp.length}건)`, items: withoutExp.sort(sortFn) });
                         } else {
                             const map = {};
                             anomalies.forEach(a => {
@@ -3038,13 +3434,18 @@
                                 }
 
                                 const reasonInput = tr.querySelector('.manual-reason-input');
+                                let timer;
                                 reasonInput.oninput = (e) => {
+                                    const val = e.target.value;
                                     const key = reasonInput.getAttribute('data-key');
-                                    manualReasons[key] = e.target.value;
+                                    manualReasons[key] = val;
                                     localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
-                                    updateAndProcessData();
-                                    // [추가] 실시간 클라우드 동기화 (디바운스 없이 즉시 - 간단한 구현)
-                                    syncSingleRecordToCloud(key);
+
+                                    clearTimeout(timer);
+                                    timer = setTimeout(() => {
+                                        updateAndProcessData();
+                                        syncSingleRecordToCloud(key);
+                                    }, 500);
                                 };
 
                                 verifyTbody.appendChild(tr);
@@ -3458,14 +3859,17 @@
                 const confirmIcon = document.getElementById('print-confirm-icon');
                 const confirmOkBtn = document.getElementById('print-confirm-ok');
 
-                // 기본 상태로 초기화
+                // 기본 UI 초기화
                 warning.style.display = 'none';
                 confirmTitle.textContent = '보고서를 인쇄하시겠습니까?';
                 confirmDesc.style.display = 'block';
                 confirmIcon.style.background = '#eff6ff';
                 confirmIcon.querySelector('svg').setAttribute('stroke', '#2563eb');
-                confirmOkBtn.style.background = '#2563eb';
-                confirmOkBtn.textContent = '인쇄 및 저장';
+
+                const standardBtns = document.getElementById('print-buttons-standard');
+                const duplicateBtns = document.getElementById('print-buttons-duplicate');
+                standardBtns.style.display = 'flex';
+                duplicateBtns.style.display = 'none';
 
                 if (supabase) {
                     try {
@@ -3477,18 +3881,19 @@
                             .maybeSingle();
 
                         if (existing && existing.is_printed === true) {
-                            // 이미 인쇄된 보고서 — 경고 표시
+                            // 이미 인쇄된 보고서 — 경고 및 버튼 세트 교체
                             const printedAt = existing.printed_at
                                 ? new Date(existing.printed_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
                                 : '';
                             warningDate.textContent = printedAt ? `최초 인쇄: ${printedAt}` : '';
                             warning.style.display = 'block';
-                            confirmTitle.textContent = '이미 저장된 보고서를 재인쇄합니다';
+                            confirmTitle.textContent = '이미 저장된 보고서입니다';
                             confirmDesc.style.display = 'none';
                             confirmIcon.style.background = '#fef2f2';
                             confirmIcon.querySelector('svg').setAttribute('stroke', '#ef4444');
-                            confirmOkBtn.style.background = '#dc2626';
-                            confirmOkBtn.textContent = '덮어쓰고 인쇄';
+
+                            standardBtns.style.display = 'none';
+                            duplicateBtns.style.display = 'flex';
                         }
                     } catch (e) {
                         console.warn('[PRINT] is_printed 확인 실패:', e);
@@ -3498,15 +3903,18 @@
                 printConfirmModal.style.display = 'flex';
             };
 
-            printConfirmCancel.onclick = () => {
+            // 취소 버튼들 이벤트
+            printConfirmCancel.onclick = () => { printConfirmModal.style.display = 'none'; };
+            document.getElementById('print-duplicate-cancel').onclick = () => { printConfirmModal.style.display = 'none'; };
+
+            // 덮어쓰기/인쇄만 버튼 이벤트 연결
+            document.getElementById('print-only-btn').onclick = () => handlePrintAndSave(true); // skipUpload = true
+            document.getElementById('print-overwrite-btn').onclick = () => handlePrintAndSave(false);
+            printConfirmOk.onclick = () => handlePrintAndSave(false);
+
+            async function handlePrintAndSave(skipUpload = false) {
                 printConfirmModal.style.display = 'none';
-            };
-
-            printConfirmModal.addEventListener('click', (e) => {
-                if (e.target === printConfirmModal) printConfirmModal.style.display = 'none';
-            });
-
-            printConfirmOk.onclick = async () => {
+                // 기존의 익명 함수 로직을 여기로 이동하고 skipUpload 분기 추가
                 printConfirmModal.style.display = 'none';
                 printConfirmOk.disabled = true;
                 printConfirmOk.textContent = '저장 중...';
@@ -3734,7 +4142,7 @@
             <p id="print-confirm-period"
                 style="font-size:0.82rem; color:#4f46e5; font-weight:600; background:#eef2ff; border-radius:8px; padding:6px 12px; display:inline-block; margin-bottom:24px;">
             </p>
-            <div style="display:flex; gap:10px;">
+            <div id="print-buttons-standard" style="display:flex; gap:10px;">
                 <button id="print-confirm-cancel" style="
                     flex:1; padding:11px; border-radius:10px;
                     border:1.5px solid #e5e7eb; background:#fff;
@@ -3745,6 +4153,26 @@
                     border:none; background:#2563eb;
                     font-size:0.9rem; font-weight:600; color:#fff;
                     cursor:pointer;">인쇄 및 저장</button>
+            </div>
+            <!-- 중복 시 버튼 세트 -->
+            <div id="print-buttons-duplicate" style="display:none; flex-direction:column; gap:10px;">
+                <div style="display:flex; gap:10px;">
+                    <button id="print-only-btn" style="
+                        flex:1; padding:11px; border-radius:10px;
+                        border:1.5px solid #d1d5db; background:#fff;
+                        font-size:0.85rem; font-weight:600; color:#4b5563;
+                        cursor:pointer;">인쇄만 진행</button>
+                    <button id="print-overwrite-btn" style="
+                        flex:1.2; padding:11px; border-radius:10px;
+                        border:none; background:#dc2626;
+                        font-size:0.85rem; font-weight:600; color:#fff;
+                        cursor:pointer;">덮어쓰고 저장</button>
+                </div>
+                <button id="print-duplicate-cancel" style="
+                    width:100%; padding:8px; border-radius:8px;
+                    border:none; background:none;
+                    font-size:0.82rem; font-weight:500; color:#9ca3af;
+                    cursor:pointer;">취소</button>
             </div>
         </div>
     </div>
