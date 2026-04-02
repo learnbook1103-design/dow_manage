@@ -681,10 +681,11 @@
                     '대표이사': 1,
                     '전무': 2,
                     '부장': 3,
-                    '과장': 4,
-                    '대리': 5,
-                    '선임': 6,
-                    '사원': 7,
+                    '차장': 4,
+                    '과장': 5,
+                    '대리': 6,
+                    '선임': 7,
+                    '사원': 8,
                     '': 99 // 직급 없음
                 };
 
@@ -780,7 +781,7 @@
                     const rankSelect = document.createElement('select');
                     rankSelect.className = 'rank-select';
                     rankSelect.style.width = '100px';
-                    ['직급 선택', '대표이사', '전무', '부장', '과장', '대리', '선임', '사원'].forEach(val => {
+                    ['직급 선택', '대표이사', '전무', '부장', '차장', '과장', '대리', '선임', '사원'].forEach(val => {
                         const opt = document.createElement('option');
                         opt.value = val === '직급 선택' ? '' : val;
                         opt.text = val;
