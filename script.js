@@ -1116,13 +1116,95 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // [NEW] 수동으로 입력한 조치 사유 반영
-        Object.entries(manualReasons).forEach(([key, reason]) => {
+        Object.entries(manualReasons).forEach(([key, resVal]) => {
             const [name, fDate] = key.split('_');
-            if (name && fDate && reason) {
+            if (name && fDate && resVal) {
                 if (!recordsMap[name]) recordsMap[name] = {};
                 if (!recordsMap[name][fDate]) recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: "" };
-                recordsMap[name][fDate].reason = (recordsMap[name][fDate].reason ? recordsMap[name][fDate].reason + ", " : "") + reason;
+                
+                const cleanRes = resVal.replace(/^\[사전\]\s*/, '');
+                const rec = recordsMap[name][fDate];
+                const existingRes = rec.reason || "";
+                
+                // [수정] 기존 사유가 단순 '지각'이면 관리자 사유로 대체 (중복 방지)
+                if (existingRes === "지각" || !existingRes) {
+                    rec.reason = cleanRes;
+                } else {
+                    const resList = existingRes.split(',').map(r => r.trim());
+                    if (!resList.includes(cleanRes)) {
+                        rec.reason = (existingRes ? existingRes + ", " : "") + cleanRes;
+                    }
+                }
             }
+        });
+
+        // [NEW] 사유(Reason) 기반 근태 자동 보정 패스 (사용자 요청)
+        Object.keys(recordsMap).forEach(name => {
+            Object.keys(recordsMap[name]).forEach(fDate => {
+                const rec = recordsMap[name][fDate];
+                const reason = rec.reason || "";
+
+                const parseM = (t) => {
+                    if (!t) return null;
+                    const c = t.replace(':', '').trim();
+                    if (c.length >= 4) return parseInt(c.substring(0, 2)) * 60 + parseInt(c.substring(2, 4));
+                    return null;
+                };
+
+                const inMin = parseM(rec.inTime);
+                if (inMin !== null) {
+                    let shiftStartStr = rec.shiftStart || "";
+                    if (!shiftStartStr) {
+                        const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
+                        if (empInfo && empInfo.shift) shiftStartStr = empInfo.shift;
+                    }
+                    shiftStartStr = shiftStartStr.split(/[-~]/)[0].replace(/[^0-9]/g, '');
+                    if (!shiftStartStr) shiftStartStr = "0800";
+
+                    const sMin = parseInt(shiftStartStr.substring(0, 2)) * 60 + parseInt(shiftStartStr.substring(2, 4));
+                    if (inMin > sMin) {
+                        if (!reason.trim() || reason.trim() === "지각") rec.reason = "지각";
+                    } else {
+                        if (rec.reason === "지각") rec.reason = "";
+                    }
+                }
+
+                if (reason.includes("연차")) {
+                    if (!rec.inTime) rec.inTime = "연차";
+                    if (!rec.outTime) rec.outTime = "";
+                }
+                else if (reason.includes("반차")) {
+                    if (rec.inTime === "반차" || rec.outTime === "반차") {
+                        // 이미 반차가 시간 기록에 있으면 통과
+                    } else if (rec.inTime && rec.outTime) {
+                        // 양쪽 다 있으면 통과
+                    } else {
+                        const outMin = parseM(rec.outTime);
+                        let detectedAM = !reason.includes("오후");
+                        if (inMin !== null) {
+                            if (inMin >= 660) detectedAM = true;
+                            else detectedAM = false;
+                        } else if (outMin !== null) {
+                            if (outMin <= 840) detectedAM = false;
+                            else detectedAM = true;
+                        }
+
+                        if (detectedAM) {
+                            if (!rec.inTime) rec.inTime = "반차";
+                        } else {
+                            if (!rec.outTime) rec.outTime = "반차";
+                        }
+                    }
+                }
+
+                // 기입에 사용된 키워드(반차, 연차)는 사유란에서 제거 (중복 방지, 사용자 요청)
+                const currentReasonForClean = rec.reason || "";
+                const cleaned = currentReasonForClean.split(',')
+                    .map(r => r.trim())
+                    .filter(r => !r.includes("반차") && !r.includes("연차") && r !== "")
+                    .join(', ');
+                rec.reason = cleaned;
+            });
         });
 
         // [NEW] 선제적 보완(사전 등록) 사유 반영 제거 (관리자 확인 전에는 보고서에 미노출)

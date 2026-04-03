@@ -1700,10 +1700,10 @@
                         shift: rec.shiftStart || (ex ? ex.shift : null),
                         in_time: rec.inTime || (ex ? ex.in_time : null),
                         out_time: rec.outTime || (ex ? ex.out_time : null),
-                        status_in: !!corrData.in || (ex ? ex.status_in : false),
-                        status_out: !!corrData.out || (ex ? ex.status_out : false),
-                        status_leave: !!corrData.leave || (ex ? ex.status_leave : false),
-                        manager_reason: manualReasons[key] || (ex ? ex.manager_reason : ""),
+                        status_in: typeof corrData.in === 'boolean' ? corrData.in : (ex ? ex.status_in : false),
+                        status_out: typeof corrData.out === 'boolean' ? corrData.out : (ex ? ex.status_out : false),
+                        status_leave: typeof corrData.leave === 'boolean' ? corrData.leave : (ex ? ex.status_leave : false),
+                        manager_reason: (manualReasons && key in manualReasons) ? manualReasons[key] : (ex ? "" : ""),
                         employee_explanation: employeeExplanations[key] || (ex ? ex.employee_explanation : ""),
                         reason: rec.reason || (ex ? ex.reason : ""),
                         early_punch_mode: manualEarlyPunches[key] || (ex ? ex.early_punch_mode : ""),
@@ -2357,10 +2357,10 @@
                     });
                 }
 
-                // [NEW] 수동으로 입력한 조치 사유 반영
-                Object.entries(manualReasons).forEach(([key, reason]) => {
+                // [NEW] 수동으로 입력한 조치 사유 반영 (관리자 조치 내역)
+                Object.entries(manualReasons).forEach(([key, curResVal]) => {
                     const [name, fDate] = key.split('_');
-                    if (name && fDate && reason) {
+                    if (name && fDate && curResVal) {
                         // 실제 출퇴근 데이터가 없더라도 수동 사유가 있으면 행 생성
                         if (!recordsMap[name]) recordsMap[name] = {};
                         if (!recordsMap[name][fDate]) {
@@ -2373,12 +2373,19 @@
                             recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: shiftStart };
                             uniqueDates.add(fDate);
                         }
-                        const cleanReason = reason.replace(/^\[사전\]\s*/, '');
-                        // [수정] 중복 사유 방지 로직 (예: "출장, 출장" 방지)
-                        const existingReason = recordsMap[name][fDate].reason || "";
-                        const reasonList = existingReason ? existingReason.split(',').map(r => r.trim()) : [];
-                        if (!reasonList.includes(cleanReason)) {
-                            recordsMap[name][fDate].reason = (existingReason ? existingReason + ", " : "") + cleanReason;
+                        
+                        const cleanRes = curResVal.replace(/^\[사전\]\s*/, '');
+                        const rec = recordsMap[name][fDate];
+                        let existingRes = rec.reason || "";
+                        
+                        // [수정] 기존 사유가 단순 '지각'이면 관리자 사유로 대체 (중복 방지, 사용자 요청)
+                        if (existingRes === "지각" || !existingRes) {
+                            rec.reason = cleanRes;
+                        } else {
+                            const resList = existingRes.split(',').map(r => r.trim());
+                            if (!resList.includes(cleanRes)) {
+                                rec.reason = existingRes + ", " + cleanRes;
+                            }
                         }
                     }
                 });
@@ -2679,7 +2686,7 @@
                                 }
                             }
 
-                            if (isTardy) {
+                            if (isTardy && !isConfirmedIn) {
                                 // [추가] 지각 요약 데이터 수집
                                 const d_obj = new Date(dt);
                                 const d_str = `${String(d_obj.getMonth() + 1).padStart(2, '0')}/${String(d_obj.getDate()).padStart(2, '0')}`;
@@ -2745,10 +2752,10 @@
                             const rawReason = (recs[dt] || {}).reason || '';
                             let currentReason = isOutRange ? '' : rawReason;
 
-                            // [수정] 확인된 지각건은 리포트 사유란에서 '지각' 글자만 골라 지움 (예: '지각, 지문등록' -> '지문등록')
-                            if (isConfirmedIn && currentReason.includes('지각')) {
-                                currentReason = currentReason.replace(/지각,?\s*/g, '').trim().replace(/,$/, '');
-                            }
+                            // [수정] 확인된 지각건이라도 '지각' 글자를 유지함 (사용자 요청)
+                            // if (isConfirmedIn && currentReason.includes('지각')) {
+                            //     currentReason = currentReason.replace(/지각,?\s*/g, '').trim().replace(/,$/, '');
+                            // }
                             let span = 1;
 
                             // [수정] 재직 기간 외인 경우(isOutRange)는 통합하지 않고 개별 셀로 출력 (사용자 요청)
@@ -3276,6 +3283,8 @@
                                         if (wasFullyConfirmed) {
                                             manualCorrections[key].in = false;
                                             manualCorrections[key].out = false;
+                                            delete manualReasons[key];
+                                            localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
                                         } else {
                                             if (hasInAnom) manualCorrections[key].in = true;
                                             if (hasOutAnom) manualCorrections[key].out = true;

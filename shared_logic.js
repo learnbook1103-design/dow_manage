@@ -402,7 +402,6 @@ function calculateAnomalies(combinedData, config) {
             }
         } else if (isAMHalf) {
             // 오전 반차 (오전 휴가 → 오후 출근)
-            // 출근 기록 없음은 정상 (오전 쉬므로), 퇴근만 체크
             if (!isResolved || ignoreManualReasonsForDetection) {
                 if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
                     // 퇴근 기록도 없으면 이상 — 단, 출근 기록 자체가 없을 때는 제외
@@ -415,12 +414,17 @@ function calculateAnomalies(combinedData, config) {
                     reasons.push("조기퇴근");
                     outAnom = true;
                 }
-                // 출근 기록 없음은 오전 반차이므로 이상 아님 — 체크하지 않음
+                
+                // [추가] 오전 반차인데 출근 기록도 없으면 관리자 확인 필요 (isResolved가 아닐 때만)
+                if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
+                    inAnom = true;
+                    reasons.push("출근 기록 없음");
+                }
             }
         } else if (isPMHalf) {
             // 오후 반차 (오전 근무 → 오후 휴가)
-            // 퇴근 기록 없음은 정상 (오후 반차이므로), 출근만 체크
             if (!isResolved || ignoreManualReasonsForDetection) {
+                // 출근 체크
                 if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
                     inAnom = true;
                     reasons.push("출근 기록 없음");
@@ -428,7 +432,17 @@ function calculateAnomalies(combinedData, config) {
                     reasons.push("지각");
                     inAnom = true;
                 }
-                // 퇴근 기록 없음은 오후 반차이므로 이상 아님 — 체크하지 않음
+                
+                // [추가] 오후 반차인데 퇴근 기록도 없으면, 관리자가 확인 버튼을 누를 수 있도록 '퇴근 기록 없음' 유지 (중요: isResolved가 아닐 때만)
+                if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
+                    outAnom = true;
+                    reasons.push("퇴근 기록 없음");
+                } else if (isValidTime(outVal) && outVal < expOut) {
+                    // 이미 입력된 반차 정보가 있더라도 조기퇴근이면 이상으로 잡음 (14시 반차인데 13시 퇴근 등)
+                    // 단, 13:00 퇴근도 '0'으로 간주될 수 있으니 시간 기준 체크
+                    reasons.push("조기퇴근");
+                    outAnom = true;
+                }
             }
         }
         const hasEarly = group.hasEarly;
@@ -444,7 +458,7 @@ function calculateAnomalies(combinedData, config) {
                 shift: shiftStr,
                 inTime: inVal || "",
                 outTime: outVal || "",
-                reason: reasons.length > 0 ? [...new Set(reasons)].join(", ") : "",
+                reason: reasons.length > 0 ? [...new Set(reasons)].join(", ") : "-",
                 hasEarly: hasEarly,
                 originalDate: group.originalDate,
                 inAnom: inAnom,
