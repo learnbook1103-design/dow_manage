@@ -1348,7 +1348,12 @@
                 items.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'anomaly-item';
-                    div.id = `anomaly-${item.id}`; // [수정] date 대신 고유 id 사용
+                    div.id = `anomaly-${item.id}`;
+                    div.dataset.id = item.id;
+                    div.dataset.manager_key = item.manager_key;
+                    div.dataset.name = item.name;
+                    div.dataset.date = item.date;
+                    div.dataset.reason = item.reason;
                     const isSubmitted = item.explanation && item.explanation.trim() !== '';
 
                     div.innerHTML = `
@@ -1423,7 +1428,8 @@
             };
 
             // [추가] 단일 항목의 사유 수집 및 성실 기입 검증 (사용자 요청: 한 날짜의 모든 사유 기입 여부 체크)
-            window.gatherItemExplanation = function (itemId) {
+            window.gatherItemExplanation = function (itemDiv) {
+                const itemId = itemDiv.dataset.id;
                 const cntInput = document.getElementById(`reason-cnt-${itemId}`);
                 if (!cntInput) return null;
                 const count = parseInt(cntInput.value);
@@ -1454,6 +1460,10 @@
 
                 return { 
                     id: itemId, 
+                    manager_key: itemDiv.dataset.manager_key,
+                    name: itemDiv.dataset.name,
+                    date: itemDiv.dataset.date,
+                    reason: itemDiv.dataset.reason,
                     explanation: explanations.join(', '), 
                     status: 'submitted' 
                 };
@@ -1469,11 +1479,11 @@
 
                 visibleItems.forEach(itemDiv => {
                     if (errorOccurred) return;
-                    const itemId = itemDiv.id.replace('anomaly-', '');
+                    
                     // 기제출된 건은 건너뜀 (제출 버튼 유무로 판단)
                     if (!itemDiv.querySelector('button[onclick*="submitExplanation"]')) return;
 
-                    const data = window.gatherItemExplanation(itemId);
+                    const data = window.gatherItemExplanation(itemDiv);
                     if (data && data.error) {
                         const dateLabel = itemDiv.querySelector('.date').innerText;
                         alert(`[${dateLabel}] ${data.error}`);
