@@ -288,8 +288,11 @@ function calculateAnomalies(combinedData, config) {
                 otherLeaveType = checkStr;
                 isResolved = true;
             }
-            // [중요] hasAdjustment(출장, 외근 등)인 경우는 isResolved를 true로 만들지 않음!
-            // 그래야 이상 근태로 계속 잡혀서 확인 버튼을 누를 수 있고, 보고서에 체크표시(✓)가 나타납니다.
+            // [수정] 외근, 출장은 자동으로 통과하도록 변경 (사용자 요청)
+            if (hasAdjustment && (checkStr.includes("외근") || checkStr.includes("출장"))) {
+                isResolved = true;
+            }
+            // [기존 주석 보관용] hasAdjustment(교육, 훈련 등)인 경우는 isResolved를 true로 만들지 않음!
         }
 
         if (currentLeaveData && currentLeaveData.length > 0) {

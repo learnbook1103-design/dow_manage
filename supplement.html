@@ -1020,7 +1020,7 @@
                         </div>
                         <div style="flex: 1;">
                             <label for="prep-type" style="font-size: 0.8rem; color: #374151;">근태 종류</label>
-                            <select id="prep-type" style="padding: 8px;">
+                            <select id="prep-type" style="padding: 8px;" onchange="window.handlePrepTypeChange()">
                                 <option value="외근">외근</option>
                                 <option value="출장">출장</option>
                                 <option value="정상출근">출근 기록 누락</option>
@@ -1030,7 +1030,17 @@
                         </div>
                     </div>
 
-                    <div id="prep-details-group" style="margin-bottom: 15px;">
+                    <div id="prep-company-group" style="margin-bottom: 12px; display: none;">
+                        <label for="prep-company" style="font-size: 0.8rem; color: #374151;">업체명</label>
+                        <input type="text" id="prep-company" placeholder="예: 삼성전자" style="padding: 8px; width: 100%; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+
+                    <div id="prep-location-group" style="margin-bottom: 12px; display: none;">
+                        <label for="prep-location" style="font-size: 0.8rem; color: #374151;">지역명</label>
+                        <input type="text" id="prep-location" placeholder="예: 부산" style="padding: 8px; width: 100%; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+
+                    <div id="prep-details-group" style="margin-bottom: 15px; display: none;">
                         <label for="prep-details" style="font-size: 0.8rem; color: #374151;">상세 내용 (선택사항)</label>
                         <textarea id="prep-details" rows="2" placeholder="예: 오전 00업체 미팅 후 복귀 예정"
                             style="font-size: 0.9rem;"></textarea>
@@ -1299,6 +1309,9 @@
                         adminBtn.style.display = empData.is_admin ? 'block' : 'none';
                     }
 
+                    // [추가] 초기 근태 종류(외근)에 따른 입력 필드 표시 처리
+                    if (window.handlePrepTypeChange) window.handlePrepTypeChange();
+
                     const { data, error } = await supabase
                         .from('attendance_anomalies')
                         .select('*')
@@ -1391,6 +1404,12 @@
                                         <select id="reason-sel-${item.id}-${idx}" onchange="window.toggleCustomExplanation('${item.id}', ${idx})" style="margin-bottom: 8px; width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px;">
                                             ${optionsHTML}
                                         </select>
+                                        <div id="comp-row-${item.id}-${idx}" style="display: none; margin-bottom: 8px;">
+                                            <input type="text" id="comp-${item.id}-${idx}" placeholder="업체명을 입력해주세요" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; box-sizing: border-box;">
+                                        </div>
+                                        <div id="loc-row-${item.id}-${idx}" style="display: none; margin-bottom: 8px;">
+                                            <input type="text" id="loc-${item.id}-${idx}" placeholder="지역명을 입력해주세요" style="width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; box-sizing: border-box;">
+                                        </div>
                                         <textarea id="exp-${item.id}-${idx}" rows="2" placeholder="기타 사유를 상세히 입력해주세요." style="display: none; width: 100%; border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; box-sizing: border-box;"></textarea>
                                     </div>
                                 `;
@@ -1413,18 +1432,48 @@
                     listContainer.appendChild(div);
                 });
             }
-
             window.toggleCustomExplanation = function (id, idx) {
                 const select = document.getElementById(`reason-sel-${id}-${idx}`);
                 const textarea = document.getElementById(`exp-${id}-${idx}`);
-                if (!select || !textarea) return;
+                const companyRow = document.getElementById(`comp-row-${id}-${idx}`);
+                const locationRow = document.getElementById(`loc-row-${id}-${idx}`);
+                if (!select) return;
+
+                // 초기화
+                if (textarea) textarea.style.display = 'none';
+                if (companyRow) companyRow.style.display = 'none';
+                if (locationRow) locationRow.style.display = 'none';
+
                 if (select.value === '기타') {
-                    textarea.style.display = 'block';
-                    textarea.focus();
-                } else {
-                    textarea.style.display = 'none';
-                    textarea.value = '';
+                    if (textarea) {
+                        textarea.style.display = 'block';
+                        textarea.focus();
+                    }
+                } else if (select.value === '외근') {
+                    if (companyRow) {
+                        companyRow.style.display = 'block';
+                        const input = companyRow.querySelector('input');
+                        if (input) input.focus();
+                    }
+                } else if (select.value === '출장') {
+                    if (locationRow) {
+                        locationRow.style.display = 'block';
+                        const input = locationRow.querySelector('input');
+                        if (input) input.focus();
+                    }
                 }
+            };
+
+            window.handlePrepTypeChange = function () {
+                const type = document.getElementById('prep-type').value;
+                const companyGroup = document.getElementById('prep-company-group');
+                const locationGroup = document.getElementById('prep-location-group');
+                const detailsGroup = document.getElementById('prep-details-group');
+                if (!companyGroup || !locationGroup || !detailsGroup) return;
+
+                companyGroup.style.display = (type === '외근') ? 'block' : 'none';
+                locationGroup.style.display = (type === '출장') ? 'block' : 'none';
+                detailsGroup.style.display = (type === '기타') ? 'block' : 'none';
             };
 
             // [추가] 단일 항목의 사유 수집 및 성실 기입 검증 (사용자 요청: 한 날짜의 모든 사유 기입 여부 체크)
@@ -1446,6 +1495,20 @@
                             const textarea = document.getElementById(`exp-${itemId}-${i}`);
                             exp = textarea.value.trim();
                             if (!exp) return { error: "기타 사유를 입력해주세요.", itemId };
+                        } else if (exp === '외근') {
+                            const compInput = document.getElementById(`comp-${itemId}-${i}`);
+                            if (compInput && compInput.value.trim()) {
+                                exp = `외근 [${compInput.value.trim()}]`;
+                            } else {
+                                return { error: "업체명을 입력해주세요.", itemId };
+                            }
+                        } else if (exp === '출장') {
+                            const locInput = document.getElementById(`loc-${itemId}-${i}`);
+                            if (locInput && locInput.value.trim()) {
+                                exp = `출장 [${locInput.value.trim()}]`;
+                            } else {
+                                return { error: "지역명을 입력해주세요.", itemId };
+                            }
                         }
                         explanations.push(exp);
                     }
@@ -1536,6 +1599,20 @@
                         const textarea = document.getElementById(`exp-${id}-${i}`);
                         exp = textarea.value.trim();
                         if (!exp) { alert('기타 사유를 상세히 입력해주세요.'); return; }
+                    } else if (exp === '외근') {
+                        const compInput = document.getElementById(`comp-${id}-${i}`);
+                        if (compInput && compInput.value.trim()) {
+                            exp = `외근 [${compInput.value.trim()}]`;
+                        } else {
+                            alert('업체명을 입력해주세요.'); return;
+                        }
+                    } else if (exp === '출장') {
+                        const locInput = document.getElementById(`loc-${id}-${i}`);
+                        if (locInput && locInput.value.trim()) {
+                            exp = `출장 [${locInput.value.trim()}]`;
+                        } else {
+                            alert('지역명을 입력해주세요.'); return;
+                        }
                     }
                     explanations.push(exp);
                 }
@@ -1564,19 +1641,34 @@
                 if (!date) { alert('날짜를 선택해주세요.'); return; }
                 const typeSelect = document.getElementById('prep-type');
                 const detailsText = document.getElementById('prep-details');
+                const companyInput = document.getElementById('prep-company');
+                const locationInput = document.getElementById('prep-location');
+
                 let type = typeSelect.value;
                 let details = detailsText.value.trim();
+                let additionalInfo = "";
+
+                if (type === '외근') {
+                    additionalInfo = companyInput.value.trim();
+                    if (!additionalInfo) { alert('업체명을 입력해주세요.'); companyInput.focus(); return; }
+                    additionalInfo = `[${additionalInfo}] `;
+                } else if (type === '출장') {
+                    additionalInfo = locationInput.value.trim();
+                    if (!additionalInfo) { alert('지역명을 입력해주세요.'); locationInput.focus(); return; }
+                    additionalInfo = `[${additionalInfo}] `;
+                }
+
                 if (!confirm(`${name}님의 ${date} 근태 기록을 '${type}'으로 사전 등록하시겠습니까?`)) return;
                 const submitBtn = document.getElementById('submit-prep-btn');
                 submitBtn.disabled = true;
                 submitBtn.innerText = "등록 중...";
                 try {
                     const { error } = await supabase.from('attendance_supplements').upsert({
-                        name, date, type, details, status: 'pending'
+                        name, date, type, details: additionalInfo + details, status: 'pending'
                     }, { onConflict: 'name,date' });
                     if (error) throw error;
                     const managerKey = `${name}_${date}`;
-                    const fullExplanation = `${type}${details ? ` (${details})` : ""}`;
+                    const fullExplanation = `${type}${ (additionalInfo + details) ? ` (${additionalInfo + details})` : ""}`;
                     await supabase.from('attendance_anomalies').upsert({
                         manager_key: managerKey, name, date,
                         explanation: fullExplanation, status: 'submitted'

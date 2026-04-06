@@ -2461,6 +2461,16 @@
                                 if (!rec.outTime) rec.outTime = "반차";
                             }
                         }
+                        else if (reason.includes("외근") || (employeeExplanations[`${name}_${fDate}`] || "").includes("외근")) {
+                            if (!rec.inTime && !rec.outTime) rec.inTime = "외근";
+                            else if (!rec.inTime) rec.inTime = "외근";
+                            else if (!rec.outTime) rec.outTime = "외근";
+                        }
+                        else if (reason.includes("출장")) {
+                            // [수정] 출장은 시간 칸(Time Cell)에 아무것도 표시하지 않음 (사용자 요청)
+                            if (!rec.inTime) rec.inTime = "";
+                            if (!rec.outTime) rec.outTime = "";
+                        }
 
                         // [추가] 사유 기반 보정 후, 사용된 키워드(반차, 연차)는 사유란에서 제거 (중복 방지, 사용자 요청)
                         const currentReasonForClean = rec.reason || "";
@@ -2657,7 +2667,13 @@
 
                             if (hasRec && val !== '연차' && val !== '반차' && isConfirmedIn) {
                                 if (isDoubleCheckAction) displayVal = "";
-                                else displayVal = (val || isSkipCheck) ? val : `✓`;
+                                else {
+                                    let v = (val || isSkipCheck) ? val : `✓`;
+                                    // [추가] 외근은 키워드만, 출장은 공백 표시 (사용자 요청)
+                                    if (v.includes("외근")) v = "외근";
+                                    else if (v.includes("출장")) v = "";
+                                    displayVal = v;
+                                }
                             }
 
                             let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
@@ -2724,7 +2740,13 @@
 
                             if (hasRecOut && val !== '연차' && val !== '반차' && isConfirmedOut) {
                                 if (isDoubleCheckAction) displayVal = "";
-                                else displayVal = (val || isSkipCheck) ? val : `✓`;
+                                else {
+                                    let v = (val || isSkipCheck) ? val : `✓`;
+                                    // [추가] 외근은 키워드만, 출장은 공백 표시 (사용자 요청)
+                                    if (v.includes("외근")) v = "외근";
+                                    else if (v.includes("출장")) v = "";
+                                    displayVal = v;
+                                }
                             }
 
                             let cls = '';
@@ -2750,7 +2772,15 @@
                             const isConfirmedIn = corrData.in === true;
 
                             const rawReason = (recs[dt] || {}).reason || '';
-                            let currentReason = isOutRange ? '' : rawReason;
+                            let currentReason = isOutRange ? '' : rawReason.replace(/\(\s*\[/g, '(').replace(/\]\s*\)/g, ')');
+                            
+                            // [추가] 외근의 경우 '외근' 키워드와 괄호를 제거하고 업체명만 표시 (사용자 요청)
+                            if (currentReason.includes("외근")) {
+                                const companyMatch = currentReason.match(/\((.*?)\)/);
+                                if (companyMatch) currentReason = companyMatch[1];
+                                else if (currentReason.trim() === "외근") currentReason = "외근"; // 상세내용 없으면 유지
+                                else currentReason = currentReason.replace("외근", "").trim();
+                            }
 
                             // [수정] 확인된 지각건이라도 '지각' 글자를 유지함 (사용자 요청)
                             // if (isConfirmedIn && currentReason.includes('지각')) {
@@ -3240,7 +3270,7 @@
                                     <td>${(a.inTime || a.outTime) ? `${a.inTime} ~ ${a.outTime}` : '<span style="color:#999">(기록 없음)</span>'}</td>
                                     <td class="anomaly-reason" style="${isFullyConfirmed ? '' : 'color:#ef4444'}">${a.reason}</td>
                                     <td class="employee-explanation" style="font-size: 0.82rem; color: #4F46E5; background-color: #f0f4ff; border: 1px solid #e0e7ff; border-radius: 4px; padding: 4px; line-height: 1.2;">
-                                        ${employeeExplanations[corrKey] || (sentAnomalyKeys.has(corrKey) ? '<span style="color: #6b7280; font-weight: 500;">⏳ 요청됨</span>' : '-')}
+                                        ${(employeeExplanations[corrKey] || (sentAnomalyKeys.has(corrKey) ? '<span style="color: #6b7280; font-weight: 500;">⏳ 요청됨</span>' : '-')).replace(/\(\s*\[/g, '(').replace(/\]\s*\)/g, ')')}
                                     </td>
                                     <td>
                                         <input type="text" class="manual-reason-input" 
@@ -3296,7 +3326,9 @@
 
                                                 // ── 사유 정규화 함수 ──────────────────────────
                                                 const normalizeReason = (text, anomalyReason) => {
-                                                    const t = text.replace(/^\[사전\]\s*/, '').trim();
+                                                    const t = text.replace(/^\[사전\]\s*/, '')
+                                                                  .replace(/\(\s*\[/g, '(').replace(/\]\s*\)/g, ')') // 중첩 괄호 정리
+                                                                  .trim();
 
                                                     // 1. 이미 표준 사유이면 그대로
                                                     const standards = ['정상출근', '정상퇴근', '정상근무', '지각', '조기퇴근',
@@ -3341,14 +3373,24 @@
                                                         }
                                                     }
 
-                                                    // 3. 키워드 매핑
+                                                    // 3. 키워드 매핑 및 특수 처리
+                                                    // [수정] 외근은 업체명만, 출장은 상세내용 결합 (사용자 요청)
+                                                    if (t.includes('외근') || t.includes('현장') || t.includes('현출') || t.includes('현퇴')) {
+                                                        const m = t.match(/\((.*?)\)/);
+                                                        return m ? m[1] : '외근';
+                                                    }
+                                                    
+                                                    const tripMatch = t.match(/출장\s*\((.*?)\)|(.*?)\s*출장/);
+                                                    if (tripMatch) {
+                                                        const detail = (tripMatch[1] || tripMatch[2] || "").trim();
+                                                        return detail ? detail + "출장" : "출장";
+                                                    }
+
                                                     const keywordMap = [
                                                         [/정상\s*출근|제시간|정시출근/, '정상출근'],
                                                         [/정상\s*퇴근|정시퇴근/, '정상퇴근'],
                                                         [/지각|늦게|늦음|늦은/, '지각'],
                                                         [/조기|일찍|일찍\s*퇴근/, '조기퇴근'],
-                                                        [/외근|현장|현출|현퇴/, '외근'],
-                                                        [/출장/, '출장'],
                                                         [/연차|휴가/, '연차'],
                                                         [/오전\s*반차/, '오전반차'],
                                                         [/오후\s*반차|반차/, '오후반차'],
