@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DOW 인트라넷 — 테스트</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --border: rgba(0,0,0,0.08);
+            --text: #1d1d1f;
+            --text-sub: #6e6e73;
+            --blue: #0071e3;
+            --green: #1d8348;
+            --purple: #7C3AED;
+            --orange: #d97706;
+            --radius: 18px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* NAV */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; height: 52px;
+            background: rgba(255,255,255,0.8); backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px; z-index: 100;
+        }
+        .nav-logo { font-size: 0.95rem; font-weight: 700; }
+        .nav-logo span { color: var(--blue); }
+        .nav-badge {
+            background: #fef3c7; color: #92400e;
+            font-size: 0.7rem; font-weight: 600;
+            padding: 2px 10px; border-radius: 20px;
+            border: 1px solid #fde68a;
+        }
+        .nav-user { font-size: 0.82rem; color: var(--text-sub); display: flex; align-items: center; gap: 12px; }
+        .nav-user button {
+            background: none; border: 1px solid var(--border);
+            padding: 3px 12px; border-radius: 8px;
+            font-size: 0.78rem; cursor: pointer; color: var(--text-sub);
+        }
+
+        /* MAIN */
+        main { max-width: 980px; margin: 0 auto; padding: 80px 22px 60px; }
+        .page-title { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.35rem; }
+        .page-sub { font-size: 0.9rem; color: var(--text-sub); margin-bottom: 2.5rem; }
+
+        /* MODULE GRID */
+        .module-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-bottom: 2.5rem;
+        }
+        .module-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.8rem;
+            cursor: pointer;
+            transition: transform 0.25s, box-shadow 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+        .module-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.1); }
+        .module-card.disabled { opacity: 0.5; cursor: default; }
+        .module-card.disabled:hover { transform: none; box-shadow: none; }
+        .module-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 1rem;
+        }
+        .module-label { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.3rem; }
+        .module-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.4rem; }
+        .module-desc { font-size: 0.82rem; color: var(--text-sub); line-height: 1.55; }
+        .module-status {
+            position: absolute; top: 1.2rem; right: 1.2rem;
+            font-size: 0.68rem; font-weight: 600; padding: 2px 9px;
+            border-radius: 20px;
+        }
+        .status-live { background: #d1fae5; color: #065f46; }
+        .status-test { background: #dbeafe; color: #1e40af; }
+        .status-soon { background: #f3f4f6; color: #6b7280; }
+
+        /* SECTION */
+        .section { margin-bottom: 2rem; }
+        .section-title {
+            font-size: 1rem; font-weight: 700; margin-bottom: 1rem;
+            padding-bottom: 0.6rem; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        /* AI CHAT */
+        .ai-panel {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); overflow: hidden;
+        }
+        .ai-header {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+            color: white; padding: 14px 20px;
+            font-size: 0.88rem; font-weight: 600;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #ai-messages {
+            height: 240px; overflow-y: auto;
+            padding: 16px; display: flex; flex-direction: column; gap: 10px;
+        }
+        .msg { max-width: 80%; padding: 9px 14px; border-radius: 14px; font-size: 0.85rem; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
+        .msg.user { align-self: flex-end; background: #4F46E5; color: white; border-bottom-right-radius: 4px; }
+        .msg.ai { align-self: flex-start; background: var(--bg); color: var(--text); border-bottom-left-radius: 4px; }
+        .msg.typing { opacity: 0.5; font-style: italic; }
+        .ai-input-row {
+            display: flex; gap: 8px; padding: 12px 16px;
+            border-top: 1px solid var(--border);
+        }
+        .ai-input-row input {
+            flex: 1; border: 1px solid var(--border); border-radius: 10px;
+            padding: 8px 14px; font-size: 0.85rem; font-family: inherit; outline: none;
+        }
+        .ai-input-row input:focus { border-color: #4F46E5; }
+        .ai-input-row button {
+            background: #4F46E5; color: white; border: none;
+            border-radius: 10px; padding: 8px 18px;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer;
+        }
+        .ai-input-row button:hover { background: #4338CA; }
+        .ai-input-row button:disabled { opacity: 0.45; cursor: not-allowed; }
+        .ai-chips { padding: 0 16px 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip {
+            background: #eef2ff; color: #4F46E5; border: 1px solid #c7d2fe;
+            border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; cursor: pointer;
+        }
+        .chip:hover { background: #e0e7ff; }
+
+        /* 회계 TEST */
+        .acct-panel {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 1.5rem;
+        }
+        .acct-row { display: flex; gap: 12px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+        .acct-row label { font-size: 0.85rem; font-weight: 600; min-width: 80px; }
+        .acct-row input[type="file"], .acct-row input[type="date"] {
+            flex: 1; border: 1px solid var(--border); border-radius: 8px;
+            padding: 7px 12px; font-size: 0.85rem; font-family: inherit;
+        }
+        .btn-acct {
+            background: var(--orange); color: white; border: none;
+            border-radius: 10px; padding: 8px 20px;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-acct:hover { opacity: 0.9; }
+        .btn-acct:disabled { opacity: 0.45; cursor: not-allowed; }
+        #acct-log {
+            background: #1d1d1f; color: #a1e3a1;
+            border-radius: 10px; padding: 14px 16px;
+            font-family: monospace; font-size: 0.8rem;
+            min-height: 80px; max-height: 180px; overflow-y: auto;
+            margin-top: 12px; white-space: pre-wrap; display: none;
+        }
+        .btn-gas {
+            background: var(--green); color: white; border: none;
+            border-radius: 10px; padding: 8px 20px;
+            font-size: 0.85rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-gas:hover { opacity: 0.9; }
+
+        @media (max-width: 600px) {
+            .page-title { font-size: 1.5rem; }
+            .module-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div style="display:flex;align-items:center;gap:10px;">
+        <span class="nav-logo">DOW <span>Valve</span></span>
+        <span class="nav-badge">테스트 전용</span>
+    </div>
+    <div class="nav-user">
+        <span id="nav-username">—</span>
+        <button onclick="location.href='index.html'">로그아웃</button>
+    </div>
+</nav>
+
+<main>
+    <h1 class="page-title">인트라넷 포털</h1>
+    <p class="page-sub">통합 테스트 페이지 — 관리자 전용</p>
+
+    <!-- 모듈 카드 -->
+    <div class="module-grid">
+        <div class="module-card" onclick="location.href='supplement.html'">
+            <span class="module-status status-live">운영 중</span>
+            <div class="module-icon" style="background:#d1fae5;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="1.8">
+                    <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+            </div>
+            <p class="module-label" style="color:#065f46;">Attendance</p>
+            <h2 class="module-title">근태관리</h2>
+            <p class="module-desc">출퇴근 현황 확인 및 보완 사유 등록</p>
+        </div>
+
+        <div class="module-card" onclick="location.href='admin.html'">
+            <span class="module-status status-live">운영 중</span>
+            <div class="module-icon" style="background:#dbeafe;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="1.8">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
+            <p class="module-label" style="color:#1e40af;">Admin</p>
+            <h2 class="module-title">관리자 대시보드</h2>
+            <p class="module-desc">근태 보고서 생성 및 사원 관리</p>
+        </div>
+
+        <div class="module-card" onclick="scrollToSection('ai-section')">
+            <span class="module-status status-test">테스트</span>
+            <div class="module-icon" style="background:#ede9fe;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8">
+                    <circle cx="12" cy="12" r="10"/><path d="M8 12h.01M12 12h.01M16 12h.01" stroke-width="2.5" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <p class="module-label" style="color:#7C3AED;">AI</p>
+            <h2 class="module-title">AI 어시스턴트</h2>
+            <p class="module-desc">사내 업무 질의응답 및 문서 작성 보조</p>
+        </div>
+
+        <div class="module-card" onclick="scrollToSection('acct-section')">
+            <span class="module-status status-test">테스트</span>
+            <div class="module-icon" style="background:#fef3c7;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#92400e" stroke-width="1.8">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/>
+                </svg>
+            </div>
+            <p class="module-label" style="color:#92400e;">Accounting</p>
+            <h2 class="module-title">회계 / 일계표</h2>
+            <p class="module-desc">ERP 데이터 → 일계표 자동 생성</p>
+        </div>
+
+        <div class="module-card disabled">
+            <span class="module-status status-soon">준비 중</span>
+            <div class="module-icon" style="background:#f0fdf4;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="1.8">
+                    <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+                </svg>
+            </div>
+            <p class="module-label" style="color:#166534;">Sales</p>
+            <h2 class="module-title">영업 파이프라인</h2>
+            <p class="module-desc">국내외 영업 현황 관리 및 AI 갱신</p>
+        </div>
+    </div>
+
+    <!-- AI 어시스턴트 테스트 -->
+    <div class="section" id="ai-section">
+        <p class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+            AI 어시스턴트 테스트
+        </p>
+        <div class="ai-panel">
+            <div class="ai-header">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+                DOW AI — Claude 기반
+            </div>
+            <div id="ai-messages">
+                <div class="msg ai">안녕하세요! 다우밸브 AI 어시스턴트입니다. 업무 관련 질문을 자유롭게 해주세요.</div>
+            </div>
+            <div class="ai-chips" id="ai-chips">
+                <span class="chip" onclick="aiSend('현재 영업 파이프라인 진행 건 요약해줘')">영업 현황 요약</span>
+                <span class="chip" onclick="aiSend('일계표 작성할 때 주의사항 알려줘')">일계표 주의사항</span>
+                <span class="chip" onclick="aiSend('다우밸브 밸브 제품 종류가 어떻게 돼?')">제품 종류</span>
+                <span class="chip" onclick="aiSend('이번 주 해야 할 일이 뭐야?')">이번 주 할 일</span>
+            </div>
+            <div class="ai-input-row">
+                <input id="ai-input" type="text" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter') aiSend()">
+                <button id="ai-send-btn" onclick="aiSend()">전송</button>
+            </div>
+        </div>
+        <p style="font-size:0.75rem;color:var(--text-sub);margin-top:8px;">
+            ※ AI 응답은 <code>/api/chat</code> 서버리스 함수를 호출합니다. Vercel 환경변수 <code>ANTHROPIC_API_KEY</code> 설정 필요.
+        </p>
+    </div>
+
+    <!-- 회계/일계표 테스트 -->
+    <div class="section" id="acct-section">
+        <p class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg>
+            회계 / 일계표 테스트
+        </p>
+        <div class="acct-panel">
+            <div class="acct-row">
+                <label>GAS 연결</label>
+                <button class="btn-gas" onclick="testGAS()">미수금 데이터 불러오기 테스트</button>
+            </div>
+            <div class="acct-row">
+                <label>ERP 파일</label>
+                <input type="file" id="erp-file" accept=".xls,.xlsx" multiple>
+            </div>
+            <div class="acct-row">
+                <label>날짜</label>
+                <input type="date" id="acct-date">
+                <button class="btn-acct" id="acct-run-btn" onclick="runAcct()">일계표 생성 테스트</button>
+            </div>
+            <pre id="acct-log"></pre>
+        </div>
+        <p style="font-size:0.75rem;color:var(--text-sub);margin-top:8px;">
+            ※ 회계 로직은 기존 <code>process.js</code>의 브라우저 포팅 버전입니다. GAS URL은 config 그대로 사용.
+        </p>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+// ── 접근 제한: 관리자만 ──────────────────────────────────────
+(function () {
+    const isAdmin = sessionStorage.getItem('attendance_user_is_admin');
+    const name = localStorage.getItem('attendance_user_name');
+    if (!name || isAdmin !== 'true') {
+        location.href = 'index.html';
+        return;
+    }
+    document.getElementById('nav-username').textContent = name + ' (관리자)';
+})();
+
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbyVDVMvwiZ2s2tv_4PTHBUjy_5JfWbl4MR8Xmtjo7TYiQr7scOceZevTDyQ_UrnxG5vWg/exec';
+
+function scrollToSection(id) {
+    document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ── AI 어시스턴트 ────────────────────────────────────────────
+const aiHistory = [];
+
+async function aiSend(text) {
+    const input = document.getElementById('ai-input');
+    const msg = (text || input.value).trim();
+    if (!msg) return;
+    input.value = '';
+    document.getElementById('ai-chips').style.display = 'none';
+    appendMsg(msg, 'user');
+    aiHistory.push({ role: 'user', content: msg });
+
+    const btn = document.getElementById('ai-send-btn');
+    btn.disabled = true;
+    const typingEl = appendMsg('답변 생성 중...', 'ai typing');
+
+    try {
+        const res = await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: aiHistory })
+        });
+        const data = await res.json();
+        const reply = data.content || data.error || '오류가 발생했습니다.';
+        typingEl.className = 'msg ai';
+        typingEl.textContent = reply;
+        aiHistory.push({ role: 'assistant', content: reply });
+    } catch (e) {
+        typingEl.className = 'msg ai';
+        typingEl.textContent = '서버 연결 오류. Vercel 배포 환경에서 테스트하세요.';
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+function appendMsg(text, cls) {
+    const el = document.createElement('div');
+    el.className = `msg ${cls}`;
+    el.textContent = text;
+    const box = document.getElementById('ai-messages');
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+    return el;
+}
+
+document.getElementById('ai-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') aiSend();
+});
+
+// ── 회계 / 일계표 ────────────────────────────────────────────
+function acctLog(msg) {
+    const el = document.getElementById('acct-log');
+    el.style.display = 'block';
+    el.textContent += msg + '\n';
+    el.scrollTop = el.scrollHeight;
+}
+
+async function testGAS() {
+    const el = document.getElementById('acct-log');
+    el.style.display = 'block';
+    el.textContent = '';
+    acctLog('▶ GAS 연결 테스트 시작...');
+    try {
+        const res = await fetch(GAS_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        acctLog('✅ GAS 연결 성공');
+        acctLog('수신 데이터 미리보기:');
+        acctLog(JSON.stringify(data).slice(0, 300) + (JSON.stringify(data).length > 300 ? '...' : ''));
+    } catch (e) {
+        acctLog('❌ GAS 연결 실패: ' + e.message);
+        acctLog('  → CORS 제한일 경우 Vercel 서버리스 함수에서 호출 필요');
+    }
+}
+
+async function runAcct() {
+    const files = document.getElementById('erp-file').files;
+    const dateInput = document.getElementById('acct-date').value;
+    const log = document.getElementById('acct-log');
+    log.style.display = 'block';
+    log.textContent = '';
+
+    if (!files.length) { acctLog('❌ ERP 파일을 선택해주세요.'); return; }
+    if (!dateInput) { acctLog('❌ 날짜를 입력해주세요.'); return; }
+
+    const targetDate = dateInput.replace(/-/g, '');
+    acctLog(`▶ 일계표 생성 테스트 — ${targetDate}`);
+    acctLog(`  파일 ${files.length}개 처리 중...`);
+
+    let rows = [];
+    for (const file of files) {
+        acctLog(`  📄 ${file.name} 파싱 중...`);
+        try {
+            const buf = await file.arrayBuffer();
+            const wb = XLSX.read(buf, { type: 'array' });
+            wb.SheetNames.forEach(sheetName => {
+                const ws = wb.Sheets[sheetName];
+                const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                const isTransFormat = file.name.startsWith('Trans_') || (data[1] && data[1].length > 20);
+                if (isTransFormat) {
+                    for (let i = 2; i < data.length; i++) {
+                        const row = data[i];
+                        if (!row || row.length < 13) continue;
+                        const dateStr = String(row[2] || '').replace(/[^0-9]/g, '');
+                        if (dateStr !== targetDate) continue;
+                        rows.push({
+                            date: dateStr,
+                            inOut: row[6],
+                            item: row[9],
+                            supply: Number(row[10] || 0),
+                            tax: Number(row[11] || 0),
+                            total: Number(row[12] || 0),
+                            company: row[15]
+                        });
+                    }
+                }
+            });
+        } catch (e) {
+            acctLog(`  ⚠ ${file.name} 파싱 오류: ${e.message}`);
+        }
+    }
+
+    if (!rows.length) {
+        acctLog(`❌ ${targetDate} 날짜 데이터 없음`);
+        return;
+    }
+
+    const sales = rows.filter(r => r.inOut === '입금' || r.supply > 0);
+    const purchase = rows.filter(r => r.inOut === '출금');
+    const totalSales = sales.reduce((s, r) => s + r.total, 0);
+    const totalPurchase = purchase.reduce((s, r) => s + r.total, 0);
+
+    acctLog(`\n📊 ${targetDate} 요약`);
+    acctLog(`  매출 건수: ${sales.length}건 / 합계: ${totalSales.toLocaleString()}원`);
+    acctLog(`  매입 건수: ${purchase.length}건 / 합계: ${totalPurchase.toLocaleString()}원`);
+    acctLog(`  순이익(추정): ${(totalSales - totalPurchase).toLocaleString()}원`);
+    acctLog(`\n✅ 파싱 성공 — 실제 일계표 생성은 GAS 미수금 데이터와 합산 후 완성`);
+    acctLog(`   (현재 테스트: ERP 파싱만, GAS 연동은 "미수금 테스트" 버튼으로 별도 확인)`);
+}
+</script>
+</body>
+</html>
