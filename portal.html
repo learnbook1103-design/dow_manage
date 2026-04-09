@@ -469,12 +469,16 @@
                             let dateStr = '';
                             if (rawDate instanceof Date) {
                                 const y = rawDate.getFullYear();
-                                const m = String(rawDate.getMonth()+1).padStart(2,'0');
-                                const d = String(rawDate.getDate()).padStart(2,'0');
+                                const m = String(rawDate.getMonth() + 1).padStart(2, '0');
+                                const d = String(rawDate.getDate()).padStart(2, '0');
                                 dateStr = `${y}${m}${d}`;
                             } else if (typeof rawDate === 'number') {
-                                const info = XLSX.SSF.parse_date_code(rawDate);
-                                if (info) dateStr = `${info.y}${String(info.m).padStart(2,'0')}${String(info.d).padStart(2,'0')}`;
+                                if (rawDate > 19000000 && rawDate < 21000000) {
+                                    dateStr = String(rawDate);
+                                } else {
+                                    const info = XLSX.SSF.parse_date_code(rawDate);
+                                    if (info) dateStr = `${info.y}${String(info.m).padStart(2, '0')}${String(info.d).padStart(2, '0')}`;
+                                }
                             } else {
                                 dateStr = String(rawDate || '').replace(/[^0-9]/g, '');
                             }
