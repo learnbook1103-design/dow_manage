@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포털 설정 — DOW Valve</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --border: rgba(0,0,0,0.08);
+  --text: #1d1d1f;
+  --text-sub: #6e6e73;
+  --blue: #0071e3;
+  --green: #1d8348;
+  --purple: #7C3AED;
+  --orange: #d97706;
+  --red: #dc2626;
+  --radius: 18px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+nav {
+  position: fixed; top: 0; left: 0; right: 0; height: 52px;
+  background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px; z-index: 100;
+}
+.nav-logo { font-size: 0.95rem; font-weight: 700; }
+.nav-logo span { color: var(--blue); }
+.nav-back {
+  background: none; border: 1px solid var(--border);
+  padding: 4px 14px; border-radius: 8px;
+  font-size: 0.78rem; cursor: pointer; color: var(--text-sub);
+  font-family: inherit;
+}
+.nav-back:hover { background: var(--bg); }
+main { max-width: 860px; margin: 0 auto; padding: 80px 22px 60px; }
+.page-title { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.3rem; }
+.page-sub { font-size: 0.88rem; color: var(--text-sub); margin-bottom: 2.5rem; }
+.section { margin-bottom: 2rem; }
+.section-header {
+  font-size: 0.95rem; font-weight: 700;
+  margin-bottom: 1rem; padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.section-header .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+/* 결재자 섹션 */
+.approver-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+.approver-item label {
+  display: block; font-size: 0.78rem; font-weight: 600;
+  color: var(--text-sub); margin-bottom: 6px;
+}
+.approver-item select {
+  width: 100%; border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 10px; font-size: 0.85rem; font-family: inherit;
+  outline: none; background: #fff;
+}
+.approver-item select:focus { border-color: var(--blue); }
+/* 한도 테이블 */
+.limit-table-wrap { overflow-x: auto; }
+.limit-table {
+  width: 100%; border-collapse: collapse;
+  font-size: 0.84rem;
+}
+.limit-table th {
+  text-align: left; padding: 10px 12px;
+  background: var(--bg); font-size: 0.78rem;
+  font-weight: 600; color: var(--text-sub);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.limit-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.limit-table tr:last-child td { border-bottom: none; }
+.limit-table .team-name {
+  font-weight: 600; font-size: 0.85rem;
+  white-space: nowrap; min-width: 130px;
+}
+.limit-input {
+  width: 100%; min-width: 90px;
+  border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 8px; font-size: 0.82rem;
+  font-family: inherit; outline: none; text-align: right;
+}
+.limit-input:focus { border-color: var(--blue); }
+.limit-input::placeholder { color: #ccc; }
+/* 한도 초과 */
+.over-limit-options { display: flex; flex-direction: column; gap: 10px; }
+.radio-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; border: 1.5px solid var(--border);
+  border-radius: 10px; cursor: pointer; transition: border-color 0.2s;
+}
+.radio-item:hover { border-color: var(--blue); }
+.radio-item.selected { border-color: var(--blue); background: #eff6ff; }
+.radio-item input[type=radio] { margin-top: 2px; accent-color: var(--blue); }
+.radio-item-text strong { display: block; font-size: 0.88rem; margin-bottom: 2px; }
+.radio-item-text span { font-size: 0.78rem; color: var(--text-sub); }
+/* 저장 버튼 */
+.save-bar {
+  position: sticky; bottom: 0;
+  background: rgba(245,245,247,0.9); backdrop-filter: blur(12px);
+  padding: 16px 0; display: flex; justify-content: flex-end; gap: 10px;
+  border-top: 1px solid var(--border); margin-top: 2rem;
+}
+.btn-save {
+  background: var(--blue); color: #fff;
+  border: none; border-radius: 10px;
+  padding: 10px 28px; font-size: 0.9rem;
+  font-weight: 700; cursor: pointer; font-family: inherit;
+  transition: opacity 0.2s;
+}
+.btn-save:hover { opacity: 0.88; }
+.btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
+/* 로딩 */
+.loading-msg { color: var(--text-sub); font-size: 0.85rem; padding: 24px 0; text-align: center; }
+/* 토스트 */
+.toast {
+  position: fixed; bottom: 32px; left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #1d1d1f; color: #fff;
+  padding: 12px 24px; border-radius: 24px;
+  font-size: 0.88rem; font-weight: 500;
+  z-index: 999; opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (max-width: 600px) {
+  .approver-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="nav-logo">DOW <span>Valve</span></span>
+    <span style="font-size:0.78rem;color:var(--text-sub);">포털 설정</span>
+  </div>
+  <button class="nav-back" onclick="location.href='portal.html'">← 포털로</button>
+</nav>
+
+<main>
+  <h1 class="page-title">포털 설정</h1>
+  <p class="page-sub" id="page-sub">설정을 불러오는 중...</p>
+
+  <!-- 결재자 지정 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="dot" style="background:var(--purple);"></div>
+      결재자 지정
+    </div>
+    <div class="card">
+      <div class="approver-grid" id="approver-grid">
+        <div class="loading-msg">불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 팀별 한도 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="dot" style="background:var(--blue);"></div>
+      팀별 신청 한도 <span style="font-size:0.75rem;font-weight:400;color:var(--text-sub);margin-left:6px;">(원 단위 · 0 입력 시 한도 없음)</span>
+    </div>
+    <div class="card">
+      <div class="limit-table-wrap">
+        <table class="limit-table" id="limit-table">
+          <thead>
+            <tr>
+              <th>팀</th>
+              <th>비품 · 소모품</th>
+              <th>경조사비</th>
+              <th>출장비</th>
+              <th>식비</th>
+            </tr>
+          </thead>
+          <tbody id="limit-tbody">
+            <tr><td colspan="5" class="loading-msg">불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 한도 초과 처리 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="dot" style="background:var(--orange);"></div>
+      한도 초과 시 처리 방식
+    </div>
+    <div class="card">
+      <div class="over-limit-options" id="over-limit-options">
+        <label class="radio-item" id="opt-block">
+          <input type="radio" name="over_limit" value="block">
+          <div class="radio-item-text">
+            <strong>신청 차단</strong>
+            <span>한도 초과 시 신청 자체를 막습니다.</span>
+          </div>
+        </label>
+        <label class="radio-item" id="opt-warn">
+          <input type="radio" name="over_limit" value="warn">
+          <div class="radio-item-text">
+            <strong>경고 후 진행</strong>
+            <span>한도 초과 안내 후 신청을 허용합니다.</span>
+          </div>
+        </label>
+        <label class="radio-item" id="opt-escalate">
+          <input type="radio" name="over_limit" value="escalate">
+          <div class="radio-item-text">
+            <strong>상위 결재 전환</strong>
+            <span>한도 초과 시 상위 결재자에게 자동 전달됩니다.</span>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-bar">
+    <button class="btn-save" id="btn-save" onclick="saveAll()">설정 저장</button>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function() {
+  const isAdmin = sessionStorage.getItem('attendance_user_is_admin');
+  const name = localStorage.getItem('attendance_user_name');
+  if (!name || isAdmin !== 'true') { location.href = 'portal.html'; return; }
+})();
+
+const SUPABASE_URL = 'https://grxslikvzxafmxuepusy.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc';
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const TYPES = ['비품구매', '경조사비', '출장비', '식비'];
+let teams = [];
+let employees = [];
+let settings = {};
+
+async function init() {
+  // 재직 중 직원 + 팀 목록 로드
+  const { data: emps } = await _sb.from('employees').select('name, org, rank').is('leave_date', null).order('org');
+  employees = emps || [];
+  const teamSet = [...new Set(employees.map(e => e.org).filter(Boolean))].sort();
+  teams = teamSet;
+
+  // 기존 설정 로드
+  const { data: rows } = await _sb.from('app_settings').select('key, value').eq('module', 'approval');
+  if (rows) rows.forEach(r => { settings[r.key] = r.value; });
+
+  renderApprovers();
+  renderLimits();
+  renderOverLimit();
+  document.getElementById('page-sub').textContent = `재직 직원 ${employees.length}명 · ${teams.length}개 팀`;
+}
+
+function renderApprovers() {
+  const approvers = settings['approvers'] || {};
+  const grid = document.getElementById('approver-grid');
+  grid.innerHTML = TYPES.map(type => {
+    const current = approvers[type] || '';
+    const options = employees.map(e =>
+      `<option value="${e.name}" ${e.name === current ? 'selected' : ''}>${e.name} (${e.rank} · ${e.org})</option>`
+    ).join('');
+    return `
+      <div class="approver-item">
+        <label>${typeLabel(type)}</label>
+        <select id="approver-${type}">
+          <option value="">— 미지정 —</option>
+          ${options}
+        </select>
+      </div>`;
+  }).join('');
+}
+
+function renderLimits() {
+  const limits = settings['team_limits'] || {};
+  const tbody = document.getElementById('limit-tbody');
+  if (!teams.length) { tbody.innerHTML = '<tr><td colspan="5" class="loading-msg">팀 정보가 없습니다.</td></tr>'; return; }
+  tbody.innerHTML = teams.map(team => {
+    const teamLimits = limits[team] || {};
+    const cells = TYPES.map(type =>
+      `<td><input class="limit-input" type="number" min="0" step="10000"
+        data-team="${team}" data-type="${type}"
+        value="${teamLimits[type] || ''}" placeholder="0"></td>`
+    ).join('');
+    return `<tr><td class="team-name">${team}</td>${cells}</tr>`;
+  }).join('');
+}
+
+function renderOverLimit() {
+  const action = (settings['over_limit'] || {}).action || 'warn';
+  document.querySelectorAll('input[name=over_limit]').forEach(radio => {
+    radio.checked = radio.value === action;
+    radio.closest('.radio-item').classList.toggle('selected', radio.value === action);
+  });
+  document.querySelectorAll('input[name=over_limit]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      document.querySelectorAll('.radio-item').forEach(el => el.classList.remove('selected'));
+      radio.closest('.radio-item').classList.add('selected');
+    });
+  });
+}
+
+function typeLabel(type) {
+  return { '비품구매': '🛒 비품 · 소모품', '경조사비': '🌸 경조사비', '출장비': '✈️ 출장비', '식비': '🍽️ 식비' }[type] || type;
+}
+
+async function saveAll() {
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true; btn.textContent = '저장 중...';
+  try {
+    // 결재자
+    const approvers = {};
+    TYPES.forEach(type => {
+      const val = document.getElementById('approver-' + type)?.value;
+      if (val) approvers[type] = val;
+    });
+    // 팀별 한도
+    const teamLimits = {};
+    document.querySelectorAll('.limit-input').forEach(input => {
+      const team = input.dataset.team;
+      const type = input.dataset.type;
+      const val = parseInt(input.value);
+      if (!teamLimits[team]) teamLimits[team] = {};
+      teamLimits[team][type] = isNaN(val) ? 0 : val;
+    });
+    // 한도 초과 처리
+    const overLimit = { action: document.querySelector('input[name=over_limit]:checked')?.value || 'warn' };
+
+    const upserts = [
+      { module: 'approval', key: 'approvers', value: approvers, updated_at: new Date().toISOString() },
+      { module: 'approval', key: 'team_limits', value: teamLimits, updated_at: new Date().toISOString() },
+      { module: 'approval', key: 'over_limit', value: overLimit, updated_at: new Date().toISOString() },
+    ];
+    const { error } = await _sb.from('app_settings').upsert(upserts, { onConflict: 'module,key' });
+    if (error) throw new Error(error.message);
+    settings = { approvers, team_limits: teamLimits, over_limit: overLimit };
+    showToast('✅ 설정이 저장됐습니다.');
+  } catch (e) {
+    showToast('❌ 오류: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '설정 저장';
+  }
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+init();
+</script>
+</body>
+</html>

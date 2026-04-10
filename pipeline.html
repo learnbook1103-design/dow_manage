@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>영업 파이프라인 — DOW</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --border: rgba(0,0,0,0.08);
+            --text: #1d1d1f;
+            --text-sub: #6e6e73;
+            --blue: #0071e3;
+            --green: #1d8348;
+            --radius: 18px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; height: 52px;
+            background: rgba(255,255,255,0.85); backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 28px; z-index: 100;
+        }
+        .nav-logo { font-size: 0.95rem; font-weight: 700; }
+        .nav-logo span { color: var(--blue); }
+        .nav-badge { background: #d1fae5; color: #065f46; font-size: 0.7rem; font-weight: 600; padding: 2px 10px; border-radius: 20px; border: 1px solid #a7f3d0; }
+        .nav-user { font-size: 0.82rem; color: var(--text-sub); display: flex; align-items: center; gap: 12px; }
+        .nav-user button { background: none; border: 1px solid var(--border); padding: 3px 12px; border-radius: 8px; font-size: 0.78rem; cursor: pointer; color: var(--text-sub); }
+
+        main { max-width: 1100px; margin: 0 auto; padding: 80px 22px 60px; }
+
+        .page-title { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 0.3rem; }
+        .page-sub { font-size: 0.88rem; color: var(--text-sub); margin-bottom: 2rem; }
+
+        /* 요약 카드 */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 10px;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1rem 1rem 0.8rem;
+            text-align: center;
+        }
+        .stat-num { font-size: 1.7rem; font-weight: 700; }
+        .stat-label { font-size: 0.72rem; color: var(--text-sub); margin-top: 3px; }
+        .stat-num.green { color: #059669; }
+        .stat-num.amber { color: #d97706; }
+        .stat-num.red   { color: #dc2626; }
+        .stat-num.blue  { color: var(--blue); }
+
+        /* 필터 */
+        .filters {
+            display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.2rem;
+        }
+        .filter-btn {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 5px 14px; font-size: 0.78rem;
+            font-weight: 500; cursor: pointer; color: var(--text-sub);
+            font-family: inherit; transition: all 0.15s;
+        }
+        .filter-btn:hover { border-color: var(--green); color: var(--green); }
+        .filter-btn.active { background: var(--green); color: white; border-color: var(--green); }
+
+        /* 테이블 */
+        .table-wrap {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        thead th {
+            background: #f9fafb; font-weight: 600; padding: 10px 14px;
+            text-align: left; border-bottom: 1px solid var(--border);
+            color: var(--text-sub); font-size: 0.72rem; white-space: nowrap;
+        }
+        tbody td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr:hover td { background: #f9fafb; }
+
+        .team-badge {
+            display: inline-block; padding: 2px 8px; border-radius: 6px;
+            font-size: 0.68rem; font-weight: 600; white-space: nowrap;
+        }
+        .badge-D  { background: #dbeafe; color: #1e40af; }
+        .badge-E  { background: #fef3c7; color: #92400e; }
+        .badge-B  { background: #f3e8ff; color: #6d28d9; }
+        .badge-EN { background: #fce7f3; color: #9d174d; }
+        .badge-S  { background: #ecfdf5; color: #065f46; }
+        .badge-VP { background: #fff7ed; color: #9a3412; }
+        .badge-PT { background: #f1f5f9; color: #334155; }
+
+        .progress-wrap { display: flex; align-items: center; gap: 7px; }
+        .progress-bar { width: 64px; height: 5px; background: #e5e7eb; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+        .progress-fill { height: 100%; border-radius: 3px; }
+        .p-high { background: #10b981; }
+        .p-mid  { background: #f59e0b; }
+        .p-low  { background: #ef4444; }
+        .p-zero { background: #d1d5db; }
+        .p-none { background: #d1d5db; }
+
+        .pct-text { font-size: 0.75rem; color: var(--text-sub); white-space: nowrap; }
+
+        .id-cell { font-family: monospace; font-size: 0.75rem; color: var(--text-sub); white-space: nowrap; }
+        .task-name { font-weight: 500; }
+        .task-desc { font-size: 0.75rem; color: var(--text-sub); margin-top: 2px; }
+        .action-text { font-size: 0.75rem; color: var(--text-sub); max-width: 200px; }
+
+        .date-cell { font-size: 0.75rem; color: var(--text-sub); white-space: nowrap; }
+        .overdue { color: #dc2626; font-weight: 600; }
+
+        .empty-msg { padding: 2.5rem; text-align: center; color: var(--text-sub); font-size: 0.85rem; }
+
+        @media (max-width: 700px) {
+            .page-title { font-size: 1.5rem; }
+            .col-hide { display: none; }
+        }
+    </style>
+</head>
+
+<body>
+
+<nav>
+    <div style="display:flex;align-items:center;gap:10px;">
+        <span class="nav-logo">DOW <span>Valve</span></span>
+        <span class="nav-badge">영업 파이프라인</span>
+    </div>
+    <div class="nav-user">
+        <span id="nav-username">—</span>
+        <button onclick="location.href='portal.html'">← 포털</button>
+    </div>
+</nav>
+
+<main>
+    <h1 class="page-title">영업 파이프라인</h1>
+    <p class="page-sub" id="page-sub">전사 미결업무 현황 — 데이터 기준: 2026-04-07</p>
+
+    <div class="summary-grid">
+        <div class="stat-card"><div class="stat-num blue">35</div><div class="stat-label">전체 업무</div></div>
+        <div class="stat-card"><div class="stat-num green">6</div><div class="stat-label">완료임박 (80%↑)</div></div>
+        <div class="stat-card"><div class="stat-num amber">10</div><div class="stat-label">정체 (30%↓)</div></div>
+        <div class="stat-card"><div class="stat-num red">3</div><div class="stat-label">기한 초과</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:#6b7280;">7</div><div class="stat-label">담당 팀</div></div>
+    </div>
+
+    <div class="filters">
+        <button class="filter-btn active" data-team="all">전체</button>
+        <button class="filter-btn" data-team="D">국내외관리영업</button>
+        <button class="filter-btn" data-team="E">해외영업</button>
+        <button class="filter-btn" data-team="B">2차전지영업</button>
+        <button class="filter-btn" data-team="EN">엔지니어링</button>
+        <button class="filter-btn" data-team="S">반도체영업</button>
+        <button class="filter-btn" data-team="VP">밸브파크</button>
+        <button class="filter-btn" data-team="PT">생산기술</button>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>팀</th>
+                    <th>업무내용</th>
+                    <th>진행율</th>
+                    <th class="col-hide">완료예정</th>
+                    <th class="col-hide">다음 액션</th>
+                </tr>
+            </thead>
+            <tbody id="pipeline-tbody"></tbody>
+        </table>
+        <div class="empty-msg" id="empty-msg" style="display:none;">해당 팀의 업무가 없습니다.</div>
+    </div>
+</main>
+
+<script>
+    // 접근 제한
+    (function () {
+        const isAdmin = sessionStorage.getItem('attendance_user_is_admin');
+        const name = localStorage.getItem('attendance_user_name');
+        if (!name || isAdmin !== 'true') { location.href = 'index.html'; return; }
+        document.getElementById('nav-username').textContent = name + ' (관리자)';
+    })();
+
+    const PIPELINE = [
+        // 국내외 관리영업
+        { id:'D-001', team:'D', task:'경리회계 업무 인수인계 및 매뉴얼', pct:0,  due:'*',         status:'경리달인 계약, 4/1부터 인수인계 연기',       action:'일일업무부터 순차 인계 / 수입 연결업무 인계 시작' },
+        { id:'D-002', team:'D', task:'위험성평가 인증 심사',              pct:50, due:'26년 상반기', status:'컨설팅 5회차 완료, 지적부분 보완 중',         action:'TMB 회의 실시 예정' },
+        { id:'D-003', team:'D', task:'ERP 개발',                         pct:90, due:'26.01.10',   status:'품목업데이트 50%',                           action:'세트업데이트 업무 분담 논의', overdue:true },
+        { id:'D-004', team:'D', task:'협력사(대리점) 계약',               pct:null,due:'*',         status:'—',                                          action:'—' },
+        { id:'D-005', team:'D', task:'가격체계 수립',                     pct:null,due:'*',         status:'대만산·버터플라이·2PC후렌지 협가 완료',        action:'중국산 위생볼밸브 가격정비 진행' },
+        // 해외영업
+        { id:'E-001', team:'E', task:'중국제품 소싱 (위생Fitting·Pipe·배관밸브)', pct:70, due:'26.03', status:'중국출장 2회 완료(6개사 검증)',            action:'304볼밸브 공장비교 / Pipe 상품화', overdue:true },
+        { id:'E-002', team:'E', task:'Tema Oil Refinery (가나)',          pct:80, due:'25.12',      status:'대리인·커미션 설정 완료, 1건 선적完',         action:'선적예정 2건 $28,900 처리', overdue:true },
+        { id:'E-003', team:'E', task:'수출 업무 매뉴얼',                  pct:70, due:'25.12',      status:'R&R + 매뉴얼 Ver1.0 작성 중',                action:'AI·협업툴 활용 실행형 저장소로 발전' },
+        { id:'E-004', team:'E', task:'SCM 실행 계획',                    pct:60, due:'25.12',      status:'—',                                          action:'2026 업무계획 구체화 실행방안 수립' },
+        { id:'E-005', team:'E', task:'수출용 웹페이지 제작',              pct:10, due:'25.12',      status:'초기 단계',                                  action:'—' },
+        { id:'E-006', team:'E', task:'고단가 세일즈 영업 적용',           pct:0,  due:'26.02',      status:'미착수',                                     action:'—', overdue:true },
+        { id:'E-007', team:'E', task:'MRO시장 공략 (HP·MRC·LOWE\'s)',   pct:10, due:'25.06',      status:'타 업무로 지연',                              action:'아프리카 MRO계획과 함께 진행 예정' },
+        { id:'E-008', team:'E', task:'HAM-LET SUS볼밸브 ¾" 의뢰 대응',  pct:30, due:'25.12',      status:'이스라엘 휴전으로 긴급성 감소, 중단',          action:'중국산 Lok밸브 공장 발굴 후 재제안' },
+        { id:'E-009', team:'E', task:'PARA 정리 활용',                   pct:70, due:'25.12',      status:'전직원 공유 1차 완료',                        action:'업데이트 예정' },
+        // 2차전지 영업
+        { id:'B-001', team:'B', task:'2025년 A/S 이슈 전수 집계 및 유형화', pct:90, due:'26.01.30', status:'1차 취합 완료, 누락 건 확인 중',             action:'미집계 A/S 추가 수집 및 유형별 정리', overdue:true },
+        { id:'B-002', team:'B', task:'2025년 고객 솔루션 사례 정리·관리', pct:90, due:'26.01.30',  status:'1차 확인 중',                                action:'누락 사례 추가 및 적용 효과 중심 정리', overdue:true },
+        { id:'B-003', team:'B', task:'이슈·클레임 통합 관리 체계 구축',   pct:80, due:'—',          status:'클레임 DB 구조 설계 및 기초 데이터 정리',    action:'유형·원인·조치 결과 기준 세분화' },
+        { id:'B-004', team:'B', task:'신규 산업(2차전지) 적용 제품 검토', pct:10, due:'—',          status:'공정별 필요 제품 조사 중',                   action:'수요 기반 제품 후보군 정리 및 기술 검토' },
+        { id:'B-005', team:'B', task:'주요 고객·프로젝트 이력 관리',      pct:10, due:'—',          status:'2025년 주요 고객 1차 리스트업',              action:'거래이력·재발주 가능성 정리' },
+        // 엔지니어링
+        { id:'EN-001', team:'EN', task:'도면 프로그래밍',                 pct:45, due:'—', status:'파이썬 프로그램 로드맵 완성, 기능 구현 중',          action:'완성 후 도면 자료 연동 시현' },
+        { id:'EN-002', team:'EN', task:'Data Sheet 양식 (Ball·Butterfly·Control)', pct:0, due:'—', status:'도면 프로그래밍 완성 후 진행 예정',          action:'—' },
+        { id:'EN-003', team:'EN', task:'생산 관리 절차서',                pct:0,  due:'—', status:'Data Sheet 이후 진행',                             action:'—' },
+        { id:'EN-004', team:'EN', task:'출고 관련 절차서',                pct:0,  due:'—', status:'Data Sheet 이후 진행',                             action:'—' },
+        { id:'EN-005', team:'EN', task:'Reowo PRV Update',               pct:30, due:'—', status:'Reowo 자료 수령 완료',                               action:'—' },
+        // 반도체영업
+        { id:'S-001', team:'S', task:'재고 보고서 양식 간소화',           pct:70, due:'26.02~03', status:'페이지 수 축소 양식 제작 중',                 action:'LIST UP 예정', overdue:true },
+        { id:'S-002', team:'S', task:'나라장터(조달청) 판매방법 조사',    pct:50, due:'26.01.20', status:'정리 완료, 세부 확인 필요',                   action:'추가 확인 후 완료', overdue:true },
+        // 밸브파크
+        { id:'VP-001', team:'VP', task:'가격 비교표 + 밸브파크-다우 품목 매칭', pct:70, due:'26.02.28', status:'스마트스토어 기준 판매가 정리',          action:'명인코리아·태영쎄니타리 비교표', overdue:true },
+        { id:'VP-002', team:'VP', task:'스마트스토어 고도화',             pct:30, due:'26.04.30', status:'띠 배너 제작·적용 완료',                      action:'카테고리별 배너 / 카테고리 구조 변경' },
+        { id:'VP-003', team:'VP', task:'뉴스레터 고도화',                 pct:50, due:'26.11.30', status:'플랫폼 변경(스티비→다이렉트센드)',             action:'수신 동의 페이지 제작·발송' },
+        { id:'VP-004', team:'VP', task:'카탈로그 & 회사소개서 제작',      pct:50, due:'26.02.17', status:'레퍼런스 수집 중, 표지 제작 진행',            action:'12~16p 레이아웃 제작', overdue:true },
+        { id:'VP-005', team:'VP', task:'밸브파크 자사몰 개편',            pct:40, due:'26.11.30', status:'기획·아이디어 수집 정리',                     action:'스마트스토어/자사몰 분리' },
+        { id:'VP-006', team:'VP', task:'2026 운영계획서 작성',            pct:90, due:'26.03.01', status:'비전·액션플랜·KPI 정의서 작성',               action:'AI 개발 업무 추가', overdue:true },
+        { id:'VP-007', team:'VP', task:'공공 입찰 1건 참가',              pct:80, due:'26.03.31', status:'MRO 입점 지원사업 참가, SMPP 가입 완료',      action:'조달청 가입 / 입찰 1건 참가', overdue:true },
+        // 생산기술
+        { id:'PT-001', team:'PT', task:'101호 1층 바닥통로 안전선 재작업', pct:0,  due:'26.01.31', status:'미착수',                                     action:'—', overdue:true },
+        { id:'PT-002', team:'PT', task:'103/109호 2층 구역별 이름표 표시작업', pct:20, due:'26.02.28', status:'103호 2층 샘플 작업 완료',               action:'—', overdue:true },
+    ];
+
+    const TEAM_NAMES = {
+        D:'국내외관리영업', E:'해외영업', B:'2차전지영업',
+        EN:'엔지니어링', S:'반도체영업', VP:'밸브파크', PT:'생산기술'
+    };
+
+    function pctClass(p) {
+        if (p === null) return 'p-none';
+        if (p === 0) return 'p-zero';
+        if (p < 40) return 'p-low';
+        if (p < 70) return 'p-mid';
+        return 'p-high';
+    }
+
+    function renderRow(item) {
+        const p = item.pct;
+        const pDisplay = p === null ? '—' : p + '%';
+        const pFill = p === null ? 0 : p;
+        const cls = pctClass(p);
+
+        return `<tr data-team="${item.team}">
+            <td class="id-cell">${item.id}</td>
+            <td><span class="team-badge badge-${item.team}">${TEAM_NAMES[item.team]}</span></td>
+            <td>
+                <div class="task-name">${item.task}</div>
+                <div class="task-desc">${item.status}</div>
+            </td>
+            <td>
+                <div class="progress-wrap">
+                    <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pFill}%"></div></div>
+                    <span class="pct-text">${pDisplay}</span>
+                </div>
+            </td>
+            <td class="date-cell col-hide ${item.overdue ? 'overdue' : ''}">${item.due}${item.overdue ? ' ⚠' : ''}</td>
+            <td class="action-text col-hide">${item.action}</td>
+        </tr>`;
+    }
+
+    function render(team) {
+        const filtered = team === 'all' ? PIPELINE : PIPELINE.filter(r => r.team === team);
+        const tbody = document.getElementById('pipeline-tbody');
+        const empty = document.getElementById('empty-msg');
+        if (filtered.length === 0) {
+            tbody.innerHTML = '';
+            empty.style.display = 'block';
+        } else {
+            tbody.innerHTML = filtered.map(renderRow).join('');
+            empty.style.display = 'none';
+        }
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            render(btn.dataset.team);
+        });
+    });
+
+    render('all');
+</script>
+</body>
+</html>
