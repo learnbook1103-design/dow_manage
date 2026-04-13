@@ -516,6 +516,60 @@
             pointer-events: none;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── TC 시트 오버레이 ── */
+        .tc-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: #f3f4f6;
+            flex-direction: column;
+        }
+        .tc-overlay.open { display: flex; }
+        .tc-overlay-header {
+            height: 48px;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            flex-shrink: 0;
+        }
+        .tc-overlay-title {
+            color: #e2e8f0;
+            font-size: 0.88rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .tc-overlay-badge {
+            background: rgba(147,197,253,0.15);
+            color: #93c5fd;
+            font-size: 0.68rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 10px;
+            letter-spacing: 0.06em;
+        }
+        .tc-overlay-close {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            color: #94a3b8;
+            border-radius: 8px;
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+        .tc-overlay-close:hover { background: rgba(255,255,255,0.14); color: #e2e8f0; }
+        .tc-overlay iframe {
+            flex: 1;
+            border: none;
+            width: 100%;
+        }
     </style>
 </head>
 
@@ -618,6 +672,21 @@
                 <p class="module-label" style="color:#166534;">Sales</p>
                 <h2 class="module-title">영업 파이프라인</h2>
                 <p class="module-desc">국내외 영업 현황 관리 및 AI 갱신</p>
+            </div>
+
+            <div class="module-card" onclick="openTCOverlay()">
+                <span class="module-status status-test">테스트</span>
+                <div class="module-icon" style="background:#fdf4ff;">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7e22ce" stroke-width="1.8">
+                        <rect x="4" y="3" width="16" height="18" rx="2"/>
+                        <line x1="8" y1="8" x2="16" y2="8"/>
+                        <line x1="8" y1="12" x2="16" y2="12"/>
+                        <line x1="8" y1="16" x2="12" y2="16"/>
+                    </svg>
+                </div>
+                <p class="module-label" style="color:#7e22ce;">HR</p>
+                <h2 class="module-title">TC 시트 생성기</h2>
+                <p class="module-desc">Total Compensation Sheet 일괄 생성 및 출력</p>
             </div>
         </div>
 
@@ -826,6 +895,18 @@
     </div>
     <div class="toast" id="toast"></div>
 
+    <!-- TC 시트 오버레이 -->
+    <div class="tc-overlay" id="tc-overlay">
+        <div class="tc-overlay-header">
+            <div class="tc-overlay-title">
+                TC 시트 생성기
+                <span class="tc-overlay-badge">TEST</span>
+            </div>
+            <button class="tc-overlay-close" onclick="closeTCOverlay()">✕ 닫기</button>
+        </div>
+        <iframe id="tc-iframe" src="" title="TC Sheet Generator"></iframe>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script>
@@ -972,6 +1053,21 @@
 
         function scrollToSection(id) {
             document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ── TC 시트 오버레이 ──────────────────────────────────────────
+        function openTCOverlay() {
+            const overlay = document.getElementById('tc-overlay');
+            const iframe = document.getElementById('tc-iframe');
+            if (!iframe.src || iframe.src === window.location.href) {
+                iframe.src = '../TC/TC_수정본.html';
+            }
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeTCOverlay() {
+            document.getElementById('tc-overlay').classList.remove('open');
+            document.body.style.overflow = '';
         }
 
         // ── 회계 / 일계표 ────────────────────────────────────────────

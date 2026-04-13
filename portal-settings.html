@@ -170,6 +170,13 @@ main { max-width: 860px; margin: 0 auto; padding: 80px 22px 60px; }
       결재자 지정
     </div>
     <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border);">
+        <span style="font-size:0.82rem;font-weight:600;color:var(--text-sub);white-space:nowrap;">일괄 지정</span>
+        <select id="approver-all" style="flex:1;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-size:0.85rem;font-family:inherit;outline:none;">
+          <option value="">— 선택 —</option>
+        </select>
+        <button onclick="applyAll()" style="background:var(--purple);color:#fff;border:none;border-radius:8px;padding:8px 16px;font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;">전체 적용</button>
+      </div>
       <div class="approver-grid" id="approver-grid">
         <div class="loading-msg">불러오는 중...</div>
       </div>
@@ -278,10 +285,14 @@ async function init() {
 
 function renderApprovers() {
   const approvers = settings['approvers'] || {};
+  const options = employees.map(e =>
+    `<option value="${e.name}">${e.name} (${e.rank} · ${e.org})</option>`
+  ).join('');
+  document.getElementById('approver-all').innerHTML = `<option value="">— 선택 —</option>${options}`;
   const grid = document.getElementById('approver-grid');
   grid.innerHTML = TYPES.map(type => {
     const current = approvers[type] || '';
-    const options = employees.map(e =>
+    const opts = employees.map(e =>
       `<option value="${e.name}" ${e.name === current ? 'selected' : ''}>${e.name} (${e.rank} · ${e.org})</option>`
     ).join('');
     return `
@@ -289,10 +300,18 @@ function renderApprovers() {
         <label>${typeLabel(type)}</label>
         <select id="approver-${type}">
           <option value="">— 미지정 —</option>
-          ${options}
+          ${opts}
         </select>
       </div>`;
   }).join('');
+}
+function applyAll() {
+  const val = document.getElementById('approver-all').value;
+  if (!val) return;
+  TYPES.forEach(type => {
+    const el = document.getElementById('approver-' + type);
+    if (el) el.value = val;
+  });
 }
 
 function renderLimits() {
