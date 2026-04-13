@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026 Total Compensation Sheet - 염가은</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            background: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        @media print {
+            @page {
+                size: A4;
+                margin: 15mm;
+            }
+
+            html,
+            body {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+
+            .a4-page {
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+                display: block !important;
+                visibility: visible !important;
+                overflow: visible !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+        }
+
+        .section-title {
+            border-left: 5px solid #3b82f6;
+            padding-left: 12px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #1e3a8a;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+        }
+
+        th {
+            background-color: #f1f5f9;
+            border-top: 2px solid #334155;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 10px;
+            text-align: left;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 10px;
+            font-size: 0.9rem;
+        }
+
+        .editable:hover {
+            background-color: #f0f9ff;
+            outline: 2px dashed #3b82f6;
+            cursor: pointer;
+        }
+
+        .ai-feature-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #bae6fd;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="a4-page" id="main-content">
+        <div class="flex justify-between items-start mb-10">
+            <div>
+                <h1 class="text-4xl font-extrabold text-slate-900 mb-2 tracking-tight editable" contenteditable="true"
+                    id="docTitle">Total Compensation Sheet</h1>
+                <p class="text-blue-600 text-lg font-bold tracking-wide editable" contenteditable="true">2026년도 총 보상 명세서
+                </p>
+            </div>
+            <div class="text-right text-xs text-slate-400 leading-relaxed">
+                <p>작성일: <span class="editable" contenteditable="true">2026년 3월 5일</span></p>
+                <p>담당: <span class="editable" contenteditable="true">국내외 관리영업팀 김혜원 부장</span></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-4 gap-4 mb-8 bg-slate-50 p-6 rounded-xl border border-slate-100">
+            <div>
+                <p class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">성명</p>
+                <p class="font-bold text-slate-800 editable" contenteditable="true" id="userName">염가은</p>
+            </div>
+            <div>
+                <p class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">직위/근속</p>
+                <p class="font-bold text-slate-800 editable" contenteditable="true">사원 (신입)</p>
+            </div>
+            <div>
+                <p class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">입사일</p>
+                <p class="font-bold text-slate-800 editable" contenteditable="true">2026년 3월 3일</p>
+            </div>
+            <div>
+                <p class="text-[10px] uppercase tracking-wider text-slate-400 mb-1">적용기간</p>
+                <p class="font-bold text-slate-800 editable" contenteditable="true">2026.03 - 2027.02</p>
+            </div>
+        </div>
+
+        <div id="aiMessageArea"
+            class="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg italic text-sm text-blue-800 hidden">
+        </div>
+
+        <div class="mb-8 text-sm text-slate-600 leading-loose editable" contenteditable="true">
+            본 문서는 염가은 사원의 2026년도 총 보상 내역을 공식적으로 안내하는 문서입니다.
+            기본급, 식대, 퇴직연금 등의 정기 급여와 명절 상여, 복리후생 혜택 및 현물 지원액을 통합하여 작성되었습니다.
+        </div>
+
+        <h2 class="section-title">01. 월 지급 내역 (세전 기준)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th class="w-1/2">지급 항목</th>
+                    <th class="text-right">금액 (원)</th>
+                    <th>비고</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="font-medium editable" contenteditable="true">기본급 (월여액)</td>
+                    <td class="text-right font-bold editable" contenteditable="true">2,466,667</td>
+                    <td>-</td>
+                </tr>
+                <tr>
+                    <td class="font-medium editable" contenteditable="true">식대 (현금 지급분)</td>
+                    <td class="text-right font-bold editable" contenteditable="true">200,000</td>
+                    <td>매월 급여 포함</td>
+                </tr>
+                <tr>
+                    <td class="font-medium editable" contenteditable="true">퇴직연금 (회사 부담분)</td>
+                    <td class="text-right font-bold editable" contenteditable="true">222,223</td>
+                    <td>연 267만원의 1/12</td>
+                </tr>
+                <tr class="bg-slate-50">
+                    <td class="font-bold text-slate-900">월 총 지급 합계</td>
+                    <td class="text-right font-extrabold text-blue-700 editable" contenteditable="true">2,888,890</td>
+                    <td class="text-xs font-bold text-slate-500">공제 전 합계</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 class="section-title">02. 연간 보상 총계 (Estimate)</h2>
+        <div class="flex gap-6 mb-8">
+            <div class="flex-1 border-2 border-slate-100 p-6 rounded-xl">
+                <ul class="text-sm space-y-3">
+                    <li class="flex justify-between border-b border-slate-50 pb-1">
+                        <span class="text-slate-500">연간 기본 연봉 (12개월)</span>
+                        <span class="font-bold text-slate-800 editable" contenteditable="true">29,600,004원</span>
+                    </li>
+                    <li class="flex justify-between border-b border-slate-50 pb-1">
+                        <span class="text-slate-500">연간 퇴직연금 (회사적립)</span>
+                        <span class="font-bold text-slate-800 editable" contenteditable="true">2,670,000원</span>
+                    </li>
+                    <li class="flex justify-between border-b border-slate-50 pb-1">
+                        <span class="text-slate-500">연간 식대 총액 (현금)</span>
+                        <span class="font-bold text-slate-800 editable" contenteditable="true">2,400,000원</span>
+                    </li>
+                    <li class="flex justify-between text-blue-600 font-bold border-b border-blue-50 pb-1">
+                        <span>연간 식권 지원 (금액환산)</span>
+                        <span class="editable" contenteditable="true">1,200,000원</span>
+                    </li>
+                    <li class="flex justify-between border-b border-slate-50 pb-1 text-slate-500">
+                        <span>명절/생일 상여 총계</span>
+                        <span class="font-bold editable" contenteditable="true">500,000원</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="w-1/3 bg-blue-600 text-white p-6 rounded-xl flex flex-col justify-center items-center shadow-lg"
+                style="background-color: #2563eb;">
+                <p class="text-xs font-light opacity-80 mb-2">FINAL TOTAL</p>
+                <p class="text-3xl font-black editable" contenteditable="true" id="finalTotal">36,370,004</p>
+                <p class="text-lg font-bold">KRW</p>
+            </div>
+        </div>
+
+        <div id="aiInsightArea" class="hidden no-break">
+            <h2 class="section-title">✨ AI 보상 리포트 & 조언</h2>
+            <div class="ai-feature-card text-sm text-slate-700 leading-relaxed" id="aiInsightContent"></div>
+        </div>
+
+        <h2 class="section-title">03. 주요 복리후생 혜택 (Non-Cash)</h2>
+        <div class="grid grid-cols-3 gap-4 mb-10">
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <p class="font-bold text-blue-800 mb-2 flex items-center">🍴 식권 제공</p>
+                <p class="text-xs text-slate-600 leading-relaxed editable" contenteditable="true">월 10매 (10만원 상당)<br>연
+                    120만원 가치 환산</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <p class="font-bold text-slate-800 mb-2 flex items-center">🎉 경조사 지원</p>
+                <p class="text-xs text-slate-600 leading-relaxed editable" contenteditable="true">경조휴가 및 경조금 지원</p>
+            </div>
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                <p class="font-bold text-slate-800 mb-2 flex items-center">🛡️ 상해보험</p>
+                <p class="text-xs text-slate-600 leading-relaxed editable" contenteditable="true">단체 상해보험 전액 가입</p>
+            </div>
+        </div>
+
+        <div class="footer flex justify-between items-end">
+            <p class="text-[10px] text-slate-400">※ 위 보상 내역은 2026년도 신입사원 기준이며, 회사 정책에 따라 변경될 수 있습니다.</p>
+            <p class="text-xl font-black text-slate-900 editable" contenteditable="true">주식회사 귀하</p>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = "";
+
+        async function callGemini(prompt) {
+            const status = document.getElementById('aiStatus');
+            const statusText = document.getElementById('statusText');
+            status.classList.remove('hidden');
+            statusText.innerText = "AI 분석 중...";
+
+            const maxRetries = 5;
+            const delays = [1000, 2000, 4000, 8000, 16000];
+
+            for (let retries = 0; retries <= maxRetries; retries++) {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            systemInstruction: { parts: [{ text: "당신은 전문적인 HR 컨설턴트입니다. 정중하고 따뜻하며 분석적인 어조로 한국어로 답변하십시오." }] }
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(`API error: ${response.status} ${JSON.stringify(errorData)}`);
+                    }
+
+                    const data = await response.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!text) throw new Error('Empty AI response');
+
+                    status.classList.add('hidden');
+                    return text;
+                } catch (e) {
+                    if (retries === maxRetries) {
+                        statusText.innerText = "오류가 발생했습니다.";
+                        console.error("Gemini API Error after retries:", e);
+                        throw e;
+                    }
+                    // Wait for the next retry
+                    await new Promise(resolve => setTimeout(resolve, delays[retries]));
+                }
+            }
+        }
+
+        async function generateAIInsight() {
+            try {
+                const name = document.getElementById('userName').innerText;
+                const total = document.getElementById('finalTotal').innerText;
+                const prompt = `직원 ${name}의 연간 총 보상액이 ${total}원인 명세서를 분석하십시오. 3-4문장으로 격려 메시지와 짧은 자기계발 조언을 작성하십시오.`;
+                const insight = await callGemini(prompt);
+
+                const area = document.getElementById('aiInsightArea');
+                const content = document.getElementById('aiInsightContent');
+                content.innerHTML = insight.replace(/\n/g, '<br>');
+                area.classList.remove('hidden');
+                area.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                alert("분석 리포트를 생성하지 못했습니다. 잠시 후 다시 시도해주세요.");
+            }
+        }
+
+        async function generateWelfareGuide() {
+            try {
+                const name = document.getElementById('userName').innerText;
+                const prompt = `${name} 사원을 위해 우리 회사의 복리후생을 똑똑하게 활용하는 팁 3가지를 불렛포인트로 작성해줘.`;
+                const guide = await callGemini(prompt);
+
+                const messageArea = document.getElementById('aiMessageArea');
+                messageArea.innerHTML = `<strong>✨ AI 가이드:</strong> <br>${guide.replace(/\n/g, '<br>')}`;
+                messageArea.classList.remove('hidden');
+            } catch (error) {
+                alert("가이드를 생성하지 못했습니다.");
+            }
+        }
+
+        window.onload = async function () {
+            // Delay slightly to ensure DOM is ready and avoid initial race conditions
+            setTimeout(async () => {
+                try {
+                    const name = document.getElementById('userName').innerText;
+                    const prompt = `${name} 사원의 입사를 축하하는 따뜻하고 짧은 한 줄 환영 메시지를 작성해줘.`;
+                    const welcome = await callGemini(prompt);
+                    if (welcome) {
+                        const messageArea = document.getElementById('aiMessageArea');
+                        messageArea.innerHTML = `<strong>✨ Welcome Message:</strong> ${welcome}`;
+                        messageArea.classList.remove('hidden');
+                    }
+                } catch (e) {
+                    console.warn("Initial welcome message failed, but the app is still functional.");
+                }
+            }, 500);
+        };
+    </script>
+</body>
+
+</html>

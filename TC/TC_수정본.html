@@ -1,0 +1,3292 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TC Sheet Generator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- 원본 문서 폰트 유지 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
+
+    <style>
+        /* ════════════════════════════════
+   APP SHELL (사이드바 + 툴바)
+════════════════════════════════ */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: #f3f4f6;
+            min-height: 100vh;
+        }
+
+        .app {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 260px;
+            min-width: 260px;
+            background: #1e293b;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .sb-head {
+            padding: 22px 18px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .logo {
+            font-family: 'DM Serif Display', serif;
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 3px;
+            letter-spacing: 0.01em;
+        }
+
+        .logo-sub {
+            font-size: 10px;
+            color: #64748b;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .up-area {
+            margin: 12px;
+            border: 1.5px dashed rgba(255, 255, 255, 0.13);
+            border-radius: 10px;
+            padding: 14px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .up-area:hover,
+        .up-area.drag {
+            border-color: #93c5fd;
+            background: rgba(147, 197, 253, 0.06);
+        }
+
+        .up-area p {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.5;
+            margin-top: 5px;
+        }
+
+        .up-area strong {
+            color: #93c5fd;
+            font-size: 12px;
+            font-weight: 500;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        .up-btn {
+            margin-top: 8px;
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background 0.15s;
+        }
+
+        .up-btn:hover {
+            background: #2563eb;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .emp-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .emp-list::-webkit-scrollbar {
+            width: 3px;
+        }
+
+        .emp-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        .emp-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .emp-item.active {
+            background: rgba(147, 197, 253, 0.1);
+            border-left-color: #93c5fd;
+        }
+
+        .emp-av {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #1e3a8a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+            color: #93c5fd;
+            flex-shrink: 0;
+        }
+
+        .emp-n {
+            font-size: 12px;
+            font-weight: 500;
+            color: #e2e8f0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .emp-r {
+            font-size: 10px;
+            color: #475569;
+        }
+
+        .manager-box {
+            margin: 0 12px 0;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 6px;
+        }
+
+        .manager-label {
+            font-size: 10px;
+            color: #64748b;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .manager-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #e2e8f0;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .manager-input::placeholder {
+            color: #475569;
+        }
+
+        .manager-input:focus {
+            border-color: #93c5fd;
+            background: rgba(147, 197, 253, 0.08);
+        }
+
+        /* 수신인 박스 */
+        .recipient-box {
+            margin: 0 12px 6px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .recipient-label {
+            font-size: 10px;
+            color: #64748b;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+        }
+
+        .recipient-mode-row {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+
+        .recipient-mode-btn {
+            flex: 1;
+            padding: 5px 0;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            color: #94a3b8;
+            font-size: 11px;
+            font-family: inherit;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+
+        .recipient-mode-btn.active {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: #fff;
+        }
+
+        .recipient-mode-btn:hover:not(.active) {
+            border-color: #93c5fd;
+            color: #93c5fd;
+        }
+
+        .recipient-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 12px;
+            color: #e2e8f0;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .recipient-input::placeholder {
+            color: #475569;
+        }
+
+        .recipient-input:focus {
+            border-color: #93c5fd;
+            background: rgba(147, 197, 253, 0.08);
+        }
+
+        .recipient-auto-note {
+            font-size: 10px;
+            color: #475569;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
+
+        .sb-foot {
+            padding: 9px 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            font-size: 10px;
+            color: #475569;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .emp-cnt {
+            color: #93c5fd;
+            font-weight: 600;
+        }
+
+        .tmpl-link {
+            color: #93c5fd;
+            text-decoration: none;
+            font-size: 10px;
+        }
+
+        .tmpl-link:hover {
+            text-decoration: underline;
+        }
+
+        /* MAIN */
+        .main {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* TOOLBAR */
+        .toolbar {
+            background: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        }
+
+        .tb-l {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tb-name {
+            font-size: 14px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .tb-sub {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .tb-r {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 30px;
+            height: 30px;
+            border-radius: 7px;
+            border: 1px solid #e2e8f0;
+            background: #fff;
+            cursor: pointer;
+            font-size: 13px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.12s;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #f8fafc;
+            color: #0f172a;
+            border-color: #cbd5e1;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.25;
+            cursor: default;
+        }
+
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 6px 14px;
+            border-radius: 7px;
+            font-size: 12px;
+            font-family: inherit;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.15s;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+        }
+
+        .btn-outline:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .btn-primary {
+            background: #1e293b;
+            border: none;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #0f172a;
+        }
+
+        /* EMPTY STATE */
+        .empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            gap: 14px;
+            text-align: center;
+        }
+
+        .empty-ico {
+            font-size: 36px;
+        }
+
+        .empty-t {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .empty-d {
+            font-size: 13px;
+            color: #64748b;
+            line-height: 1.7;
+            max-width: 360px;
+        }
+
+        .guide {
+            max-width: 600px;
+            background: #fefce8;
+            border: 1px solid rgba(161, 138, 0, 0.18);
+            border-radius: 12px;
+            padding: 16px 20px;
+            text-align: left;
+            margin-top: 8px;
+        }
+
+        .guide-t {
+            font-size: 12px;
+            font-weight: 700;
+            color: #854d0e;
+            margin-bottom: 10px;
+        }
+
+        .guide-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 4px;
+        }
+
+        .guide-item {
+            background: #fff;
+            border-radius: 5px;
+            padding: 5px 8px;
+            font-size: 10px;
+            color: #64748b;
+        }
+
+        .guide-item b {
+            display: block;
+            color: #0f172a;
+            font-weight: 600;
+            font-size: 10px;
+            margin-bottom: 1px;
+        }
+
+        /* ════════════════════════════════
+   CUSTOMIZER (초기화면 TC 양식 커스터마이저)
+════════════════════════════════ */
+        .cust-wrap {
+            padding: 28px 32px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .cust-header {
+            margin-bottom: 22px;
+        }
+
+        .cust-title {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+            margin-bottom: 4px;
+        }
+
+        .cust-desc {
+            font-size: 0.82rem;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        .cust-desc strong {
+            color: #2563eb;
+        }
+
+        /* 커스터마이저 TC 페이지 — 원본 tc-page에 편집 오버레이 추가 */
+        .cust-tc-page {
+            background: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 40px 48px 48px;
+            font-family: 'Noto Sans KR', sans-serif;
+            position: relative;
+        }
+
+        /* 섹션 헤더에 토글 버튼 */
+        .cust-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 36px;
+            margin-bottom: 18px;
+        }
+
+        .cust-section-title {
+            border-left: 5px solid #3b82f6;
+            padding-left: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e3a8a;
+        }
+
+        .cust-section-title.hidden-section {
+            border-left-color: #cbd5e1;
+            color: #94a3b8;
+        }
+
+        .section-toggle-btn {
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #64748b;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.15s;
+            white-space: nowrap;
+        }
+
+        .section-toggle-btn:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .section-toggle-btn.active {
+            background: #eff6ff;
+            border-color: #93c5fd;
+            color: #2563eb;
+        }
+
+        /* 항목 행 (월 지급 / 연간 보상) */
+        .cust-row {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 10px 12px;
+            gap: 8px;
+            cursor: grab;
+            transition: background 0.12s;
+            border-radius: 4px;
+        }
+
+        .cust-row:hover {
+            background: #f8fafc;
+        }
+
+        .cust-row.dragging {
+            opacity: 0.4;
+        }
+
+        .cust-row.drag-over {
+            border-top: 2px solid #3b82f6;
+        }
+
+        .cust-row.hidden-item {
+            opacity: 0.45;
+        }
+
+        .cust-drag-handle {
+            color: #cbd5e1;
+            font-size: 13px;
+            cursor: grab;
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .cust-row-label {
+            flex: 1;
+            font-size: 0.875rem;
+            color: #1e293b;
+            outline: none;
+            background: transparent;
+            border: none;
+            border-bottom: 1.5px solid transparent;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: inherit;
+            transition: border-color 0.15s, background 0.15s;
+            min-width: 0;
+        }
+
+        .cust-row-label:focus {
+            border-bottom-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .cust-row-note {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            min-width: 80px;
+            white-space: nowrap;
+        }
+
+        .cust-toggle {
+            width: 34px;
+            height: 18px;
+            background: #e2e8f0;
+            border-radius: 9px;
+            border: none;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.18s;
+            flex-shrink: 0;
+        }
+
+        .cust-toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.18s;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .cust-toggle.on {
+            background: #3b82f6;
+        }
+
+        .cust-toggle.on::after {
+            transform: translateX(16px);
+        }
+
+        /* 복리후생 카드 오버레이 */
+        .cust-benefit-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .cust-benefit-card {
+            border-radius: 8px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .cust-benefit-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .cust-benefit-card.blue {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+
+        .cust-benefit-card.blue::before {
+            background: #3b82f6;
+        }
+
+        .cust-benefit-card.slate {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .cust-benefit-card.slate::before {
+            background: #94a3b8;
+        }
+
+        .cust-benefit-card.card-hidden {
+            opacity: 0.35;
+            filter: grayscale(0.6);
+        }
+
+        .cust-benefit-card:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .cust-benefit-card .card-toggle-hint {
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 10px;
+            color: #94a3b8;
+            display: none;
+        }
+
+        .cust-benefit-card:hover .card-toggle-hint {
+            display: block;
+        }
+
+        /* 레이블 편집 가능 표시 */
+        .label-editable {
+            cursor: text;
+            position: relative;
+        }
+
+        .label-editable:hover::after {
+            content: '✏️';
+            font-size: 9px;
+            margin-left: 5px;
+            opacity: 0.5;
+        }
+
+        /* 섹션 숨김 오버레이 */
+        .section-hidden-overlay {
+            background: repeating-linear-gradient(-45deg,
+                    transparent,
+                    transparent 8px,
+                    rgba(241, 245, 249, 0.7) 8px,
+                    rgba(241, 245, 249, 0.7) 16px);
+            border-radius: 6px;
+            padding: 16px;
+            border: 1.5px dashed #cbd5e1;
+        }
+
+        .section-hidden-msg {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            padding: 12px 0;
+        }
+
+        /* 커스터마이저 안내 배너 */
+        .cust-tip-bar {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 11px;
+            color: #1e40af;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .cust-tip-bar span {
+            color: #3b82f6;
+            font-size: 14px;
+        }
+
+        /* TC CONTAINER */
+        .tc-wrap {
+            padding: 28px 32px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ════════════════════════════════
+   TC SHEET — 원본 CSS 유지
+   (염가은 문서 스타일 그대로)
+════════════════════════════════ */
+        .tc-page {
+            background: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 40px 48px 48px;
+            font-family: 'Noto Sans KR', sans-serif;
+        }
+
+        /* 헤더 영역 */
+        .tc-doc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 36px;
+        }
+
+        .tc-doc-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0f172a;
+            letter-spacing: -0.02em;
+            margin-bottom: 6px;
+            line-height: 1.1;
+        }
+
+        .tc-doc-year {
+            color: #2563eb;
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .tc-doc-meta {
+            text-align: right;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            line-height: 1.8;
+        }
+
+        /* 직원 정보 그리드 — 원본 bg-slate-50 스타일 */
+        .tc-identity {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+            background-color: #f8fafc;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .tc-id-label {
+            font-size: 0.625rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            margin-bottom: 4px;
+        }
+
+        .tc-id-val {
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 0.875rem;
+        }
+
+        /* 원본 intro 텍스트 */
+        .tc-intro {
+            font-size: 0.85rem;
+            color: #475569;
+            line-height: 1.8;
+            margin-bottom: 16px;
+        }
+
+        /* 섹션 타이틀 — 원본 그대로 */
+        .section-title {
+            border-left: 5px solid #3b82f6;
+            padding-left: 12px;
+            margin-top: 36px;
+            margin-bottom: 18px;
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1e3a8a;
+        }
+
+        /* 테이블 — 원본 그대로 */
+        .tc-page table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 28px;
+        }
+
+        .tc-page th {
+            background-color: #f1f5f9;
+            border-top: 2px solid #334155;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 13px 12px;
+            text-align: left;
+            font-size: 0.83rem;
+            color: #475569;
+            font-weight: 600;
+        }
+
+        .tc-page td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 13px 12px;
+            font-size: 0.9rem;
+            color: #1e293b;
+        }
+
+        .tc-page .td-right {
+            text-align: right;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .tc-page .td-note {
+            font-size: 0.78rem;
+            color: #94a3b8;
+        }
+
+        .tc-page .tr-subtotal td {
+            background-color: #f8fafc;
+            font-weight: 700;
+        }
+
+        .tc-page .tr-subtotal .td-right {
+            color: #1d4ed8;
+            font-size: 0.95rem;
+        }
+
+        .tc-page .tr-subtotal .td-note {
+            color: #64748b;
+            font-weight: 700;
+            font-size: 0.78rem;
+        }
+
+        .tc-page .tr-total td {
+            background-color: #1e293b;
+            color: #fff;
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .tc-page .tr-total .td-right {
+            color: #93c5fd;
+            font-size: 1.05rem;
+        }
+
+        .tc-page .tr-total .td-note {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+        }
+
+        /* 연간 보상 레이아웃 — 원본 flex 구조 */
+        .annual-layout {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 28px;
+        }
+
+        .annual-list-wrap {
+            flex: 1;
+        }
+
+        .annual-list-wrap ul {
+            list-style: none;
+            font-size: 0.85rem;
+        }
+
+        .annual-list-wrap li {
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid #f8fafc;
+            padding: 10px 0;
+            color: #475569;
+            gap: 8px;
+        }
+
+        .annual-list-wrap li>span:nth-child(2) {
+            flex: 1;
+        }
+
+
+        .annual-list-wrap li .drag-li-note {
+            flex: 0 0 auto;
+            min-width: 110px;
+            text-align: left;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .annual-list-wrap li span:last-child {
+            flex: 0 0 auto;
+            min-width: 130px;
+            text-align: right;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .annual-list-wrap li.highlight {
+            color: #2563eb;
+        }
+
+        .annual-list-wrap li.highlight span:last-child {
+            color: #1d4ed8;
+        }
+
+        .total-hero {
+            width: 200px;
+            min-width: 200px;
+            background-color: #2563eb;
+            color: #fff;
+            padding: 28px 20px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+
+        .total-hero-label {
+            font-size: 0.65rem;
+            opacity: 0.7;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .total-hero-num {
+            font-size: 1.6rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+        }
+
+        .total-hero-unit {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-top: 2px;
+            opacity: 0.8;
+        }
+
+        /* 복리후생 카드 */
+        .benefit-grid-3 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .benefit-card {
+            border-radius: 8px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .benefit-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            border-radius: 8px 0 0 8px;
+        }
+
+        .benefit-card.blue {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+        }
+
+        .benefit-card.blue::before {
+            background: #3b82f6;
+        }
+
+        .benefit-card.slate {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .benefit-card.slate::before {
+            background: #94a3b8;
+        }
+
+        .benefit-card-icon {
+            font-size: 1.1rem;
+            margin-bottom: 2px;
+        }
+
+        .benefit-card-title {
+            font-weight: 700;
+            font-size: 0.82rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .benefit-card-note {
+            font-size: 0.68rem;
+            font-weight: 400;
+            color: #64748b;
+            margin: 2px 0 0 0;
+            line-height: 1.3;
+        }
+
+        .benefit-card.blue .benefit-card-note {
+            color: #3b82f6;
+        }
+
+        .benefit-card.blue .benefit-card-title {
+            color: #1d4ed8;
+        }
+
+        .benefit-card.slate .benefit-card-title {
+            color: #1e293b;
+        }
+
+        /* 문서 하단 */
+        .tc-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-top: 36px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .tc-footer-note {
+            font-size: 0.7rem;
+            color: #94a3b8;
+        }
+
+        .tc-footer-recipient {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+            text-align: right;
+        }
+
+        /* 스피너 */
+        @keyframes sp {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 18px;
+            right: 18px;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            transform: translateY(40px);
+            opacity: 0;
+            transition: all 0.2s;
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+
+        /* 편집 모드 */
+        .btn-edit {
+            background: transparent;
+            border: 1px solid #e2e8f0;
+            color: #64748b;
+        }
+
+        .btn-edit:hover {
+            border-color: #f59e0b;
+            color: #f59e0b;
+            background: #fefce8;
+        }
+
+        .btn-edit.active {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #b45309;
+            font-weight: 700;
+        }
+
+        .edit-mode [data-field] {
+            outline: 2px dashed #f59e0b !important;
+            background: #fffbeb !important;
+            border-radius: 3px;
+            cursor: text;
+            min-width: 40px;
+            padding: 1px 4px;
+        }
+
+        /* <td>는 table-cell 유지 — inline-block 덮어쓰기 금지 */
+        .edit-mode td[data-field] {
+            display: table-cell !important;
+        }
+
+        /* <li> 내부 span, <p> 등 인라인 요소만 inline-block */
+        .edit-mode span[data-field],
+        .edit-mode p[data-field] {
+            display: inline-block;
+        }
+
+        .annual-list-wrap .edit-mode [data-field],
+        .edit-mode .annual-list-wrap [data-field] {
+            display: inline-block;
+        }
+
+        .edit-mode [data-field]:focus {
+            outline: 2px solid #f59e0b !important;
+            background: #fef3c7 !important;
+        }
+
+        .edit-mode [data-field][data-type="number"] {
+            text-align: right;
+        }
+
+        /* ── 품목 드래그 앤 드롭 ── */
+        .drag-row {
+            cursor: grab;
+            transition: background 0.12s, opacity 0.15s;
+        }
+
+        .drag-row:active {
+            cursor: grabbing;
+        }
+
+        .drag-row.dragging {
+            opacity: 0.35;
+        }
+
+        .drag-row.drag-over-top {
+            box-shadow: inset 0 3px 0 0 #3b82f6;
+        }
+
+        .drag-row.drag-over-bottom {
+            box-shadow: inset 0 -3px 0 0 #3b82f6;
+        }
+
+        .drag-handle-cell {
+            width: 22px !important;
+            padding: 0 4px !important;
+            color: #cbd5e1;
+            font-size: 13px;
+            cursor: grab;
+            text-align: center;
+            user-select: none;
+        }
+
+        .drag-handle-cell:hover {
+            color: #3b82f6;
+        }
+
+        .drag-li {
+            cursor: grab;
+            transition: opacity 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .drag-li.dragging {
+            opacity: 0.35;
+        }
+
+        .drag-li.drag-over-top {
+            box-shadow: inset 0 2px 0 0 #3b82f6;
+        }
+
+        .drag-li.drag-over-bottom {
+            box-shadow: inset 0 -2px 0 0 #3b82f6;
+        }
+
+        .drag-li-handle {
+            color: #cbd5e1;
+            font-size: 12px;
+            flex-shrink: 0;
+            cursor: grab;
+            user-select: none;
+            line-height: 1;
+            transition: color 0.15s;
+        }
+
+        .drag-li:hover .drag-li-handle {
+            color: #3b82f6;
+        }
+
+        .drag-li>span:nth-child(2) {
+            flex: 1;
+        }
+
+        .drag-li>.drag-li-note {
+            font-size: 0.72rem;
+            color: #94a3b8;
+            font-weight: 400;
+            white-space: nowrap;
+            min-width: 80px;
+            text-align: right;
+            padding-right: 16px;
+        }
+
+        .drag-li>span:last-child {
+            font-weight: 700;
+            color: #1e293b;
+            white-space: nowrap;
+        }
+
+        @media print {
+
+            .drag-handle-cell,
+            .drag-li-handle {
+                display: none !important;
+            }
+
+            /* 드래그 핸들 컬럼 제거 후 테이블 열 너비 재조정 */
+            #monthlyTable thead tr th:first-child,
+            #monthlyTable tbody tr td:first-child {
+                display: none !important;
+            }
+
+            #monthlyTable th:nth-child(2),
+            #monthlyTable td:nth-child(2) {
+                width: 50% !important;
+                white-space: nowrap !important;
+            }
+
+            #monthlyTable th:nth-child(3),
+            #monthlyTable td:nth-child(3) {
+                width: 25% !important;
+                text-align: right !important;
+            }
+
+            #monthlyTable th:nth-child(4),
+            #monthlyTable td:nth-child(4) {
+                width: 25% !important;
+            }
+        }
+
+        /* 체크박스 & 선택 액션 */
+        .emp-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 8px 14px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.12s;
+        }
+
+        .emp-cb {
+            width: 15px;
+            height: 15px;
+            flex-shrink: 0;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+
+        .sel-bar {
+            display: none;
+            background: #1e3a8a;
+            padding: 8px 12px;
+            gap: 6px;
+            flex-direction: column;
+            flex-shrink: 0;
+        }
+
+        .sel-bar.show {
+            display: flex;
+        }
+
+        .sel-bar-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sel-cnt {
+            font-size: 11px;
+            color: #93c5fd;
+            font-weight: 600;
+        }
+
+        .sel-clear {
+            font-size: 10px;
+            color: #64748b;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-family: inherit;
+        }
+
+        .sel-clear:hover {
+            color: #93c5fd;
+        }
+
+        .sel-btn {
+            width: 100%;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background 0.15s;
+            text-align: center;
+        }
+
+        .sel-btn-ppt {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .sel-btn-ppt:hover {
+            background: #1d4ed8;
+        }
+
+        .sel-btn-merged {
+            background: #0f766e;
+            color: #fff;
+            width: 100%;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: background 0.15s;
+            text-align: center;
+        }
+
+        .sel-btn-merged:hover {
+            background: #0d9488;
+        }
+
+        .sel-bar-label {
+            font-size: 9px;
+            color: #475569;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-top: 2px;
+            margin-bottom: 2px;
+        }
+
+
+        .sel-all-row {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px 2px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .sel-all-row.show {
+            display: flex;
+        }
+
+        .sel-all-row label {
+            font-size: 11px;
+            color: #64748b;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* PRINT */
+        @media print {
+            @page {
+                size: A4;
+                margin: 12mm 14mm;
+            }
+
+            .sidebar,
+            .toolbar {
+                display: none !important;
+            }
+
+            .main,
+            .app,
+            body {
+                overflow: visible !important;
+                height: auto !important;
+                display: block !important;
+            }
+
+            body {
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .tc-wrap {
+                padding: 0 !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+            }
+
+            /* tc-page를 flex column으로 — 푸터를 자연스럽게 하단으로 밀기 */
+            .tc-page {
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                padding: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                min-height: calc(100vh - 24mm) !important;
+                /* @page margin 상하 합산 제외 */
+            }
+
+            /* 푸터 바로 위 섹션이 남은 공간을 다 차지하게 해서 푸터를 아래로 밀기 */
+            .benefit-grid-3,
+            .annual-layout {
+                flex: none !important;
+            }
+
+            .tc-footer {
+                margin-top: auto !important;
+                padding-top: 10px !important;
+                border-top: 1px solid #e2e8f0 !important;
+                background: transparent !important;
+                position: static !important;
+            }
+
+            .tc-doc-header {
+                margin-bottom: 20px !important;
+            }
+
+            .tc-doc-title {
+                font-size: 1.5rem !important;
+            }
+
+            .tc-doc-year {
+                font-size: 0.85rem !important;
+            }
+
+            /* 직원 정보 카드 */
+            .tc-identity {
+                padding: 14px 16px !important;
+                margin-bottom: 20px !important;
+                gap: 10px !important;
+            }
+
+            .tc-id-label {
+                font-size: 0.6rem !important;
+            }
+
+            .tc-id-val {
+                font-size: 0.85rem !important;
+            }
+
+            /* intro 텍스트 숨김 유지 */
+            .tc-intro {
+                display: none !important;
+            }
+
+            /* 섹션 타이틀 — 위아래 여백 확보 */
+            .section-title {
+                margin-top: 22px !important;
+                margin-bottom: 10px !important;
+                font-size: 0.9rem !important;
+                padding-left: 10px !important;
+            }
+
+            /* 월 지급 테이블 */
+            .tc-page table {
+                margin-bottom: 4px !important;
+            }
+
+            .tc-page table th {
+                padding: 8px 10px !important;
+                font-size: 0.75rem !important;
+            }
+
+            .tc-page table td {
+                padding: 8px 10px !important;
+                font-size: 0.78rem !important;
+            }
+
+            /* 연간 보상 레이아웃 */
+            .annual-layout {
+                gap: 16px !important;
+            }
+
+            .annual-list-wrap li {
+                padding: 8px 0 !important;
+                font-size: 0.78rem !important;
+            }
+
+            /* Final Total 히어로 카드 */
+            .total-hero {
+                padding: 20px !important;
+                min-width: 180px !important;
+            }
+
+            .total-hero-num {
+                font-size: 1.5rem !important;
+            }
+
+            .total-hero-label {
+                font-size: 0.7rem !important;
+            }
+
+            /* 복리후생 카드 */
+            .benefit-grid-3 {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 8px !important;
+                margin-bottom: 0 !important;
+            }
+
+            .benefit-card {
+                padding: 8px 10px 8px 14px !important;
+                overflow: hidden !important;
+            }
+
+            .benefit-card-title {
+                font-size: 0.75rem !important;
+            }
+
+            .benefit-card-note {
+                font-size: 0.60rem !important;
+                line-height: 1.25 !important;
+                word-break: keep-all !important;
+                overflow-wrap: break-word !important;
+            }
+
+            /* 하단 푸터 — 페이지 맨 아래 고정 */
+            .tc-footer-note {
+                font-size: 0.68rem !important;
+            }
+
+            * {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app">
+
+        <!-- ── SIDEBAR ── -->
+        <aside class="sidebar">
+            <div class="sb-head">
+                <div class="logo">TC Generator</div>
+                <div class="logo-sub">Total Compensation</div>
+            </div>
+
+            <div class="up-area" id="upArea">
+                <div style="font-size:22px">📊</div>
+                <p><strong>엑셀 파일 업로드</strong>.xlsx / .xls 지원<br>드래그 앤 드롭 또는</p>
+                <button class="up-btn" onclick="document.getElementById('fileInput').click()">파일 선택</button>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+            </div>
+
+            <div class="manager-box">
+                <div class="manager-label">담당자</div>
+                <input type="text" class="manager-input" id="managerInput" placeholder="예) 김혜원 부장"
+                    oninput="onManagerChange()">
+            </div>
+
+            <!-- 수신인 설정 -->
+            <div class="recipient-box">
+                <div class="recipient-label">수신인</div>
+                <div class="recipient-mode-row">
+                    <button class="recipient-mode-btn active" id="recipientModeNone"
+                        onclick="setRecipientMode('none')">없음</button>
+                    <button class="recipient-mode-btn" id="recipientModeCompany"
+                        onclick="setRecipientMode('company')">회사</button>
+                    <button class="recipient-mode-btn" id="recipientModeEmp"
+                        onclick="setRecipientMode('employee')">사원</button>
+                </div>
+                <div id="recipientCompanyWrap" style="display:none;">
+                    <input type="text" class="recipient-input" id="recipientCompanyInput" placeholder="예) 주식회사 OO"
+                        oninput="onRecipientChange()">
+                </div>
+                <div id="recipientEmpWrap" style="display:none;">
+                    <p class="recipient-auto-note">📌 각 직원 이름이 자동으로 표시됩니다</p>
+                </div>
+            </div>
+
+            <div class="sel-all-row" id="selAllRow">
+                <input type="checkbox" class="emp-cb" id="cbAll" onclick="toggleSelectAll()">
+                <label for="cbAll">전체 선택</label>
+            </div>
+
+            <div class="emp-list" id="empList">
+                <div style="padding:18px 14px; font-size:11px; color:#475569; text-align:center; line-height:1.8;">
+                    엑셀 파일을 업로드하면<br>직원 목록이 나타납니다
+                </div>
+            </div>
+
+            <div class="sel-bar" id="selBar">
+                <div class="sel-bar-top">
+                    <span class="sel-cnt" id="selCnt">0명 선택됨</span>
+                    <button class="sel-clear" onclick="clearSelection()">선택 해제</button>
+                </div>
+                <div class="sel-bar-label">PPT 내보내기</div>
+                <button class="sel-btn sel-btn-ppt" onclick="exportSelectedPPT('zip')">🗜 개별 PPT → ZIP</button>
+                <button class="sel-btn sel-btn-merged" onclick="exportSelectedPPT('merged')">📑 통합 PPT (1파일)</button>
+            </div>
+
+            <div class="sb-foot">
+                <span><span class="emp-cnt" id="empCnt">0</span>명 로드됨</span>
+                <a href="#" class="tmpl-link" onclick="dlTemplate(); return false;">템플릿 ↓</a>
+            </div>
+        </aside>
+
+        <!-- ── MAIN ── -->
+        <div class="main" id="mainEl">
+
+            <div class="toolbar" id="toolbar" style="display:none;">
+                <div class="tb-l">
+                    <button class="nav-btn" id="prevBtn" onclick="nav(-1)">←</button>
+                    <button class="nav-btn" id="nextBtn" onclick="nav(1)">→</button>
+                    <div>
+                        <div class="tb-name" id="tbName"></div>
+                        <div class="tb-sub" id="tbSub"></div>
+                    </div>
+                </div>
+                <div class="tb-r"> <button class="btn btn-edit" id="editBtn" onclick="toggleEdit()">✏️ 편집</button>
+                    <button class="btn btn-outline" onclick="window.print()">🖨 인쇄</button>
+                    <button class="btn btn-outline" onclick="exportPPT()">📊 PPT 저장</button>
+                </div>
+            </div>
+
+            <div class="cust-wrap" id="emptyEl">
+                <div class="cust-header">
+                    <div class="cust-title">TC Sheet 양식 커스터마이저</div>
+                    <div class="cust-desc">엑셀 업로드 전에 시트 양식을 미리 설정하세요. 설정은 업로드 후 생성되는 <strong>모든 직원 시트에 공통
+                            적용</strong>됩니다.</div>
+                </div>
+
+                <div class="cust-tip-bar">
+                    <span>💡</span>
+                    <span><b>토글</b>로 항목 표시/숨김 · <b>드래그</b>로 순서 변경 · <b>레이블</b> 클릭으로 이름 수정 · 복리후생 카드는 <b>클릭</b>으로
+                        토글</span>
+                </div>
+
+                <div class="cust-tc-page" id="custSheet">
+
+                    <!-- 헤더 미리보기 -->
+                    <div class="tc-doc-header">
+                        <div>
+                            <div class="tc-doc-title">Total Compensation Sheet</div>
+                            <div class="tc-doc-year" id="custYear">2025년도 총 보상 명세서</div>
+                        </div>
+                        <div class="tc-doc-meta">
+                            작성일: 미리보기<br>담당: —
+                        </div>
+                    </div>
+
+                    <!-- 직원 정보 미리보기 -->
+                    <div class="tc-identity" style="opacity:0.45;pointer-events:none;">
+                        <div>
+                            <p class="tc-id-label">직원명</p>
+                            <p class="tc-id-val">홍길동</p>
+                        </div>
+                        <div>
+                            <p class="tc-id-label">직급/직책</p>
+                            <p class="tc-id-val">사원</p>
+                        </div>
+                        <div>
+                            <p class="tc-id-label">팀/부서</p>
+                            <p class="tc-id-val">영업팀</p>
+                        </div>
+                        <div>
+                            <p class="tc-id-label">입사일 (연차)</p>
+                            <p class="tc-id-val">2023.03.01 (2년)</p>
+                        </div>
+                    </div>
+
+                    <!-- 01. 월 지급 내역 -->
+                    <div class="cust-section-header" id="secHeader-monthly">
+                        <div class="cust-section-title" id="secTitle-monthly">01. 월 지급 내역 (세전 기준)</div>
+                        <button class="section-toggle-btn active" id="secBtn-monthly"
+                            onclick="toggleSection('monthly')">● 표시 중</button>
+                    </div>
+                    <div id="secBody-monthly">
+                        <table style="width:100%;border-collapse:collapse;margin-bottom:12px;" id="custMonthlyTable">
+                            <thead>
+                                <tr>
+                                    <th
+                                        style="width:22px;padding:0;background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;">
+                                    </th>
+                                    <th
+                                        style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:0.83rem;color:#475569;font-weight:600;width:40px;">
+                                        순서</th>
+                                    <th
+                                        style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:0.83rem;color:#475569;font-weight:600;">
+                                        지급 항목</th>
+                                    <th
+                                        style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;font-size:0.83rem;color:#475569;font-weight:600;width:60px;text-align:center;">
+                                        표시</th>
+                                </tr>
+                            </thead>
+                            <tbody id="custMonthlyTbody"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 02. 연간 보상 총계 -->
+                    <div class="cust-section-header" id="secHeader-cash">
+                        <div class="cust-section-title" id="secTitle-cash">02. 연간 보상 총계</div>
+                        <button class="section-toggle-btn active" id="secBtn-cash" onclick="toggleSection('cash')">● 표시
+                            중</button>
+                    </div>
+                    <div id="secBody-cash">
+                        <table style="width:100%;border-collapse:collapse;margin-bottom:12px;" id="custCashTable">
+                            <thead>
+                                <tr>
+                                    <th
+                                        style="width:22px;padding:0;background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;">
+                                    </th>
+                                    <th
+                                        style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:0.83rem;color:#475569;font-weight:600;width:40px;">
+                                        순서</th>
+                                    <th
+                                        style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:0.83rem;color:#475569;font-weight:600;">
+                                        항목명</th>
+                                    <th
+                                        style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;font-size:0.83rem;color:#475569;font-weight:600;width:130px;">
+                                        비고</th>
+                                    <th
+                                        style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;font-size:0.83rem;color:#475569;font-weight:600;width:60px;text-align:center;">
+                                        표시</th>
+                                </tr>
+                            </thead>
+                            <tbody id="custCashTbody"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- 03. 복리후생 -->
+                    <div class="cust-section-header" id="secHeader-ben">
+                        <div class="cust-section-title" id="secTitle-ben">03. 주요 복리후생 혜택</div>
+                        <button class="section-toggle-btn active" id="secBtn-ben" onclick="toggleSection('ben')">● 표시
+                            중</button>
+                    </div>
+                    <div id="secBody-ben">
+                        <p style="font-size:0.78rem;color:#64748b;margin-bottom:10px;">카드를 클릭하면 숨김/표시 전환, 레이블을 클릭하면 이름
+                            편집</p>
+                        <div class="cust-benefit-grid" id="custBenGrid"></div>
+                    </div>
+
+                    <!-- 하단 -->
+                    <div class="tc-footer" style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;">
+                        <p class="tc-footer-note">※ 위 보상 내역은 회사 정책에 따라 변경될 수 있습니다.</p>
+                        <p class="tc-footer-recipient" id="custRecipientPreview"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tc-wrap" id="tcWrap" style="display:none;"></div>
+        </div>
+
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        /* ── COLUMN MAP ── */
+        /* COL_MAP: 연봉 컬럼은 연도 무관하게 동적으로 매핑 (parseFile에서 처리) */
+        const COL_MAP = {
+            '직원명': 'name',
+            '직급/직책': 'role',
+            '팀(부서)': 'dept',
+            '입사일자(연차)': 'hireDate',
+            // 연봉 컬럼은 detectSalaryKey로 동적 감지 — COL_MAP에 하드코딩 없음
+            '식대(월20만)': 'meal',
+            '퇴직금(연금)': 'pension',
+            '명절상여(연2회)': 'holidayBonus',
+            '명절상여(설,추석)': 'holidayBonus',   // 실제 파일 컬럼명 alias
+            '팀장수당': 'teamLeaderBonus',
+            '팀장수당(1월,7월)': 'teamLeaderBonus', // 실제 파일 컬럼명 alias
+            '통신비보조금': 'telecom',
+            '유류대보조금': 'fuel',
+            '내일채움공제(회사지원)': 'naeilCheum',
+            '내일채움공제(국가지원)': 'naeilCheumGov',
+            '생일축하금(10만원/연1회)': 'birthdayGift',
+            '식권(월10만원상당)': 'mealTicket',
+            '직원별합계금액': 'totalCash',
+            '법인차량제공': 'corpCar',
+            '장기근속상여(배당)': 'tenureBonus',
+            '개인차량 주차지원': 'parking',
+            '종합건강검진(매4년)': 'healthCheck',
+            '교육비지원(본인/자녀)': 'education',
+            '경조사비': 'celebration',
+            '경조휴가': 'celebLeave',
+            '생일(케이크/반차)': 'bdayCake',
+            '상해보험': 'accidentIns',
+            '운전자보험': 'driverIns',
+        };
+
+        /* 연봉 컬럼 동적 매핑: XX년연봉 / 연봉(XXXX년) / 연봉(XXXX) / XXXX년연봉 /
+           연봉(식대제외) / 연봉 등 패턴 자동 인식
+           값이 실제로 있는 컬럼을 우선 반환, 없으면 첫 번째 매칭 반환 */
+        // isVertical=true: raw[행인덱스][열1..] 구조 → idx번째 행의 값들 확인
+        // isVertical=false: raw[행1..][열인덱스] 구조 → idx번째 열의 값들 확인
+        function detectSalaryKey(labels, raw, isVertical) {
+            // ^연봉\( → 연봉(식대제외) / 연봉(2026) 등 / ^연봉$ → 단독 '연봉'
+            const SALARY_RE = /\d{2,4}년연봉|연봉.*\d{2,4}년?|\d{2,4}년도?연봉|연봉\(\d{2,4}\)|^연봉\(|^연봉$/;
+            const norm = labels.map(l => l.replace(/\s/g, ''));
+            const candidates = [];
+            for (let i = 0; i < norm.length; i++) {
+                if (SALARY_RE.test(norm[i])) candidates.push({ idx: i, label: norm[i] });
+            }
+            if (!candidates.length) return null;
+            if (!raw || candidates.length === 1) return candidates[0];
+            const isNumeric = v => v !== null && v !== undefined && v !== '' &&
+                typeof v !== 'object' && !String(v).startsWith('#') &&
+                !isNaN(parseFloat(String(v).replace(/,/g, '')));
+            for (const cand of candidates) {
+                const hasValue = isVertical
+                    ? (raw[cand.idx] || []).slice(1).some(v => isNumeric(v))   // 세로형: 해당 행의 데이터 열들
+                    : raw.slice(1).some(r => isNumeric(r[cand.idx]));           // 가로형: 해당 열의 데이터 행들
+                if (hasValue) return cand;
+            }
+            return candidates[0];
+        }
+
+        const CASH_FIELDS = [
+            { key: 'salary', label: '급여총액', note: '년 기준' },
+            { key: 'meal', label: '식대', note: '매월 20만원' },
+            { key: 'pension', label: '퇴직연금 (퇴직금)', note: '별도불입(지급)' },
+            { key: 'holidayBonus', label: '명절 상여', note: '설·추석' },
+            { key: 'teamLeaderBonus', label: '팀장수당', note: '1월,7월' },
+            { key: 'telecom', label: '통신비 보조금', note: '' },
+            { key: 'fuel', label: '유류대 보조금', note: '별도지급' },
+            { key: 'naeilCheum', label: '내일채움공제 (회사불입액)', note: '별도지원' },
+            { key: 'naeilCheumGov', label: '내일채움공제 (정부지원)', note: '별도적립' },
+            { key: 'birthdayGift', label: '생일 축하금', note: '상품권 (10만원)' },
+            { key: 'mealTicket', label: '식권(10매)', note: '월 10만원 상당' },
+        ];
+
+        const BEN_FIELDS = [
+            { key: 'corpCar', label: '법인차량 제공', icon: '🚗', note: '' },
+            { key: 'tenureBonus', label: '장기근속 상여', icon: '🏆', note: '5년 이상/근속 연수별 차등 지급' },
+            { key: 'parking', label: '개인차량 주차지원', icon: '🅿️', note: '월 10만원 상당' },
+            { key: 'healthCheck', label: '종합건강검진', icon: '🏥', note: '매 4년마다 제공' },
+            { key: 'education', label: '교육비 지원', icon: '📚', note: '본인 및 자녀' },
+            { key: 'celebration', label: '경조사비', icon: '🎁', note: '경조사규정/취업규칙' },
+            { key: 'celebLeave', label: '경조 휴가', icon: '🎌', note: '경조사규정/취업규칙' },
+            { key: 'bdayCake', label: '생일 축하', icon: '🎂', note: '생일 케이크 + 오후 반차 제공' },
+            { key: 'accidentIns', label: '상해 보험', icon: '🛡️', note: '전직원' },
+            { key: 'driverIns', label: '운전자 보험', icon: '🔑', note: '전직원' },
+        ];
+
+        /* ════════════════════════════════
+           CUSTOMIZER STATE
+        ════════════════════════════════ */
+
+        // 섹션 표시 여부
+        const sectionVisible = { monthly: true, cash: true, ben: true };
+
+        // 항목 표시 여부 (key → boolean)
+        const monthlyVisible = { salary: true, meal: true, pension: true };
+        const cashVisible = Object.fromEntries(CASH_FIELDS.map(f => [f.key, true]));
+        const benVisible = Object.fromEntries(BEN_FIELDS.map(f => [f.key, true]));
+
+        // 커스텀 레이블 (key → string | undefined)
+        const customLabels = {};
+
+        function getCustLabel(key, defaultLabel) {
+            return customLabels[key] !== undefined ? customLabels[key] : defaultLabel;
+        }
+
+        /* ── 커스터마이저 초기 렌더 ── */
+        function initCustomizer() {
+            renderCustMonthly();
+            renderCustCash();
+            renderCustBen();
+        }
+
+        /* 월 지급 항목 테이블 */
+        function renderCustMonthly() {
+            const MONTHLY_DEFS = {
+                salary: { label: '급여 (월급)', note: '' },
+                meal: { label: '식대 (급여 포함)', note: '' },
+                pension: { label: '퇴직연금 (월 납입금)', note: '' },
+            };
+            const tbody = document.getElementById('custMonthlyTbody');
+            tbody.innerHTML = monthlyOrder.map((key, idx) => {
+                const def = MONTHLY_DEFS[key];
+                const vis = monthlyVisible[key];
+                const label = getCustLabel(key, def.label);
+                return `
+                <tr class="cust-row ${vis ? '' : 'hidden-item'}" data-key="${key}" data-section="monthly"
+                    draggable="true" ondragstart="custDragStart(event,'monthly')" ondragover="custDragOver(event)" ondrop="custDrop(event,'monthly')" ondragleave="custDragLeave(event)" ondragend="custDragEnd(event)">
+                  <td style="padding:0 4px;width:22px;color:#cbd5e1;font-size:13px;cursor:grab;">⠿</td>
+                  <td style="padding:6px 12px;font-size:0.8rem;color:#94a3b8;width:40px;">${idx + 1}</td>
+                  <td style="padding:6px 12px;">
+                    <input class="cust-row-label label-editable" value="${label}" title="클릭하여 레이블 편집"
+                      onchange="customLabels['${key}']=this.value" onblur="customLabels['${key}']=this.value">
+                  </td>
+                  <td style="padding:6px 12px;text-align:center;">
+                    <button class="cust-toggle ${vis ? 'on' : ''}" onclick="toggleMonthlyItem('${key}')" title="${vis ? '숨기기' : '표시하기'}"></button>
+                  </td>
+                </tr>`;
+            }).join('');
+        }
+
+        /* 연간 보상 항목 테이블 */
+        function renderCustCash() {
+            const tbody = document.getElementById('custCashTbody');
+            tbody.innerHTML = cashOrder.map((key, idx) => {
+                const field = CASH_FIELDS.find(f => f.key === key);
+                if (!field) return '';
+                const vis = cashVisible[key];
+                const label = getCustLabel(key, field.label);
+                const note = field.note || '';
+                return `
+                <tr class="cust-row ${vis ? '' : 'hidden-item'}" data-key="${key}" data-section="cash"
+                    draggable="true" ondragstart="custDragStart(event,'cash')" ondragover="custDragOver(event)" ondrop="custDrop(event,'cash')" ondragleave="custDragLeave(event)" ondragend="custDragEnd(event)">
+                  <td style="padding:0 4px;width:22px;color:#cbd5e1;font-size:13px;cursor:grab;">⠿</td>
+                  <td style="padding:6px 12px;font-size:0.8rem;color:#94a3b8;width:40px;">${idx + 1}</td>
+                  <td style="padding:6px 12px;">
+                    <input class="cust-row-label label-editable" value="${label}" title="클릭하여 레이블 편집"
+                      onchange="customLabels['${key}']=this.value" onblur="customLabels['${key}']=this.value">
+                  </td>
+                  <td style="padding:6px 12px;font-size:0.75rem;color:#94a3b8;white-space:nowrap;min-width:130px;">${note}</td>
+                  <td style="padding:6px 12px;text-align:center;">
+                    <button class="cust-toggle ${vis ? 'on' : ''}" onclick="toggleCashItem('${key}')" title="${vis ? '숨기기' : '표시하기'}"></button>
+                  </td>
+                </tr>`;
+            }).join('');
+        }
+
+        /* 복리후생 카드 그리드 */
+        function renderCustBen() {
+            const grid = document.getElementById('custBenGrid');
+            grid.innerHTML = BEN_FIELDS.map(f => {
+                const isBlue = false; // 전체 slate 통일
+                const vis = benVisible[f.key];
+                const label = getCustLabel(f.key, f.label);
+                return `
+                <div class="cust-benefit-card ${isBlue ? 'blue' : 'slate'} ${vis ? '' : 'card-hidden'}"
+                     onclick="toggleBenItem('${f.key}')" title="클릭하여 ${vis ? '숨기기' : '표시하기'}">
+                  <span class="card-toggle-hint">${vis ? '클릭해서 숨기기' : '클릭해서 표시'}</span>
+                  <p style="font-size:1.1rem;margin-bottom:2px;">${f.icon}</p>
+                  <p class="benefit-card-title">
+                    <input class="cust-row-label label-editable" value="${label}"
+                      style="font-size:0.78rem;font-weight:600;width:100%;color:${isBlue ? '#1e40af' : '#334155'}"
+                      onclick="event.stopPropagation()"
+                      onchange="customLabels['${f.key}']=this.value" onblur="customLabels['${f.key}']=this.value">
+                  </p>
+                  ${f.note ? `<p class="benefit-card-note">${f.note}</p>` : ''}
+                  <div style="position:absolute;bottom:6px;right:8px;width:18px;height:18px;border-radius:50%;background:${vis ? '#3b82f6' : '#e2e8f0'};display:flex;align-items:center;justify-content:center;font-size:9px;color:white;pointer-events:none;">${vis ? '✓' : ''}</div>
+                </div>`;
+            }).join('');
+        }
+
+        /* ── 토글 함수들 ── */
+        function toggleSection(sec) {
+            sectionVisible[sec] = !sectionVisible[sec];
+            const vis = sectionVisible[sec];
+            const btn = document.getElementById(`secBtn-${sec}`);
+            const title = document.getElementById(`secTitle-${sec}`);
+            const body = document.getElementById(`secBody-${sec}`);
+            btn.textContent = vis ? '● 표시 중' : '○ 숨김';
+            btn.classList.toggle('active', vis);
+            title.classList.toggle('hidden-section', !vis);
+            if (!vis) {
+                body.innerHTML = `<div class="section-hidden-overlay"><p class="section-hidden-msg">이 섹션은 숨겨집니다. 위 버튼으로 다시 표시할 수 있습니다.</p></div>`;
+            } else {
+                // 복원
+                if (sec === 'monthly') {
+                    body.innerHTML = `<table style="width:100%;border-collapse:collapse;margin-bottom:12px;" id="custMonthlyTable"><thead><tr>
+                        <th style="width:22px;padding:0;background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;"></th>
+                        <th style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:0.83rem;color:#475569;font-weight:600;width:40px;">순서</th>
+                        <th style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:0.83rem;color:#475569;font-weight:600;">지급 항목</th>
+                        <th style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;font-size:0.83rem;color:#475569;font-weight:600;width:60px;text-align:center;">표시</th>
+                    </tr></thead><tbody id="custMonthlyTbody"></tbody></table>`;
+                    renderCustMonthly();
+                } else if (sec === 'cash') {
+                    body.innerHTML = `<table style="width:100%;border-collapse:collapse;margin-bottom:12px;" id="custCashTable"><thead><tr>
+                        <th style="width:22px;padding:0;background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;"></th>
+                        <th style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:0.83rem;color:#475569;font-weight:600;width:40px;">순서</th>
+                        <th style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;text-align:left;font-size:0.83rem;color:#475569;font-weight:600;">항목명</th>
+                        <th style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;font-size:0.83rem;color:#475569;font-weight:600;width:130px;">비고</th>
+                        <th style="background:#f1f5f9;border-top:2px solid #334155;border-bottom:1px solid #e2e8f0;padding:10px 12px;font-size:0.83rem;color:#475569;font-weight:600;width:60px;text-align:center;">표시</th>
+                    </tr></thead><tbody id="custCashTbody"></tbody></table>`;
+                    renderCustCash();
+                } else if (sec === 'ben') {
+                    body.innerHTML = `<p style="font-size:0.78rem;color:#64748b;margin-bottom:10px;">카드를 클릭하면 숨김/표시 전환, 레이블을 클릭하면 이름 편집</p><div class="cust-benefit-grid" id="custBenGrid"></div>`;
+                    renderCustBen();
+                }
+            }
+            // 커스터마이저 섹션 번호 갱신
+            updateCustSecNums();
+        }
+
+        /* 커스터마이저 섹션 번호 동적 재계산 */
+        function updateCustSecNums() {
+            const sections = [
+                { key: 'monthly', label: '월 지급 내역 (세전 기준)' },
+                { key: 'cash', label: '연간 보상 총계' },
+                { key: 'ben', label: '주요 복리후생 혜택' },
+            ];
+            let n = 0;
+            sections.forEach(({ key, label }) => {
+                const el = document.getElementById(`secTitle-${key}`);
+                if (!el) return;
+                if (sectionVisible[key]) {
+                    n++;
+                    el.textContent = `${String(n).padStart(2, '0')}. ${label}`;
+                } else {
+                    el.textContent = label; // 숨김 상태엔 번호 없이
+                }
+            });
+        }
+
+        function toggleMonthlyItem(key) {
+            monthlyVisible[key] = !monthlyVisible[key];
+            // salary/meal/pension은 CASH_FIELDS에도 있으므로 cashVisible도 동기화
+            if (cashVisible.hasOwnProperty(key)) {
+                cashVisible[key] = monthlyVisible[key];
+                renderCustCash(); // 연간 보상 커스터마이저 즉시 갱신
+            }
+            renderCustMonthly();
+        }
+
+        function toggleCashItem(key) {
+            cashVisible[key] = !cashVisible[key];
+            // salary/meal/pension은 monthlyVisible에도 역방향 동기화
+            if (monthlyVisible.hasOwnProperty(key)) {
+                monthlyVisible[key] = cashVisible[key];
+                renderCustMonthly();
+            }
+            renderCustCash();
+        }
+
+        function toggleBenItem(key) {
+            benVisible[key] = !benVisible[key];
+            renderCustBen();
+        }
+
+        /* ── 커스터마이저 드래그&드롭 ── */
+        let custDragKey = null, custDragSection = null;
+
+        function custDragStart(e, section) {
+            const row = e.currentTarget;
+            custDragKey = row.dataset.key;
+            custDragSection = section;
+            row.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function custDragOver(e) {
+            e.preventDefault();
+            const row = e.currentTarget;
+            row.classList.add('drag-over');
+        }
+
+        function custDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function custDragEnd(e) {
+            e.currentTarget.classList.remove('dragging');
+            document.querySelectorAll('.cust-row').forEach(r => r.classList.remove('drag-over', 'dragging'));
+        }
+
+        function custDrop(e, section) {
+            e.preventDefault();
+            const toRow = e.currentTarget;
+            toRow.classList.remove('drag-over');
+            const toKey = toRow.dataset.key;
+            if (!custDragKey || custDragKey === toKey || custDragSection !== section) return;
+
+            const orderArr = section === 'monthly' ? monthlyOrder : cashOrder;
+            const fromIdx = orderArr.indexOf(custDragKey);
+            const toIdx = orderArr.indexOf(toKey);
+            if (fromIdx < 0 || toIdx < 0) return;
+            orderArr.splice(fromIdx, 1);
+            const newTo = orderArr.indexOf(toKey);
+            const rect = toRow.getBoundingClientRect();
+            const insertBefore = e.clientY < rect.top + rect.height / 2;
+            orderArr.splice(insertBefore ? newTo : newTo + 1, 0, custDragKey);
+
+            if (section === 'monthly') renderCustMonthly();
+            else renderCustCash();
+        }
+
+        /* ── renderSheet에 커스터마이저 설정 반영 ── */
+        /* (기존 CASH_FIELDS/BEN_FIELDS/monthlyOrder/cashOrder를 그대로 사용하되,
+           visible/customLabel 필터링을 renderSheet 내부에서 적용) */
+
+        /* guide grid — 빈 div 유지 (사용 안 함) */
+        // document.getElementById('guideGrid').innerHTML = ...
+
+        let emps = [], cur = 0, docYear = new Date().getFullYear();
+        let selectedSet = new Set(); // 체크된 직원 인덱스
+        // 품목 순서 상태 (드래그로 변경 가능)
+        let monthlyOrder = ['salary', 'meal', 'pension'];
+        let cashOrder = CASH_FIELDS.map(f => f.key);
+
+        /* ── UPLOAD ── */
+        const ua = document.getElementById('upArea');
+        ua.addEventListener('dragover', e => { e.preventDefault(); ua.classList.add('drag'); });
+        ua.addEventListener('dragleave', () => ua.classList.remove('drag'));
+        ua.addEventListener('drop', e => { e.preventDefault(); ua.classList.remove('drag'); if (e.dataTransfer.files[0]) parseFile(e.dataTransfer.files[0]); });
+        document.getElementById('fileInput').addEventListener('change', e => { if (e.target.files[0]) parseFile(e.target.files[0]); });
+
+        function parseFile(file) {
+            const r = new FileReader();
+            r.onload = ev => {
+                try {
+                    const wb = XLSX.read(ev.target.result, { type: 'array', cellFormula: false, cellNF: false });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const raw = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+                    if (!raw.length) { showToast('데이터 없음'); return; }
+
+                    /* ── 구조 감지 ──
+                       가로형: 1행에 여러 컬럼 헤더가 있고 2행~데이터
+                       세로형: A열에 항목명, B열~각 직원 데이터
+                       판단: 1행에서 COL_MAP 키와 일치하는 셀이 2개 이상이면 가로형 */
+                    const colKeys = Object.keys(COL_MAP).map(k => k.replace(/\s/g, ''));
+                    const row0Normalized = (raw[0] || []).map(c => String(c || '').trim().replace(/\s/g, ''));
+                    // 동적 연봉 컬럼 패턴도 매칭에 포함
+                    const row0Matches = row0Normalized.filter(c =>
+                        colKeys.includes(c) || /\d{2,4}년연봉|연봉.*\d{2,4}년?|연봉\(\d{2,4}\)/.test(c)
+                    ).length;
+                    const isVertical = row0Matches < 2;
+
+                    /* 연봉 컬럼명에서 연도 추출 + COL_MAP에 동적 키 추가 */
+                    const allLabels = isVertical
+                        ? raw.map(r => String(r[0] || '').replace(/\s/g, ''))
+                        : row0Normalized;
+
+                    // 가로형은 데이터 행 전달해서 실제 값 있는 컬럼 우선 선택
+                    const salaryDetect = detectSalaryKey(allLabels, raw, isVertical);
+                    if (salaryDetect) {
+                        const lbl = salaryDetect.label;
+                        // 연도 파싱
+                        const m = lbl.match(/\d{4}/) || lbl.match(/\d{2}/);
+                        if (m) {
+                            const yr = parseInt(m[0]);
+                            docYear = yr < 100 ? 2000 + yr : yr;
+                        }
+                        // COL_MAP에 실제 컬럼명 동적 등록
+                        if (!COL_MAP[lbl]) COL_MAP[lbl] = 'salary';
+                        // CASH_FIELDS 라벨도 연도 반영
+                        const cf = CASH_FIELDS.find(f => f.key === 'salary');
+                        if (cf) {
+                            cf.label = `급여총액`;
+                            cf.note = `${docYear}년 기준`;
+                        }
+                        // 커스터마이저 헤더 연도 업데이트
+                        const custYear = document.getElementById('custYear');
+                        if (custYear) custYear.textContent = `${docYear}년도 총 보상 명세서`;
+                    }
+
+                    if (isVertical) {
+                        /* 세로형: A열=항목명, B열~=직원 */
+                        const labelCol = raw.map(r => String(r[0] || '').trim());
+                        const labelColNorm = labelCol.map(l => l.replace(/\s/g, ''));
+                        const numCols = Math.max(...raw.map(r => r.length));
+                        emps = [];
+
+                        for (let c = 1; c < numCols; c++) {
+                            const nameIdx = labelCol.findIndex(l => l === '직원명');
+                            if (nameIdx < 0) continue;
+                            const nameVal = raw[nameIdx][c];
+                            if (!nameVal || String(nameVal).includes('합계')) continue;
+                            const obj = {};
+                            // 수식 에러 셀, 객체, apostrophe prefix 모두 처리
+                            const safeVal = v => {
+                                if (v === null || v === undefined) return '';
+                                if (typeof v === 'object') return ''; // 에러 셀 객체
+                                const s = String(v);
+                                if (s.startsWith('#') && s.includes('!')) return ''; // #REF!, #VALUE! 등
+                                if (s.startsWith("'")) return s.slice(1); // apostrophe prefix 제거
+                                return v;
+                            };
+                            for (const [col, key] of Object.entries(COL_MAP)) {
+                                const norm = col.replace(/\s/g, '');
+                                const ri = labelColNorm.findIndex(l => l === norm);
+                                obj[key] = ri >= 0 ? safeVal(raw[ri][c]) : '';
+                            }
+                            if (obj.hireDate) obj.hireDate = formatHireDate(obj.hireDate);
+                            emps.push(obj);
+                        }
+                    } else {
+                        /* 가로형: 1행=헤더, 2행~=직원 */
+                        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                        // 가로형도 공백 제거 후 매칭 — 헤더 띄어쓰기 차이 무시
+                        const rowKeyNormMap = {};
+                        if (rows.length) {
+                            Object.keys(rows[0]).forEach(k => { rowKeyNormMap[k.replace(/\s/g, '')] = k; });
+                        }
+                        const safeValH = v => {
+                            if (v === null || v === undefined) return '';
+                            if (typeof v === 'object') return '';
+                            const s = String(v);
+                            if (s.startsWith('#') && s.includes('!')) return '';
+                            if (s.startsWith("'")) return s.slice(1);
+                            return v;
+                        };
+                        emps = rows.map(row => {
+                            const obj = {};
+                            for (const [col, key] of Object.entries(COL_MAP)) {
+                                const normCol = col.replace(/\s/g, '');
+                                const actualKey = rowKeyNormMap[normCol];
+                                obj[key] = actualKey !== undefined ? safeValH(row[actualKey]) : '';
+                            }
+                            // 동적 연봉 컬럼 처리: COL_MAP에 없는 패턴도 감지
+                            if (!obj.salary || obj.salary === '') {
+                                const salNormKey = Object.keys(rowKeyNormMap).find(k => /\d{2,4}년연봉|연봉.*\d{2,4}년?|연봉\(\d{2,4}\)/.test(k));
+                                if (salNormKey) obj.salary = safeValH(row[rowKeyNormMap[salNormKey]]);
+                            }
+                            if (obj.hireDate) obj.hireDate = formatHireDate(obj.hireDate);
+                            return obj;
+                        });
+                    }
+
+                    if (!emps.length) { showToast('직원 데이터를 찾을 수 없습니다'); return; }
+                    renderSidebar();
+                    pick(0);
+                    showToast(`✓ ${emps.length}명 로드 완료`);
+                } catch (e) { showToast('파일 오류: ' + e.message); }
+            };
+            r.readAsArrayBuffer(file);
+        }
+
+        /* ── HELPERS ── */
+        function toNum(v) { return parseFloat(String(v ?? '').replace(/[,원\s]/g, '')) || 0; }
+
+        // 입사일 자동 포맷: "20260101" / "2026-01-01" / "2026.01.01" → "2026.01.01 (X년)"
+        function formatHireDate(raw) {
+            if (!raw) return '-';
+            const s = String(raw).trim();
+
+            // 이미 연차 포함된 형식이면 그대로
+            if (/\(\d+년\)/.test(s) || /\(\d+\)/.test(s)) return s;
+
+            // 숫자 8자리: 20260101
+            let year, month, day;
+            const digits = s.replace(/[^\d]/g, '');
+            if (digits.length === 8) {
+                year = parseInt(digits.slice(0, 4));
+                month = parseInt(digits.slice(4, 6));
+                day = parseInt(digits.slice(6, 8));
+            } else if (/^\d{4}[.\-/]\d{1,2}[.\-/]\d{1,2}/.test(s)) {
+                const parts = s.split(/[.\-/]/);
+                year = parseInt(parts[0]);
+                month = parseInt(parts[1]);
+                day = parseInt(parts[2]);
+            } else {
+                return s; // 파싱 불가 → 그대로 반환
+            }
+
+            // 연차 계산 (입사일 기준 만 년수)
+            const today = new Date();
+            const hire = new Date(year, month - 1, day);
+            let years = today.getFullYear() - hire.getFullYear();
+            if (today < new Date(today.getFullYear(), month - 1, day)) years--;
+            years = Math.max(0, years);
+
+            const mm = String(month).padStart(2, '0');
+            const dd = String(day).padStart(2, '0');
+            return `${year}.${mm}.${dd} (${years}년)`;
+        }
+        function fmt(v) { return Math.round(toNum(v)).toLocaleString('ko-KR'); }
+        function isOn(v) {
+            if (!v && v !== 0) return false;
+            const s = String(v).toLowerCase().trim();
+            return !['', '0', 'x', 'n', 'no', '-', '해당없음', '미해당'].includes(s);
+        }
+        function calcTotal(e) {
+            // 엑셀의 직원별합계금액(totalCash)은 사용하지 않고
+            // 항상 개별 항목을 직접 합산 — visible 필터가 정확히 반영됨
+            const cashSum = CASH_FIELDS
+                .filter(f => cashVisible[f.key] !== false)
+                .reduce((s, f) => s + toNum(e[f.key]), 0);
+            const nonCashSum = BEN_FIELDS
+                .filter(f => benVisible[f.key] !== false)
+                .reduce((s, f) => s + toNum(e[f.key]), 0);
+            return cashSum + nonCashSum;
+        }
+
+        // 연간 총 보상 (식권 포함 전체 — Final Total에 사용)
+
+        /* ── SIDEBAR ── */
+        function renderSidebar() {
+            document.getElementById('empList').innerHTML = emps.map((e, i) => `
+    <div class="emp-item ${i === cur ? 'active' : ''}" onclick="pick(${i})">
+      <input type="checkbox" class="emp-cb" ${selectedSet.has(i) ? 'checked' : ''}
+        onclick="event.stopPropagation(); toggleCheck(${i})" >
+      <div class="emp-av">${(e.name || '?')[0]}</div>
+      <div style="min-width:0">
+        <div class="emp-n">${e.name || '이름없음'}</div>
+        <div class="emp-r">${e.role || '-'} · ${e.dept || '-'}</div>
+      </div>
+    </div>`).join('');
+            document.getElementById('empCnt').textContent = emps.length;
+            updateSelUI();
+            if (emps.length > 0) {
+                document.getElementById('selAllRow').classList.add('show');
+            }
+        }
+
+        function toggleCheck(i) {
+            if (selectedSet.has(i)) selectedSet.delete(i);
+            else selectedSet.add(i);
+            updateSelUI();
+            // 체크박스 DOM 동기화
+            const items = document.querySelectorAll('#empList .emp-cb');
+            if (items[i]) items[i].checked = selectedSet.has(i);
+        }
+
+        function toggleSelectAll() {
+            const allChecked = selectedSet.size === emps.length;
+            selectedSet.clear();
+            if (!allChecked) emps.forEach((_, i) => selectedSet.add(i));
+            renderSidebar();
+        }
+
+        function clearSelection() {
+            selectedSet.clear();
+            renderSidebar();
+        }
+
+        function updateSelUI() {
+            const n = selectedSet.size;
+            const bar = document.getElementById('selBar');
+            const cnt = document.getElementById('selCnt');
+            const cbAll = document.getElementById('cbAll');
+            bar.classList.toggle('show', n > 0);
+            cnt.textContent = `${n}명 선택됨`;
+            if (cbAll) {
+                cbAll.checked = n > 0 && n === emps.length;
+                cbAll.indeterminate = n > 0 && n < emps.length;
+            }
+        }
+
+        /* ── 수신인 ── */
+        let recipientMode = 'none'; // 'none' | 'company' | 'employee'
+
+        function setRecipientMode(mode) {
+            recipientMode = mode;
+            ['none', 'company', 'employee'].forEach(m => {
+                const key = m === 'none' ? 'None' : m === 'company' ? 'Company' : 'Emp';
+                document.getElementById(`recipientMode${key}`).classList.toggle('active', m === mode);
+            });
+            document.getElementById('recipientCompanyWrap').style.display = mode === 'company' ? 'block' : 'none';
+            document.getElementById('recipientEmpWrap').style.display = mode === 'employee' ? 'block' : 'none';
+            updateRecipientPreview();
+            // 시트가 열려있으면 전체 재렌더 (outerHTML 교체 시 요소 소멸 방지)
+            if (emps.length > 0 && document.getElementById('tcWrap').style.display !== 'none') {
+                renderSheet(emps[cur]);
+            }
+        }
+
+        function onRecipientChange() {
+            updateRecipientPreview();
+            // 시트가 열려있으면 전체 재렌더
+            if (emps.length > 0 && document.getElementById('tcWrap').style.display !== 'none') {
+                renderSheet(emps[cur]);
+            }
+        }
+
+        function updateRecipientPreview() {
+            const el = document.getElementById('custRecipientPreview');
+            if (!el) return;
+            if (recipientMode === 'none') {
+                el.textContent = '';
+            } else if (recipientMode === 'company') {
+                const co = document.getElementById('recipientCompanyInput')?.value || '';
+                el.textContent = co ? `${co} 귀하` : '';
+            } else {
+                el.textContent = '(사원명) 귀하';
+            }
+        }
+
+        function getRecipientText(emp) {
+            if (recipientMode === 'none') return '';
+            if (recipientMode === 'company') {
+                const co = document.getElementById('recipientCompanyInput')?.value || '';
+                return co ? `<span id='tcRecipientText'>${co} 귀하</span>` : `<span id='tcRecipientText'>- 귀하</span>`;
+            }
+            return `<span id='tcRecipientText'>${emp?.name || '-'} 귀하</span>`;
+        }
+
+        function onManagerChange() {
+            const el = document.getElementById('tcManagerText');
+            if (el) el.textContent = document.getElementById('managerInput').value || '-';
+        }
+
+        function pick(i) {
+            cur = i;
+            renderSidebar();
+            renderSheet(emps[i]);
+            document.getElementById('emptyEl').style.display = 'none';
+            document.getElementById('tcWrap').style.display = 'block';
+            document.getElementById('toolbar').style.display = 'flex';
+            document.getElementById('tbName').textContent = emps[i].name || '';
+            document.getElementById('tbSub').textContent = [emps[i].role, emps[i].dept].filter(Boolean).join(' · ');
+            document.getElementById('prevBtn').disabled = i === 0;
+            document.getElementById('nextBtn').disabled = i === emps.length - 1;
+        }
+        function nav(d) { const n = cur + d; if (n >= 0 && n < emps.length) pick(n); }
+
+        /* ── TC SHEET RENDER (원본 스타일 적용) ── */
+        function renderSheet(e) {
+            const total = calcTotal(e);
+            const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            /* 섹션 순번 카운터 — visible 섹션만 번호 부여 */
+            let secNum = 0;
+            const nextSec = () => String(++secNum).padStart(2, '0');
+
+            /* 01. 월 지급 내역 — monthlyOrder 순서로 렌더 */
+            const MONTHLY_DEFS = {
+                salary: { label: '급여 (월급)', note: '' },
+                meal: { label: '식대 (급여 포함)', note: '' },
+                pension: { label: '퇴직연금 (월 납입금)', note: '' },
+            };
+
+            // cashOrder에 새 CASH_FIELDS 키 누락 없이 동기화
+            const allCashKeys = CASH_FIELDS.map(f => f.key);
+            cashOrder = cashOrder.filter(k => allCashKeys.includes(k));
+            allCashKeys.forEach(k => { if (!cashOrder.includes(k)) cashOrder.push(k); });
+
+            const orderedMonthly = monthlyOrder.map(k => ({ key: k, ...MONTHLY_DEFS[k], label: getCustLabel(k, MONTHLY_DEFS[k].label) }));
+            const monthlyRows = orderedMonthly
+                .filter(f => toNum(e[f.key]) > 0 && monthlyVisible[f.key] !== false)
+                .map(f => {
+                    const monthly = Math.round(toNum(e[f.key]) / 12);
+                    return `
+        <tr class="drag-row" draggable="false" data-key="${f.key}">
+          <td class="drag-handle-cell" title="드래그하여 순서 변경" style="visibility:hidden">⠿</td>
+          <td class="font-medium">${f.label}</td>
+          <td class="td-right" data-field="${f.key}" data-type="number" data-monthly="true">${fmt(monthly)}</td>
+        </tr>`;
+                }).join('');
+
+            const monthlyTotal = orderedMonthly
+                .filter(f => toNum(e[f.key]) > 0 && monthlyVisible[f.key] !== false)
+                .reduce((s, f) => s + Math.round(toNum(e[f.key]) / 12), 0);
+
+            // 02. 연간 보상 총계 — cashOrder 순서로 렌더
+            const CASH_MAP = Object.fromEntries(CASH_FIELDS.map(f => [f.key, { ...f, label: getCustLabel(f.key, f.label) }]));
+            const cashRows2 = cashOrder
+                .map(k => CASH_MAP[k])
+                .filter(f => f && toNum(e[f.key]) > 0 && cashVisible[f.key] !== false)
+                .map(f => `
+      <li class="drag-li" draggable="false" data-key="${f.key}">
+        <span class="drag-li-handle" title="드래그하여 순서 변경" style="display:none">⠿</span>
+        <span>${f.label}</span>
+        ${f.note ? `<span class="drag-li-note">${f.note}</span>` : '<span class="drag-li-note"></span>'}
+        <span data-field="${f.key}" data-type="number">${fmt(e[f.key])}원</span>
+      </li>`).join('');
+
+            /* 03. 복리후생 카드 — 지원 항목만 표시 + 커스터마이저 visible 필터 */
+            const activeBens = BEN_FIELDS.filter(f => isOn(e[f.key]) && benVisible[f.key] !== false);
+            const benCards = activeBens.length
+                ? activeBens.map(f => {
+                    const isBlue = false; // 전체 slate 통일
+                    const note = f.note ? `<p class="benefit-card-note">${f.note}</p>` : '';
+                    const custLabel = getCustLabel(f.key, f.label);
+                    return `
+          <div class="benefit-card ${isBlue ? 'blue' : 'slate'}">
+            <p class="benefit-card-title">${f.icon} ${custLabel}</p>
+            ${note}
+          </div>`;
+                }).join('')
+                : '<p style="font-size:0.82rem;color:#94a3b8;padding:8px 0;">해당 복리후생 항목이 없습니다.</p>';
+
+            document.getElementById('tcWrap').innerHTML = `
+  <div class="tc-page" id="tcSheet">
+
+    <!-- 헤더 -->
+    <div class="tc-doc-header">
+      <div>
+        <div class="tc-doc-title">Total Compensation Sheet</div>
+        <div class="tc-doc-year">${docYear}년도 총 보상 명세서</div>
+      </div>
+      <div class="tc-doc-meta">
+        작성일: ${today}<br>
+        담당: <span id='tcManagerText'>${document.getElementById('managerInput').value || '-'}</span>
+      </div>
+    </div>
+
+    <!-- 직원 정보 -->
+    <div class="tc-identity">
+      <div><p class="tc-id-label">직원명</p><p class="tc-id-val" data-field="name">${e.name || '-'}</p></div>
+      <div><p class="tc-id-label">직급/직책</p><p class="tc-id-val" data-field="role">${e.role || '-'}</p></div>
+      <div><p class="tc-id-label">팀/부서</p><p class="tc-id-val" data-field="dept">${e.dept || '-'}</p></div>
+      <div><p class="tc-id-label">입사일 (연차)</p><p class="tc-id-val" data-field="hireDate">${e.hireDate || '-'}</p></div>
+    </div>
+
+    <!-- 소개글 -->
+    <p class="tc-intro">
+      본 문서는 <strong>${e.name || ''}</strong> ${e.role || ''}의 ${docYear}년도 총 보상 내역을 공식적으로 안내하는 문서입니다.
+      기본 연봉, 식대, 퇴직금 등의 정기 급여와 각종 수당·복리후생 혜택을 통합하여 작성되었습니다.
+    </p>
+
+    <!-- 월 지급 내역 -->
+    ${sectionVisible.monthly ? `
+    <h2 class="section-title">${nextSec()}. 월 지급 내역 (세전 기준)</h2>
+    <table id="monthlyTable">
+      <thead>
+        <tr>
+          <th style="width:22px;padding:0"></th>
+          <th style="width:60%">지급 항목</th>
+          <th style="text-align:right">금액 (원)</th>
+        </tr>
+      </thead>
+      <tbody id="monthlyTbody">
+        ${monthlyRows || '<tr><td colspan="3" style="text-align:center;color:#94a3b8;padding:20px">월 지급 데이터가 없습니다</td></tr>'}
+        <tr class="tr-subtotal">
+          <td></td>
+          <td><strong>월 총 지급 합계</strong></td>
+          <td class="td-right">${fmt(monthlyTotal)}</td>
+        </tr>
+      </tbody>
+    </table>` : ''}
+
+    <!-- 연간 보상 총계 -->
+    ${sectionVisible.cash ? `
+    <h2 class="section-title">${nextSec()}. 연간 보상 총계</h2>
+    <div class="annual-layout">
+      <div class="annual-list-wrap">
+        <ul id="cashList">${cashRows2}</ul>
+      </div>
+      <div class="total-hero">
+        <p class="total-hero-label">Final Total</p>
+        <p class="total-hero-num">${fmt(total)}</p>
+        <p class="total-hero-unit">KRW</p>
+      </div>
+    </div>` : ''}
+
+    <!-- 복리후생 -->
+    ${sectionVisible.ben ? `
+    <h2 class="section-title">${nextSec()}. 주요 복리후생 혜택</h2>
+    <div class="benefit-grid-3" style="grid-template-columns:repeat(4,1fr)">
+      ${benCards}
+    </div>` : ''}
+
+    <!-- 하단 -->
+    <div class="tc-footer">
+      <p class="tc-footer-note">※ 위 보상 내역은 회사 정책에 따라 변경될 수 있습니다.</p>
+      ${recipientMode !== 'none' ? `<p class="tc-footer-recipient">${getRecipientText(e)}</p>` : ''}
+    </div>
+
+  </div>`;
+
+            // 품목 드래그 앤 드롭 바인딩
+            initItemDragDrop();
+        }
+
+
+        /* ── 품목 DRAG & DROP ── */
+        let dragSrc = null;
+
+        function initItemDragDrop() {
+            bindDragRows(document.querySelectorAll('#monthlyTbody .drag-row'), monthlyOrder);
+            bindDragItems(document.querySelectorAll('#cashList .drag-li'), cashOrder);
+        }
+
+        function bindDragRows(rows, orderArr) {
+            rows.forEach(row => {
+                row.addEventListener('dragstart', e => {
+                    dragSrc = row;
+                    row.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', row.dataset.key);
+                });
+                row.addEventListener('dragend', () => {
+                    row.classList.remove('dragging');
+                    rows.forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+                    dragSrc = null;
+                });
+                row.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    if (!dragSrc || dragSrc === row) return;
+                    rows.forEach(r => r.classList.remove('drag-over-top', 'drag-over-bottom'));
+                    const rect = row.getBoundingClientRect();
+                    const mid = rect.top + rect.height / 2;
+                    row.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
+                });
+                row.addEventListener('dragleave', () => {
+                    row.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+                row.addEventListener('drop', e => {
+                    e.preventDefault();
+                    if (!dragSrc || dragSrc === row) return;
+                    const fromKey = dragSrc.dataset.key;
+                    const toKey = row.dataset.key;
+                    const fromIdx = orderArr.indexOf(fromKey);
+                    const toIdx = orderArr.indexOf(toKey);
+                    const rect = row.getBoundingClientRect();
+                    const insertBefore = e.clientY < rect.top + rect.height / 2;
+
+                    // DOM 이동
+                    if (insertBefore) {
+                        row.parentNode.insertBefore(dragSrc, row);
+                    } else {
+                        row.parentNode.insertBefore(dragSrc, row.nextSibling);
+                    }
+
+                    // 순서 배열 업데이트
+                    orderArr.splice(fromIdx, 1);
+                    const newTo = orderArr.indexOf(toKey);
+                    orderArr.splice(insertBefore ? newTo : newTo + 1, 0, fromKey);
+
+                    row.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+            });
+        }
+
+        function bindDragItems(items, orderArr) {
+            items.forEach(item => {
+                item.addEventListener('dragstart', e => {
+                    dragSrc = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', item.dataset.key);
+                });
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    items.forEach(i => i.classList.remove('drag-over-top', 'drag-over-bottom'));
+                    dragSrc = null;
+                });
+                item.addEventListener('dragover', e => {
+                    e.preventDefault();
+                    if (!dragSrc || dragSrc === item) return;
+                    items.forEach(i => i.classList.remove('drag-over-top', 'drag-over-bottom'));
+                    const rect = item.getBoundingClientRect();
+                    const mid = rect.top + rect.height / 2;
+                    item.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
+                });
+                item.addEventListener('dragleave', () => {
+                    item.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+                item.addEventListener('drop', e => {
+                    e.preventDefault();
+                    if (!dragSrc || dragSrc === item) return;
+                    const fromKey = dragSrc.dataset.key;
+                    const toKey = item.dataset.key;
+                    const fromIdx = orderArr.indexOf(fromKey);
+                    const rect = item.getBoundingClientRect();
+                    const insertBefore = e.clientY < rect.top + rect.height / 2;
+
+                    // DOM 이동
+                    if (insertBefore) {
+                        item.parentNode.insertBefore(dragSrc, item);
+                    } else {
+                        item.parentNode.insertBefore(dragSrc, item.nextSibling);
+                    }
+
+                    // 순서 배열 업데이트
+                    orderArr.splice(fromIdx, 1);
+                    const newTo = orderArr.indexOf(toKey);
+                    orderArr.splice(insertBefore ? newTo : newTo + 1, 0, fromKey);
+
+                    item.classList.remove('drag-over-top', 'drag-over-bottom');
+                });
+            });
+        }
+
+        /* ══════════════════════════════════════════
+           PPT 슬라이드 빌더 — 재사용 가능한 공통 함수
+           pres: PptxGenJS 인스턴스, emp: 직원 객체
+        ══════════════════════════════════════════ */
+        function buildSlide(pres, emp) {
+            const e = emp;
+            const total = calcTotal(e);
+            const mgr = document.getElementById('managerInput').value || '-';
+            const recipientLine = (() => {
+                if (recipientMode === 'company') {
+                    const co = document.getElementById('recipientCompanyInput')?.value || '';
+                    return co ? `  |  ${co} 귀하` : '';
+                }
+                if (recipientMode === 'employee') return `  |  ${e.name || ''} 귀하`;
+                return '';
+            })();
+            const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            const W = 7.5, H = 10.6, M = 0.38, CW = W - M * 2;
+            const C = {
+                DKNAVY: '0F172A', NAVY: '1E293B', BLUE: '2563EB', BLUE_D: '1E3A8A',
+                ACCENT: '3B82F6', WHITE: 'FFFFFF', BG: 'F8FAFC', SLATE: 'F1F5F9',
+                LINE: 'E2E8F0', MUTED: '94A3B8', GRAY: '475569', TEXT: '1E293B',
+                BLUE_T: '1D4ED8', TEAL: '0D9488', LTEAL: 'CCFBF1', TEAL_B: '5EEAD4',
+                BLUE_L: 'DBEAFE', BLUE_B: 'BFDBFE', LBLUE2: '93C5FD'
+            };
+            const tf = (o = {}) => ({ fontFace: 'Calibri', margin: 0, ...o });
+
+            const sl = pres.addSlide();
+            sl.background = { color: 'FFFFFF' };
+
+            /* ══════════════════════════════════════
+               1단계: 각 섹션의 콘텐츠 높이를 미리 계산
+            ══════════════════════════════════════ */
+            const MONTHLY_DEFS_P = {
+                salary: { label: '급여 (월급)', note: '연봉의 1/12' },
+                meal: { label: '식대 (급여 포함)', note: '매월 급여 포함' },
+                pension: { label: '퇴직연금 (월 납입금)', note: '연간 적립액의 1/12' },
+            };
+            const RH = 0.25, C1 = CW * 0.46, C2 = CW * 0.3, C3 = CW - C1 - C2;
+            const ARH = 0.23;
+            const LW = CW * 0.58, RW = CW - LW - 0.16;
+            const SEC_TITLE_H = 0.36; // 섹션 타이틀 높이
+            const FOOTER_H = 0.32;   // 하단 푸터 예약 높이
+            const HDR_H = 1.0;       // 상단 헤더
+            const INFO_H = 0.64;     // 직원 정보 카드
+
+            const monFields = sectionVisible.monthly
+                ? monthlyOrder.map(k => ({ key: k, ...MONTHLY_DEFS_P[k], label: getCustLabel(k, MONTHLY_DEFS_P[k].label) }))
+                    .filter(f => toNum(e[f.key]) > 0 && monthlyVisible[f.key] !== false)
+                : [];
+            const CASH_MAP_P = Object.fromEntries(CASH_FIELDS.map(f => [f.key, { ...f, label: getCustLabel(f.key, f.label) }]));
+            const annItems = sectionVisible.cash
+                ? cashOrder.map(k => CASH_MAP_P[k]).filter(f => f && toNum(e[f.key]) > 0 && cashVisible[f.key] !== false)
+                : [];
+            const activeBens = sectionVisible.ben
+                ? BEN_FIELDS.filter(f => isOn(e[f.key]) && benVisible[f.key] !== false)
+                : [];
+
+            // 각 섹션 콘텐츠 높이 (섹션 타이틀 제외)
+            const monthlyContentH = sectionVisible.monthly
+                ? RH + monFields.length * RH + RH  // 헤더행 + 데이터행 + 소계행
+                : 0;
+            const cashContentH = sectionVisible.cash
+                ? annItems.length * ARH + ARH  // 항목행 + 합계행
+                : 0;
+            const BCOLS = 4;
+            const benRowsCnt = Math.ceil(activeBens.length / BCOLS);
+            const benContentH = sectionVisible.ben && activeBens.length > 0
+                ? benRowsCnt * 0.7 + (benRowsCnt - 1) * 0.08
+                : 0;
+
+            // 활성 섹션 수
+            const activeSections = [sectionVisible.monthly, sectionVisible.cash, sectionVisible.ben].filter(Boolean).length;
+
+            // 고정 높이 합산
+            const fixedH = HDR_H + INFO_H
+                + (activeSections * SEC_TITLE_H)
+                + monthlyContentH + cashContentH + benContentH
+                + FOOTER_H;
+
+            // 남은 공간을 섹션 사이 + 상단에 분배
+            const slack = Math.max(H - fixedH, 0);
+            // 분배 포인트: 직원카드↔01, 01↔02, 02↔03, 03↔푸터 (최대 activeSections+1개)
+            const gapCount = activeSections + 1;
+            const GAP = slack / gapCount;
+
+            /* ══════════════════════════════════════
+               2단계: 실제 렌더링
+            ══════════════════════════════════════ */
+
+            /* ── 헤더 영역 ── */
+            sl.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: W, h: HDR_H, fill: { color: C.DKNAVY }, line: { color: C.DKNAVY } });
+            sl.addShape(pres.shapes.RECTANGLE, { x: 0, y: 0, w: 0.07, h: HDR_H, fill: { color: C.ACCENT }, line: { color: C.ACCENT } });
+            sl.addText('Total Compensation Sheet', { x: M, y: 0.1, w: 4.8, h: 0.44, fontSize: 18, bold: true, color: C.WHITE, ...tf(), valign: 'middle' });
+            sl.addText(`${docYear}년도 총 보상 명세서`, { x: M, y: 0.54, w: 3.5, h: 0.22, fontSize: 9, color: C.LBLUE2, ...tf(), charSpacing: 1 });
+            sl.addText(`작성일: ${today}  |  담당: ${mgr}`, { x: M, y: 0.54, w: CW, h: 0.22, fontSize: 7.5, color: '475569', ...tf(), align: 'right' });
+            sl.addText(`${e.name}  /  ${e.role}  /  ${e.dept || ''}`, { x: M, y: 0.76, w: CW, h: 0.18, fontSize: 8, color: '64748B', ...tf() });
+
+            /* ── 직원 정보 카드 ── */
+            const IY = HDR_H;
+            sl.addShape(pres.shapes.RECTANGLE, { x: 0, y: IY, w: W, h: INFO_H, fill: { color: C.BG }, line: { color: C.LINE, pt: 0.5 } });
+            sl.addShape(pres.shapes.RECTANGLE, { x: 0, y: IY, w: 0.07, h: INFO_H, fill: { color: C.BLUE }, line: { color: C.BLUE } });
+            const fds = [
+                { lb: '직원명', vl: e.name || '-', big: true },
+                { lb: '직급/직책', vl: e.role || '-' },
+                { lb: '팀/부서', vl: e.dept || '-' },
+                { lb: '입사일 (연차)', vl: e.hireDate || '-' }
+            ];
+            fds.forEach((f, i) => {
+                const cx = i * (W / 4);
+                if (i > 0) sl.addShape(pres.shapes.LINE, { x: cx, y: IY + 0.08, w: 0, h: INFO_H - 0.16, line: { color: C.LINE, pt: 0.5 } });
+                sl.addText(f.lb.toUpperCase(), { x: cx + 0.18, y: IY + 0.08, w: W / 4 - 0.22, h: 0.18, fontSize: 5.5, color: C.MUTED, ...tf(), charSpacing: 1 });
+                sl.addText(f.vl, { x: cx + 0.18, y: IY + 0.26, w: W / 4 - 0.22, h: 0.3, fontSize: f.big ? 12 : 10, bold: !!f.big, color: C.TEXT, ...tf() });
+            });
+
+            /* ── 섹션 타이틀 헬퍼 ── */
+            let pptSecNum = 0;
+            function secTitle(y, label) {
+                pptSecNum++;
+                const num = String(pptSecNum).padStart(2, '0');
+                sl.addShape(pres.shapes.RECTANGLE, { x: M, y, w: 0.05, h: 0.28, fill: { color: C.ACCENT }, line: { color: C.ACCENT } });
+                sl.addText(`${num}.  ${label}`, { x: M + 0.12, y, w: CW - 0.12, h: 0.28, fontSize: 9.5, bold: true, color: C.BLUE_D, ...tf(), valign: 'middle' });
+                sl.addShape(pres.shapes.LINE, { x: M + 0.12, y: y + 0.28, w: CW - 0.12, h: 0, line: { color: C.LINE, pt: 0.4 } });
+                return y + SEC_TITLE_H;
+            }
+
+            let curY = IY + INFO_H + GAP;
+
+            /* ── 01. 월 지급 내역 ── */
+            if (sectionVisible.monthly) {
+                curY = secTitle(curY, '월 지급 내역 (세전 기준)');
+                const monTotal = monFields.reduce((s, f) => s + Math.round(toNum(e[f.key]) / 12), 0);
+
+                sl.addShape(pres.shapes.RECTANGLE, { x: M, y: curY, w: CW, h: RH, fill: { color: C.SLATE }, line: { color: C.NAVY, pt: 1.5 } });
+                ['지급 항목', '금액 (원)'].forEach((label, i) => {
+                    const ox = [M + 0.08, M + C1][i];
+                    const ow = [C1 - 0.08, C2 + C3][i];
+                    sl.addText(label, { x: ox, y: curY, w: ow, h: RH, fontSize: 7.5, bold: true, color: C.GRAY, ...tf(), valign: 'middle', align: i === 1 ? 'right' : 'left' });
+                });
+                curY += RH;
+
+                monFields.forEach(f => {
+                    sl.addShape(pres.shapes.RECTANGLE, { x: M, y: curY, w: CW, h: RH, fill: { color: C.WHITE }, line: { color: C.LINE, pt: 0.25 } });
+                    sl.addText(f.label, { x: M + 0.08, y: curY, w: C1 - 0.08, h: RH, fontSize: 8, color: C.TEXT, ...tf(), valign: 'middle' });
+                    sl.addText(fmt(Math.round(toNum(e[f.key]) / 12)) + '원', { x: M + C1, y: curY, w: C2 + C3, h: RH, fontSize: 8, bold: true, color: C.TEXT, ...tf(), align: 'right', valign: 'middle' });
+                    curY += RH;
+                });
+                sl.addShape(pres.shapes.RECTANGLE, { x: M, y: curY, w: CW, h: RH, fill: { color: C.BG }, line: { color: C.LINE, pt: 0.3 } });
+                sl.addText('월 총 지급 합계', { x: M + 0.08, y: curY, w: C1, h: RH, fontSize: 8.5, bold: true, color: C.TEXT, ...tf(), valign: 'middle' });
+                sl.addText(fmt(monTotal) + '원', { x: M + C1, y: curY, w: C2 + C3, h: RH, fontSize: 9, bold: true, color: C.BLUE_T, ...tf(), align: 'right', valign: 'middle' });
+                curY += RH + GAP;
+            }
+
+            /* ── 02. 연간 보상 총계 ── */
+            if (sectionVisible.cash) {
+                curY = secTitle(curY, '연간 보상 총계');
+                const annStartY = curY;
+
+                annItems.forEach((f, i) => {
+                    const bg = i % 2 === 0 ? C.WHITE : C.BG;
+                    sl.addShape(pres.shapes.RECTANGLE, { x: M, y: curY, w: LW, h: ARH, fill: { color: bg }, line: { color: C.LINE, pt: 0.2 } });
+                    sl.addText(f.label, { x: M + 0.08, y: curY, w: LW * 0.42, h: ARH, fontSize: 7.5, color: C.GRAY, ...tf(), valign: 'middle' });
+                    if (f.note) sl.addText(f.note, { x: M + 0.08 + LW * 0.42, y: curY, w: LW * 0.2, h: ARH, fontSize: 6.5, color: C.MUTED, ...tf(), valign: 'middle' });
+                    sl.addText(fmt(toNum(e[f.key])) + '원', { x: M + LW * 0.6, y: curY, w: LW * 0.38, h: ARH, fontSize: 7.5, bold: true, color: C.TEXT, ...tf(), align: 'right', valign: 'middle' });
+                    curY += ARH;
+                });
+                sl.addShape(pres.shapes.RECTANGLE, { x: M, y: curY, w: LW, h: ARH, fill: { color: C.NAVY }, line: { color: C.NAVY } });
+                sl.addText('연간 합계', { x: M + 0.08, y: curY, w: LW * 0.5, h: ARH, fontSize: 8, bold: true, color: C.WHITE, ...tf(), valign: 'middle' });
+                sl.addText(fmt(total) + '원', { x: M + LW * 0.5, y: curY, w: LW * 0.48, h: ARH, fontSize: 8, bold: true, color: C.LBLUE2, ...tf(), align: 'right', valign: 'middle' });
+                curY += ARH;
+
+                // 히어로 박스
+                const blockH = annItems.length * ARH + ARH;
+                const heroX = M + LW + 0.16;
+                sl.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: heroX, y: annStartY, w: RW, h: blockH, fill: { color: C.BLUE }, line: { color: C.BLUE }, rectRadius: 0.1 });
+                const labelH = 0.18, numH = 0.44, unitH = 0.22, noteH = 0.18, gapH = 0.06;
+                const totalTextH = labelH + gapH + numH + gapH + unitH + gapH + noteH;
+                const heroTextY = annStartY + (blockH - totalTextH) / 2;
+                sl.addText('FINAL TOTAL', { x: heroX, y: heroTextY, w: RW, h: labelH, fontSize: 6.5, color: 'BFDBFE', ...tf(), align: 'center', valign: 'middle', charSpacing: 2 });
+                sl.addText(fmt(total), { x: heroX, y: heroTextY + labelH + gapH, w: RW, h: numH, fontSize: 20, bold: true, color: C.WHITE, ...tf(), align: 'center', valign: 'middle' });
+                sl.addText('원', { x: heroX, y: heroTextY + labelH + gapH + numH + gapH, w: RW, h: unitH, fontSize: 9, bold: true, color: C.LBLUE2, ...tf(), align: 'center', valign: 'middle' });
+                sl.addText('연간 세전 기준', { x: heroX, y: heroTextY + labelH + gapH + numH + gapH + unitH + gapH, w: RW, h: noteH, fontSize: 6.5, color: '93C5FD', ...tf(), align: 'center', valign: 'middle' });
+                curY += GAP;
+            }
+
+            /* ── 03. 복리후생 ── */
+            if (sectionVisible.ben && activeBens.length > 0) {
+                curY = secTitle(curY, '주요 복리후생 혜택');
+                // 남은 공간에서 푸터 영역 제외 후 카드 높이 결정
+                const availH = (H - FOOTER_H) - curY - (benRowsCnt - 1) * 0.1;
+                const BH = Math.min(availH / benRowsCnt, 0.82);
+                const BW2 = (CW - (BCOLS - 1) * 0.1) / BCOLS;
+
+                activeBens.forEach((f, i) => {
+                    const col = i % BCOLS, row = Math.floor(i / BCOLS);
+                    const cx = M + col * (BW2 + 0.1), cy = curY + row * (BH + 0.1);
+                    const isBlue = false; // 전체 slate 통일
+                    const bg = isBlue ? 'EFF6FF' : C.BG;
+                    const bdc = isBlue ? C.BLUE_B : C.LINE;
+                    const acc = isBlue ? C.ACCENT : '94A3B8';
+                    const tc = isBlue ? C.BLUE_T : C.TEXT;
+                    sl.addShape(pres.shapes.RECTANGLE, { x: cx, y: cy, w: BW2, h: BH, fill: { color: bg }, line: { color: bdc, pt: 0.6 } });
+                    sl.addShape(pres.shapes.RECTANGLE, { x: cx, y: cy, w: 0.04, h: BH, fill: { color: acc }, line: { color: acc } });
+                    sl.addText(`${f.icon} ${getCustLabel(f.key, f.label)}`, { x: cx + 0.1, y: cy + BH * 0.06, w: BW2 - 0.14, h: BH * (f.note ? 0.5 : 0.88), fontSize: 8, bold: true, color: tc, ...tf(), valign: 'middle' });
+                    if (f.note) sl.addText(f.note, { x: cx + 0.1, y: cy + BH * 0.56, w: BW2 - 0.14, h: BH * 0.38, fontSize: 6.5, color: isBlue ? C.ACCENT : C.GRAY, ...tf(), valign: 'middle' });
+                });
+            }
+
+            /* ── 하단 푸터 (항상 페이지 맨 아래 고정) ── */
+            sl.addShape(pres.shapes.LINE, { x: M, y: H - 0.26, w: CW, h: 0, line: { color: C.LINE, pt: 0.5 } });
+            sl.addText('※ 위 보상 내역은 회사 정책에 따라 변경될 수 있습니다.', { x: M, y: H - 0.22, w: CW * 0.65, h: 0.18, fontSize: 6.5, color: C.MUTED, ...tf() });
+            // 수신인 — 하단 우측
+            if (recipientMode !== 'none') {
+                const recipientLabel = recipientMode === 'company'
+                    ? `${document.getElementById('recipientCompanyInput')?.value || ''} 귀하`
+                    : `${e.name || ''} 귀하`;
+                if (recipientLabel.trim() !== '귀하') {
+                    sl.addText(recipientLabel, { x: M + CW * 0.65, y: H - 0.26, w: CW * 0.35, h: 0.22, fontSize: 11, bold: true, color: C.TEXT, ...tf(), align: 'right', valign: 'middle' });
+                }
+            }
+        }
+
+        /* ── 단일 직원 PPT 저장 ── */
+        function exportPPT() {
+            if (!emps.length) { showToast('데이터 없음'); return; }
+            if (typeof PptxGenJS === 'undefined') { showToast('라이브러리 로드 중... 잠시 후 다시 시도해주세요.'); return; }
+            const e = emps[cur];
+            const pres = new PptxGenJS();
+            pres.defineLayout({ name: 'A4P', width: 7.5, height: 10.6 });
+            pres.layout = 'A4P';
+            pres.title = `TC - ${e.name}`;
+            buildSlide(pres, e);
+            pres.writeFile({ fileName: `TC_${e.name}_${docYear}.pptx` });
+            showToast(`✓ ${e.name} PPT 저장 완료`);
+        }
+
+        /* ══════════════════════════════════════════
+           다중 직원 PPT 내보내기
+           mode: 'zip'    → 직원별 개별 PPT를 ZIP으로 묶어 1회 다운로드
+                 'merged' → 모든 직원을 슬라이드로 합쳐 단일 PPT 다운로드
+        ══════════════════════════════════════════ */
+        async function exportSelectedPPT(mode) {
+            if (selectedSet.size === 0) { showToast('선택된 직원이 없습니다'); return; }
+            if (typeof PptxGenJS === 'undefined') { showToast('라이브러리 로드 중... 잠시 후 다시 시도해주세요.'); return; }
+
+            const indices = [...selectedSet].sort((a, b) => a - b);
+            const n = indices.length;
+            const dateStr = new Date().toISOString().slice(0, 10);
+
+            if (mode === 'merged') {
+                /* ── 통합 PPT: 직원 1명당 슬라이드 1장 ── */
+                showToast(`📑 ${n}명 통합 PPT 생성 중...`);
+                const pres = new PptxGenJS();
+                pres.defineLayout({ name: 'A4P', width: 7.5, height: 10.6 });
+                pres.layout = 'A4P';
+                pres.title = `TC_통합_${dateStr}`;
+                for (const idx of indices) {
+                    buildSlide(pres, emps[idx]);
+                    await new Promise(r => setTimeout(r, 80));
+                }
+                await pres.writeFile({ fileName: `TC_통합_${n}명_${dateStr}.pptx` });
+                showToast(`✓ 통합 PPT (${n}명 / ${n}슬라이드) 저장 완료`);
+
+            } else {
+                /* ── ZIP: 직원별 개별 PPT → JSZip 압축 ── */
+                if (typeof JSZip === 'undefined') { showToast('JSZip 로드 중... 잠시 후 다시 시도해주세요.'); return; }
+
+                showToast(`🗜 ${n}명 PPT 생성 중... (0/${n})`);
+                const zip = new JSZip();
+
+                for (let i = 0; i < indices.length; i++) {
+                    const emp = emps[indices[i]];
+                    const pres = new PptxGenJS();
+                    pres.defineLayout({ name: 'A4P', width: 7.5, height: 10.6 });
+                    pres.layout = 'A4P';
+                    pres.title = `TC - ${emp.name}`;
+                    buildSlide(pres, emp);
+
+                    const buf = await pres.write({ outputType: 'arraybuffer' });
+                    const safeName = (emp.name || `직원${i + 1}`).replace(/[\\/:*?"<>|]/g, '_');
+                    zip.file(`TC_${safeName}_${docYear}.pptx`, buf);
+
+                    if ((i + 1) % 3 === 0 || i === indices.length - 1) {
+                        showToast(`🗜 PPT 생성 중... (${i + 1}/${n})`);
+                    }
+                    await new Promise(r => setTimeout(r, 80));
+                }
+
+                showToast('📦 ZIP 압축 중...');
+                const zipBlob = await zip.generateAsync({
+                    type: 'blob',
+                    compression: 'DEFLATE',
+                    compressionOptions: { level: 6 }
+                });
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `TC_PPT_${n}명_${dateStr}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                setTimeout(() => URL.revokeObjectURL(url), 3000);
+                showToast(`✓ ZIP 다운로드 완료 — ${n}개 PPT 포함`);
+            }
+        }
+
+
+
+        /* ── EDIT MODE ── */
+        let editMode = false;
+
+        function toggleEdit() {
+            const btn = document.getElementById('editBtn');
+            const sheet = document.getElementById('tcSheet');
+            if (!sheet) return;
+
+            if (!editMode) {
+                // 편집 모드 진입 → 버튼을 저장 버튼으로 전환
+                editMode = true;
+                btn.classList.add('active');
+                btn.textContent = '💾 저장';
+                btn.onclick = saveEdit;
+                sheet.classList.add('edit-mode');
+                sheet.querySelectorAll('[data-field]').forEach(el => {
+                    el.contentEditable = 'true';
+                    el.spellcheck = false;
+                });
+                sheet.querySelectorAll('.drag-row, .drag-li').forEach(el => {
+                    el.draggable = true;
+                    el.style.cursor = 'grab';
+                });
+                sheet.querySelectorAll('.drag-handle-cell').forEach(el => {
+                    el.style.visibility = 'visible';
+                });
+                sheet.querySelectorAll('.drag-li-handle').forEach(el => {
+                    el.style.display = '';
+                });
+            }
+        }
+
+        function exitEdit(sheet) {
+            editMode = false;
+            const btn = document.getElementById('editBtn');
+            btn.classList.remove('active');
+            btn.textContent = '✏️ 편집';
+            btn.onclick = toggleEdit;
+            sheet.classList.remove('edit-mode');
+            sheet.querySelectorAll('[data-field]').forEach(el => {
+                el.contentEditable = 'false';
+            });
+            sheet.querySelectorAll('.drag-row, .drag-li').forEach(el => {
+                el.draggable = false;
+                el.style.cursor = '';
+            });
+            sheet.querySelectorAll('.drag-handle-cell').forEach(el => {
+                el.style.visibility = 'hidden';
+            });
+            sheet.querySelectorAll('.drag-li-handle').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+
+        function saveEdit() {
+            const sheet = document.getElementById('tcSheet');
+            if (!sheet) return;
+
+            // 포커스된 셀의 변경사항을 DOM에 커밋
+            if (document.activeElement && sheet.contains(document.activeElement)) {
+                document.activeElement.blur();
+            }
+
+            const e = emps[cur];
+
+            /* ── 두 패스로 충돌 해결 ──────────────────────────────────────
+               월 지급 테이블(data-monthly="true")과 연간 보상 리스트가
+               같은 필드(salary, meal, pension)를 동시에 표시합니다.
+               어느 쪽을 편집했는지 알 수 없으므로:
+                 1) 1차 패스: 원본 값과 비교해 실제로 변경된 필드만 기록
+                 2) 월액(×12) 변경이 있으면 그 값을 우선 적용
+                    없으면 연간 직접 입력값을 적용
+            ────────────────────────────────────────────────────────────── */
+            const monthlyEdits = {};   // 월 테이블에서 실제 편집된 필드 { field: annualValue }
+            const annualEdits = {};   // 연간 리스트에서 실제 편집된 필드 { field: annualValue }
+            const otherEdits = {};   // 숫자 외 필드
+
+            sheet.querySelectorAll('[data-field]').forEach(el => {
+                const field = el.dataset.field;
+                const type = el.dataset.type;
+                const isMonthly = el.dataset.monthly === 'true';
+                const rawText = (el.innerText ?? el.textContent ?? '').trim();
+
+                if (type === 'number') {
+                    const num = parseInt(rawText.replace(/[^0-9]/g, ''), 10) || 0;
+                    if (isMonthly) {
+                        // 월 테이블: 표시값은 월액(연간÷12 반올림)
+                        // 원본을 동일한 방식으로 반올림해서 비교 → 반올림 오차 제거
+                        const origMonthly = Math.round(toNum(e[field]) / 12);
+                        if (num !== origMonthly) {
+                            // 실제로 편집된 경우만 기록 (×12 해서 연간으로 환산)
+                            monthlyEdits[field] = num * 12;
+                        }
+                    } else {
+                        // 연간 리스트: 표시값이 이미 연간
+                        const origAnnual = Math.round(toNum(e[field]));
+                        if (num !== origAnnual) {
+                            annualEdits[field] = num;
+                        }
+                    }
+                } else if (field === 'hireDate') {
+                    otherEdits[field] = formatHireDate(rawText);
+                } else {
+                    otherEdits[field] = rawText;
+                }
+            });
+
+            // 우선순위: 월액 편집 > 연간 편집
+            // (같은 필드를 둘 다 건드린 경우 월 테이블 편집 우선)
+            const allNumericFields = new Set([
+                ...Object.keys(monthlyEdits),
+                ...Object.keys(annualEdits)
+            ]);
+            allNumericFields.forEach(field => {
+                e[field] = monthlyEdits[field] !== undefined
+                    ? monthlyEdits[field]
+                    : annualEdits[field];
+            });
+
+            // 텍스트 필드 적용
+            Object.entries(otherEdits).forEach(([field, val]) => {
+                e[field] = val;
+            });
+
+            e.totalCash = 0;
+            exitEdit(sheet);
+            renderSheet(e);
+
+            document.getElementById('tbName').textContent = e.name || '';
+            document.getElementById('tbSub').textContent = [e.role, e.dept].filter(Boolean).join(' · ');
+            renderSidebar();
+
+            showToast('✓ 변경사항 저장됨');
+        }
+
+
+        /* ── TEMPLATE ── */
+        function dlTemplate() {
+            const year = docYear || new Date().getFullYear();
+            // 연봉 컬럼은 detectSalaryKey가 인식하는 패턴으로 명시적 추가
+            const cols = [
+                '직원명', '직급/직책', '팀(부서)', '입사일자(연차)',
+                `${year}년연봉`,
+                '식대(월20만)', '퇴직금(연금)', '명절상여(설,추석)', '팀장수당(1월,7월)',
+                '통신비보조금', '유류대보조금',
+                '내일채움공제(회사지원)', '내일채움공제(국가지원)',
+                '생일축하금(10만원/연1회)', '식권(월10만원상당)', '직원별합계금액',
+                '법인차량제공', '장기근속상여(배당)', '개인차량 주차지원',
+                '종합건강검진(매4년)', '교육비지원(본인/자녀)', '경조사비',
+                '경조휴가', '생일(케이크/반차)', '상해보험', '운전자보험',
+            ];
+            // 샘플 데이터 — 컬럼 순서와 1:1 대응
+            const s1 = [
+                '홍길동',               // 직원명
+                '사원',                 // 직급/직책
+                '영업팀',               // 팀(부서)
+                `${year}-01-02 (1년)`,  // 입사일자(연차)
+                32000000,               // 연봉
+                2400000,                // 식대(연간)
+                2933000,                // 퇴직금(연금)(연간)
+                1000000,                // 명절상여
+                0,                      // 팀장수당
+                600000,                 // 통신비보조금
+                0,                      // 유류대보조금
+                500000,                 // 내일채움공제(회사지원)
+                300000,                 // 내일채움공제(국가지원)
+                100000,                 // 생일축하금
+                1200000,                // 식권(연간)
+                0,                      // 직원별합계금액(자동계산)
+                'X',                    // 법인차량제공
+                'O',                    // 장기근속상여(배당)
+                'O',                    // 개인차량 주차지원
+                '4년마다',              // 종합건강검진
+                'O',                    // 교육비지원
+                'O',                    // 경조사비
+                'O',                    // 경조휴가
+                'O',                    // 생일(케이크/반차)
+                'O',                    // 상해보험
+                'O',                    // 운전자보험
+            ];
+            const ws = XLSX.utils.aoa_to_sheet([cols, s1]);
+            ws['!cols'] = cols.map(() => ({ wch: 18 }));
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, '직원TC');
+            XLSX.writeFile(wb, `TC_Template_${year}.xlsx`);
+            showToast('✓ 템플릿 다운로드 완료');
+        }
+
+
+        /* ── TOAST ── */
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2800);
+        }
+
+        /* ── 초기화 ── */
+        initCustomizer();
+        updateCustSecNums();
+    </script>
+</body>
+
+</html>
