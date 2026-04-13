@@ -570,6 +570,88 @@
             border: none;
             width: 100%;
         }
+
+        /* ── 로그인 모달 ── */
+        .login-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 400;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-modal-backdrop.open { display: flex; }
+        .login-modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 36px 32px 28px;
+            width: 340px;
+            max-width: 92vw;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+            position: relative;
+        }
+        .login-modal-close {
+            position: absolute;
+            top: 16px; right: 16px;
+            width: 28px; height: 28px;
+            border: none; background: #f3f4f6;
+            border-radius: 7px; cursor: pointer;
+            font-size: 0.95rem; color: var(--text-sub);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-modal h3 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+        .login-modal-sub {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-bottom: 22px;
+        }
+        .login-modal .lm-field {
+            margin-bottom: 14px;
+        }
+        .login-modal .lm-field label {
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 5px;
+        }
+        .login-modal .lm-field input {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .login-modal .lm-field input:focus { border-color: var(--blue); }
+        .login-modal-err {
+            font-size: 0.8rem;
+            color: #dc2626;
+            margin-bottom: 10px;
+            min-height: 18px;
+        }
+        .btn-login-submit {
+            width: 100%;
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 11px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            font-family: inherit;
+        }
+        .btn-login-submit:hover { opacity: 0.88; }
+        .btn-login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 
@@ -583,7 +665,7 @@
         <div class="nav-user">
             <span id="nav-username">—</span>
             <button onclick="location.href='portal-settings.html'">설정</button>
-            <button onclick="location.href='index.html'">로그아웃</button>
+            <button id="btn-login-logout" onclick="onLoginLogout()">로그인</button>
         </div>
     </nav>
 
@@ -895,6 +977,26 @@
     </div>
     <div class="toast" id="toast"></div>
 
+    <!-- 로그인 모달 -->
+    <div class="login-modal-backdrop" id="login-modal-backdrop" onclick="onBackdropClick(event)">
+        <div class="login-modal">
+            <button class="login-modal-close" onclick="closeLoginModal()">✕</button>
+            <h3>로그인</h3>
+            <p class="login-modal-sub">DOW 인트라넷 계정으로 로그인하세요</p>
+            <div class="lm-field">
+                <label>성명</label>
+                <input type="text" id="lm-name" placeholder="이름 입력" autocomplete="name">
+            </div>
+            <div class="lm-field">
+                <label>PIN</label>
+                <input type="password" id="lm-pin" placeholder="PIN 입력" maxlength="10"
+                    onkeydown="if(event.key==='Enter') doLogin()">
+            </div>
+            <p class="login-modal-err" id="lm-err"></p>
+            <button class="btn-login-submit" id="lm-btn" onclick="doLogin()">로그인</button>
+        </div>
+    </div>
+
     <!-- TC 시트 오버레이 -->
     <div class="tc-overlay" id="tc-overlay">
         <div class="tc-overlay-header">
@@ -911,9 +1013,12 @@
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script>
         (function () {
-            const name = localStorage.getItem('attendance_user_name') || '테스트';
+            const name = localStorage.getItem('attendance_user_name') || '';
             const isAdmin = sessionStorage.getItem('attendance_user_is_admin') === 'true';
-            document.getElementById('nav-username').textContent = name + (isAdmin ? ' (관리자)' : '');
+            if (name) {
+                document.getElementById('nav-username').textContent = name + (isAdmin ? ' (관리자)' : '');
+                document.getElementById('btn-login-logout').textContent = '로그아웃';
+            }
         })();
 
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbwqgihWlgJlNWoUoIREVhPGmryac8D6DG0gnDB2-L7v1Pz7X-LLyvpIv4k7Gkv2lcPuvQ/exec';
@@ -1053,6 +1158,65 @@
 
         function scrollToSection(id) {
             document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // ── 로그인 모달 ──────────────────────────────────────────────
+        function onLoginLogout() {
+            const name = localStorage.getItem('attendance_user_name') || '';
+            if (name) {
+                // 로그아웃
+                localStorage.removeItem('attendance_user_name');
+                localStorage.removeItem('attendance_user_pin');
+                sessionStorage.removeItem('attendance_user_is_admin');
+                document.getElementById('nav-username').textContent = '—';
+                document.getElementById('btn-login-logout').textContent = '로그인';
+                showToast('로그아웃 됐습니다.');
+            } else {
+                openLoginModal();
+            }
+        }
+        function openLoginModal() {
+            document.getElementById('lm-name').value = '';
+            document.getElementById('lm-pin').value = '';
+            document.getElementById('lm-err').textContent = '';
+            document.getElementById('lm-btn').disabled = false;
+            document.getElementById('lm-btn').textContent = '로그인';
+            document.getElementById('login-modal-backdrop').classList.add('open');
+            setTimeout(() => document.getElementById('lm-name').focus(), 80);
+        }
+        function closeLoginModal() {
+            document.getElementById('login-modal-backdrop').classList.remove('open');
+        }
+        function onBackdropClick(e) {
+            if (e.target === document.getElementById('login-modal-backdrop')) closeLoginModal();
+        }
+        async function doLogin() {
+            const rawName = document.getElementById('lm-name').value.trim();
+            const pin = document.getElementById('lm-pin').value.trim();
+            const errEl = document.getElementById('lm-err');
+            const btn = document.getElementById('lm-btn');
+            errEl.textContent = '';
+            if (!rawName || !pin) { errEl.textContent = '성명과 PIN을 모두 입력해주세요.'; return; }
+            let name = rawName;
+            if (name === '한옥연') name = '한옥련';
+            btn.disabled = true; btn.textContent = '확인 중...';
+            try {
+                const { data, error } = await _sb.from('employees').select('name, pin, is_admin').eq('name', name).eq('pin', pin).maybeSingle();
+                if (error) throw new Error(error.message);
+                if (!data) { errEl.textContent = '이름 또는 PIN이 올바르지 않습니다.'; return; }
+                localStorage.setItem('attendance_user_name', data.name);
+                localStorage.setItem('attendance_user_pin', data.pin);
+                sessionStorage.setItem('attendance_user_is_admin', String(data.is_admin));
+                const isAdm = data.is_admin;
+                document.getElementById('nav-username').textContent = data.name + (isAdm ? ' (관리자)' : '');
+                document.getElementById('btn-login-logout').textContent = '로그아웃';
+                closeLoginModal();
+                showToast('✅ ' + data.name + '님, 로그인됐습니다.');
+            } catch (e) {
+                errEl.textContent = '오류: ' + e.message;
+            } finally {
+                btn.disabled = false; btn.textContent = '로그인';
+            }
         }
 
         // ── TC 시트 오버레이 ──────────────────────────────────────────
