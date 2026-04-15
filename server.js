@@ -6,7 +6,7 @@ const path = require('path');
 
 const app = express();
 const PORT = 3000;
-const HUB_PATH = path.resolve(__dirname, '../다우밸브-허브');
+const HUB_PATH = path.resolve(__dirname, 'hub-data');
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(__dirname));
@@ -90,7 +90,12 @@ function loadSystemPrompt() {
 - 파일 수정 시 기존 내용을 읽은 후 필요한 부분만 수정하세요
 - 변경한 파일과 내용을 사용자에게 명확히 알려주세요
 - 한국어로 간결하게 답변합니다
-- 날짜 기준: 2026-04-09\n\n`;
+- 날짜 기준: 2026-04-09
+
+## 거래처 명칭 규칙
+- 회사명이 언급되면 write 전에 반드시 companies/_index.md를 먼저 읽어 정확한 명칭과 경로를 확인하세요
+- 입력값이 기존 명칭과 유사하지만 다를 경우 write 없이 사용자에게 먼저 확인하세요
+- "추가" 키워드가 있을 때만 신규 항목을 생성하고 _index.md에도 반영하세요\n\n`;
 
     try {
         const claudeMd = fs.readFileSync(path.join(HUB_PATH, 'CLAUDE.md'), 'utf-8');

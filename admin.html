@@ -102,6 +102,18 @@
             color: #854d0e !important;
         }
 
+        /* [추가] 간략 양식 — 최조출근 / 최만퇴근 빨간색 강조 */
+        .earliest-in-cell {
+            background-color: #fee2e2 !important;
+            color: #b91c1c !important;
+            font-weight: 700 !important;
+        }
+        .latest-out-cell {
+            background-color: #fee2e2 !important;
+            color: #b91c1c !important;
+            font-weight: 700 !important;
+        }
+
         .tardy-summary-section {
             margin-top: 10px;
             padding: 8px 0px;
@@ -279,6 +291,14 @@
                             클라우드 데이터 불러오기
                         </button>
 
+                        <div style="display:flex; gap:0; border:1px solid var(--border-color); border-radius:6px; overflow:hidden; font-size:0.82rem; font-weight:500;">
+                            <label id="mode-label-standard" style="flex:1; text-align:center; padding:0.38rem 0; cursor:pointer; background:#1e40af; color:#fff; transition:all 0.15s;">
+                                <input type="radio" name="report-mode" value="standard" style="display:none;" checked> 기본 양식
+                            </label>
+                            <label id="mode-label-simple" style="flex:1; text-align:center; padding:0.38rem 0; cursor:pointer; background:#f8fafc; color:#6b7280; transition:all 0.15s;">
+                                <input type="radio" name="report-mode" value="simple" style="display:none;"> 간략 양식
+                            </label>
+                        </div>
                         <button id="print-btn" class="primary-btn"
                             style="flex: 1; background-color: #0d5e94; font-size: 0.9rem;">
                             보고서 인쇄 및 PDF 저장
@@ -2582,6 +2602,7 @@
                 if (returnMatrix) return { recordsMap, names, uniqueDates: Array.from(currentUniqueDates).sort() };
                 reportContainer.innerHTML = '';
                 const reportDate = reportDateInput.value;
+                const isSimpleMode = document.querySelector('input[name="report-mode"]:checked')?.value === 'simple';
                 const weekdaysMap = ["일", "월", "화", "수", "목", "금", "토"];
                 const skipCheckKeywords = ['출장', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '교육', '훈련', '파견', '현장', '반차', '오전반차', '오후반차', '예비군'];
 
@@ -2628,10 +2649,41 @@
     `;
 
                     const table = document.createElement('table');
-                    table.className = 'matrix-table';
+                    table.className = isSimpleMode ? 'matrix-table matrix-table-simple' : 'matrix-table';
 
                     // [추가] 이번 페이지의 지각자 명단을 수집할 배열
                     let pageTardySummary = [];
+
+                    // [간략 양식] 날짜별 최조출근 / 최만퇴근 사원 사전 계산
+                    const earliestInMap = {};  // dt → { name, time }
+                    const latestOutMap = {};   // dt → { name, time }
+                    if (isSimpleMode) {
+                        const toMinutes = str => {
+                            if (!str || typeof str !== 'string') return null;
+                            const s = str.replace(':', '').trim();
+                            if (s.length < 4 || isNaN(parseInt(s))) return null;
+                            return parseInt(s.substring(0, 2)) * 60 + parseInt(s.substring(2, 4));
+                        };
+                        datesChunk.forEach(dt => {
+                            filteredNames.forEach(n => {
+                                const empI = employeeConfigList.find(e => normalizeName(e.name) === n) || {};
+                                const isOOR = (empI.joinDate && dt < empI.joinDate) || (empI.leaveDate && dt > empI.leaveDate);
+                                if (isOOR) return;
+                                const r = (recordsMap[n] || {})[dt] || {};
+                                const inMin = toMinutes(r.inTime);
+                                const outMin = toMinutes(r.outTime);
+                                if (inMin !== null) {
+                                    if (!earliestInMap[dt] || inMin < earliestInMap[dt].min)
+                                        earliestInMap[dt] = { name: n, min: inMin };
+                                }
+                                if (outMin !== null) {
+                                    if (!latestOutMap[dt] || outMin > latestOutMap[dt].min)
+                                        latestOutMap[dt] = { name: n, min: outMin };
+                                }
+                            });
+                        });
+                    }
+
                     let theadHtml = `<thead><tr><th colspan="2" class="sticky-col corner-cell">일자</th>`;
 
                     // [수정] 실제 데이터가 있는 날짜만 렌더링하도록 루프 변경 (빈 열 삭제)
@@ -2639,14 +2691,19 @@
                         const d = new Date(dt);
                         theadHtml += `<th class="th-dategroup">${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}<br>(${weekdaysMap[d.getDay()]})</th>`;
                     });
+                    if (isSimpleMode) theadHtml += `<th style="min-width:28px; text-align:center;">잔여<br>연차</th>`;
                     theadHtml += `</tr></thead>`;
 
                     let tbodyHtml = `<tbody>`;
-                    filteredNames.forEach(name => {
+                    const renderNames = isSimpleMode
+                        ? [...filteredNames].sort((a, b) => a.localeCompare(b, 'ko'))
+                        : filteredNames;
+                    renderNames.forEach((name, nameIdx) => {
                         const recs = recordsMap[name] || {};
                         const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
+                        const nameLabel = isSimpleMode ? `${nameIdx + 1}. ${name}` : name;
 
-                        tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
+                        tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${nameLabel}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
                             const corrKey = `${name}_${dt}`;
@@ -2677,7 +2734,7 @@
                                 }
                             }
 
-                            let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
+                            let hlClass = (!isSimpleMode && showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].in) ? ' anomaly-highlight' : '';
 
                             // [추가] 지각 판별 및 노란색 우선 표기 로직 (업무상 사유 및 정상출근 확인건 제외)
                             let isTardy = false;
@@ -2712,13 +2769,15 @@
 
                             let cls = '';
                             if (isOutRange) cls = 'not-employed';
-                            else if (val === '연차') cls = 'leave-annual';
-                            else if (val === '반차') cls = 'leave-half';
-                            else if (isTardy && !isConfirmedIn) cls = 'tardy-yellow'; 
-                            else if (hasRec && isConfirmedIn) cls = 'confirmed-cell';
+                            else if (!isSimpleMode && val === '연차') cls = 'leave-annual';
+                            else if (!isSimpleMode && val === '반차') cls = 'leave-half';
+                            else if (isTardy && !isConfirmedIn) cls = 'tardy-yellow';
+                            else if (!isSimpleMode && hasRec && isConfirmedIn) cls = 'confirmed-cell';
+                            else if (isSimpleMode && !isOutRange && earliestInMap[dt]?.name === name) cls = 'earliest-in-cell';
 
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
+                        if (isSimpleMode) tbodyHtml += `<td rowspan="3" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"></td>`;
                         tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
@@ -2752,11 +2811,12 @@
 
                             let cls = '';
                             if (isOutRange) cls = 'not-employed';
-                            else if (val === '연차') cls = 'leave-annual';
-                            else if (val === '반차') cls = 'leave-half';
-                            else if (hasRecOut && isConfirmedOut) cls = 'confirmed-cell';
+                            else if (!isSimpleMode && val === '연차') cls = 'leave-annual';
+                            else if (!isSimpleMode && val === '반차') cls = 'leave-half';
+                            else if (!isSimpleMode && hasRecOut && isConfirmedOut) cls = 'confirmed-cell';
+                            else if (isSimpleMode && !isOutRange && latestOutMap[dt]?.name === name) cls = 'latest-out-cell';
 
-                            let hlClass = (showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
+                            let hlClass = (!isSimpleMode && showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
                         tbodyHtml += `</tr><tr class="employee-border-bottom"><td class="sticky-col td-label label-reason">사유</td>`;
@@ -2830,10 +2890,17 @@
                     tbodyHtml += `</tbody>`;
 
                     table.innerHTML = theadHtml + tbodyHtml;
-                    pageDiv.appendChild(table);
+                    if (isSimpleMode) {
+                        const tableWrap = document.createElement('div');
+                        tableWrap.className = 'matrix-table-simple-wrap';
+                        tableWrap.appendChild(table);
+                        pageDiv.appendChild(tableWrap);
+                    } else {
+                        pageDiv.appendChild(table);
+                    }
 
-                    // [추가] 지각 현황 요약 섹션 렌더링
-                    if (pageTardySummary.length > 0) {
+                    // [추가] 지각 현황 요약 섹션 렌더링 (간략 양식에서는 생략)
+                    if (!isSimpleMode && pageTardySummary.length > 0) {
                         const summaryWrap = document.createElement('div');
                         summaryWrap.className = 'tardy-summary-section';
 
@@ -3516,6 +3583,20 @@
                 if (e.target === holidayModal) holidayModal.classList.add('hidden');
             });
 
+            // 양식 선택 토글
+            document.querySelectorAll('input[name="report-mode"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    const isSimple = radio.value === 'simple';
+                    document.getElementById('mode-label-standard').style.cssText =
+                        `flex:1; text-align:center; padding:0.38rem 0; cursor:pointer; transition:all 0.15s; background:${isSimple ? '#f8fafc' : '#1e40af'}; color:${isSimple ? '#6b7280' : '#fff'};`;
+                    document.getElementById('mode-label-simple').style.cssText =
+                        `flex:1; text-align:center; padding:0.38rem 0; cursor:pointer; transition:all 0.15s; background:${isSimple ? '#1e40af' : '#f8fafc'}; color:${isSimple ? '#fff' : '#6b7280'};`;
+                    if (!reportContainer.classList.contains('hidden')) {
+                        updateAndProcessData();
+                    }
+                });
+            });
+
             // 공통 이벤트
             reportDateInput.addEventListener('change', (e) => {
                 document.querySelectorAll('.current-report-date-display').forEach(el => el.textContent = e.target.value);
@@ -3996,7 +4077,7 @@
                     setProgress('보고서 저장 중...', 'Supabase에 영구 저장하고 있습니다');
                     const allDates = Array.from(currentUniqueDates).sort();
                     let periodStart = '', periodEnd = '', reportKey = '';
-                    if (allDates.length > 0 && supabase) {
+                    if (!skipUpload && allDates.length > 0 && supabase) {
                         const refDate = new Date(allDates[0]);
                         const yStr = refDate.getFullYear();
                         const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
@@ -4050,7 +4131,7 @@
                     }
 
                     // ── 2. PDF 생성 → 구글 드라이브 업로드 ───────────────
-                    try {
+                    if (!skipUpload) try {
                         setProgress('PDF 생성 중...', '보고서를 PDF로 변환하고 있습니다');
                         printConfirmOk.textContent = 'PDF 생성 중...';
                         const { jsPDF } = window.jspdf;

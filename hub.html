@@ -79,7 +79,13 @@
         }
 
         /* Quick prompts */
-        .quick-prompts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 8px; }
+        .quick-prompts { display: flex; flex-direction: column; gap: 10px; padding: 0 0 8px; }
+        .quick-category { display: flex; flex-direction: column; gap: 6px; }
+        .quick-category-label {
+            font-size: 0.66rem; font-weight: 700; color: var(--text-sub);
+            letter-spacing: 0.06em; text-transform: uppercase;
+        }
+        .quick-btns-row { display: flex; flex-wrap: wrap; gap: 6px; }
         .quick-btn {
             background: var(--surface); border: 1px solid var(--border);
             border-radius: 20px; padding: 6px 14px; font-size: 0.78rem;
@@ -159,10 +165,10 @@
             flex-shrink: 0;
         }
         #chat-input {
-            flex: 1; border: 1px solid var(--border); border-radius: 12px;
-            padding: 10px 14px; font-size: 0.85rem; font-family: inherit;
-            resize: none; outline: none; max-height: 120px; min-height: 42px;
-            line-height: 1.5; color: var(--text);
+            width: 100%; border: 1px solid var(--border); border-radius: 12px;
+            padding: 12px 16px; font-size: 0.88rem; font-family: inherit;
+            resize: none; outline: none; max-height: 200px; min-height: 80px;
+            line-height: 1.6; color: var(--text);
             transition: border-color 0.15s;
         }
         #chat-input:focus { border-color: var(--blue); }
@@ -232,11 +238,29 @@
                 </div>
             </div>
             <div class="quick-prompts" id="quick-prompts">
-                <button class="quick-btn" onclick="sendQuick('파이프라인 현황 요약해줘')">📊 파이프라인 현황</button>
-                <button class="quick-btn" onclick="sendQuick('이번 주 영업 리포트 만들어줘')">📋 주간 리포트 생성</button>
-                <button class="quick-btn" onclick="sendQuick('OKR 기한 초과 건 알려줘')">🎯 OKR 기한 초과</button>
-                <button class="quick-btn" onclick="sendQuick('inbox 처리해줘')">📥 inbox 처리</button>
-                <button class="quick-btn" onclick="sendQuick('이번 주 주의해야 할 건 뭐야?')">⚠️ 주의 건 확인</button>
+                <div class="quick-category">
+                    <div class="quick-category-label">업무 현황</div>
+                    <div class="quick-btns-row">
+                        <button class="quick-btn" onclick="sendQuick('파이프라인 현황 요약해줘')">📊 파이프라인 현황</button>
+                        <button class="quick-btn" onclick="sendQuick('이번 주 주간 리포트 만들어줘')">📋 주간 리포트</button>
+                        <button class="quick-btn" onclick="sendQuick('OKR 전체 현황과 기한 초과 건 알려줘')">🎯 OKR 현황</button>
+                        <button class="quick-btn" onclick="sendQuick('이번 주 주의해야 할 건 뭐야?')">⚠️ 주의 건 확인</button>
+                    </div>
+                </div>
+                <div class="quick-category">
+                    <div class="quick-category-label">거래처</div>
+                    <div class="quick-btns-row">
+                        <button class="quick-btn" onclick="sendQuick('거래처 목록 보여줘')">🏢 거래처 조회</button>
+                        <button class="quick-btn" onclick="focusInput('미팅 기록: ')">📝 미팅 기록</button>
+                    </div>
+                </div>
+                <div class="quick-category">
+                    <div class="quick-category-label">기록 / 정리</div>
+                    <div class="quick-btns-row">
+                        <button class="quick-btn" onclick="sendQuick('inbox 처리해줘')">📥 inbox 처리</button>
+                        <button class="quick-btn" onclick="sendQuick('채널별 영업 현황 알려줘')">📈 채널 현황</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -265,9 +289,8 @@
 <script>
     // ── 접근 제한 ──────────────────────────────────────────────────────────────
     (function () {
-        const isAdmin = sessionStorage.getItem('attendance_user_is_admin');
         const name = localStorage.getItem('attendance_user_name');
-        if (!name || isAdmin !== 'true') { location.href = 'index.html'; return; }
+        if (!name) { location.href = 'index.html'; return; }
         document.getElementById('nav-username').textContent = name;
     })();
 
@@ -292,8 +315,10 @@
 
     const SECTION_LABELS = {
         'sales': '영업',
-        'sales/customers': '고객사',
-        'sales/analysis': '분석',
+        'sales/analysis': '영업 분석',
+        'sales/channels': '채널',
+        'companies/customers': '고객사',
+        'companies/suppliers': '공급사',
         'team': '팀',
         'ontology': '온톨로지',
         'inbox': 'Inbox'
@@ -301,7 +326,7 @@
 
     function renderFileTree(data) {
         const tree = document.getElementById('file-tree');
-        const order = ['sales', 'sales/customers', 'team', 'ontology', 'inbox', 'sales/analysis'];
+        const order = ['sales', 'companies/customers', 'companies/suppliers', 'team', 'ontology', 'inbox', 'sales/analysis', 'sales/channels'];
         let html = '';
 
         order.forEach(section => {
@@ -473,6 +498,13 @@
     function sendQuick(text) {
         document.getElementById('chat-input').value = text;
         sendMessage();
+    }
+
+    function focusInput(prefix) {
+        const input = document.getElementById('chat-input');
+        input.value = prefix;
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
     }
 
     // ── 입력창 자동 높이 ───────────────────────────────────────────────────────
