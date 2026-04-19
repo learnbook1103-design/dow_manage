@@ -273,6 +273,41 @@
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+        /* TIMELINE */
+        .timeline { display: flex; flex-direction: column; gap: 12px; }
+        .tl-item { display: grid; grid-template-columns: 90px 1fr; gap: 16px; align-items: start; }
+        .tl-date { font-size: 0.75rem; font-weight: 600; color: var(--text-sub); padding-top: 14px; white-space: nowrap; }
+        .tl-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 16px;
+        }
+        .tl-tag {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: #5b21b6;
+            background: #ede9fe;
+            border-radius: 20px;
+            padding: 2px 9px;
+            margin-bottom: 7px;
+        }
+        .tl-title { font-size: 0.88rem; font-weight: 700; margin-bottom: 5px; }
+        .tl-meta { font-size: 0.78rem; color: var(--text-sub); margin-bottom: 6px; }
+        .tl-list {
+            margin: 6px 0 0 16px;
+            padding: 0;
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            line-height: 1.7;
+        }
+        @media (max-width: 480px) {
+            .tl-item { grid-template-columns: 1fr; gap: 4px; }
+            .tl-date { padding-top: 0; }
+        }
+
         /* LOGIN MODAL */
         .login-modal-backdrop {
             display: none;
@@ -363,11 +398,13 @@
                     <div class="type-card-icon">🌸</div>
                     <div class="type-card-label">경조사비</div>
                 </div>
-                <div class="type-card" onclick="selectType('출장비', this)">
+                <div class="type-card" onclick="selectType('출장비', this)" style="position:relative;">
+                    <span style="position:absolute;top:8px;right:8px;font-size:0.6rem;font-weight:700;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:10px;">테스트</span>
                     <div class="type-card-icon">✈️</div>
                     <div class="type-card-label">출장비 신청</div>
                 </div>
-                <div class="type-card" onclick="selectType('식비', this)">
+                <div class="type-card" onclick="selectType('식비', this)" style="position:relative;">
+                    <span style="position:absolute;top:8px;right:8px;font-size:0.6rem;font-weight:700;background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:10px;">테스트</span>
                     <div class="type-card-icon">🍽️</div>
                     <div class="type-card-label">식비 사용내역</div>
                 </div>
@@ -527,6 +564,54 @@
                 <button class="filter-btn" onclick="filterList('rejected', this)">반려</button>
             </div>
             <div id="ap-list-container"><p style="color:var(--text-sub);font-size:0.85rem;">불러오는 중...</p></div>
+        </div>
+
+        <!-- 개발 히스토리 -->
+        <div style="margin-top:3rem;">
+            <div style="font-size:0.82rem;font-weight:700;color:var(--text-sub);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:1rem;padding-bottom:0.5rem;border-bottom:1px solid var(--border);">개발 히스토리</div>
+            <div class="timeline">
+                <div class="tl-item">
+                    <div class="tl-date">2026-04-03</div>
+                    <div class="tl-card">
+                        <div class="tl-tag">비품/소모품 결재</div>
+                        <div class="tl-title">구매 신청서 · 경조사비 신청서 폼 제작 및 시트 연동</div>
+                    </div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-date">2026-03-31</div>
+                    <div class="tl-card">
+                        <div class="tl-tag">피드백</div>
+                        <div class="tl-title">비품/소모품 결재 추가 요건</div>
+                        <ul class="tl-list">
+                            <li>경조사 관련 사항 추가</li>
+                            <li>부서에 따른 결재 방식 고려</li>
+                            <li>청구 방법 소개란 추가</li>
+                            <li>한도 / 청구 기준 경고창</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-date">2026-03-24</div>
+                    <div class="tl-card">
+                        <div class="tl-tag">비품/소모품</div>
+                        <div class="tl-title">비품 관리 리스트 수령</div>
+                        <div class="tl-meta">국내외 관리영업팀 김현욱 선임</div>
+                    </div>
+                </div>
+                <div class="tl-item">
+                    <div class="tl-date">2026-03-20</div>
+                    <div class="tl-card">
+                        <div class="tl-tag">비품/소모품</div>
+                        <div class="tl-title">결재 방안 회의</div>
+                        <div class="tl-meta">국내외 관리영업팀 김혜원 부장, 김현욱 선임</div>
+                        <ul class="tl-list">
+                            <li>시스템 기능 범위 확대 — 비품 내역 업로드, 구매 시 자동 업데이트, 처리 기준 설정 필요</li>
+                            <li>비용 청구 항목 (김현욱 선임 자료 제공 예정)</li>
+                            <li>관리부 구매 품목 정리 (김현욱 선임 자료 제공 예정)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </main>
 
