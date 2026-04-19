@@ -102,7 +102,7 @@
             color: #854d0e !important;
         }
 
-        /* [추가] 간략 양식 — 최조출근 / 최만퇴근 빨간색 강조 */
+        /* [추가] 간략 양식 — 최조출근 / 최만퇴근 강조 (일반) */
         .earliest-in-cell {
             background-color: #fee2e2 !important;
             color: #b91c1c !important;
@@ -111,6 +111,17 @@
         .latest-out-cell {
             background-color: #fee2e2 !important;
             color: #b91c1c !important;
+            font-weight: 700 !important;
+        }
+        /* 밸브파크팀 그룹 강조 (파랑) */
+        .earliest-in-cell-park {
+            background-color: #dbeafe !important;
+            color: #1d4ed8 !important;
+            font-weight: 700 !important;
+        }
+        .latest-out-cell-park {
+            background-color: #dbeafe !important;
+            color: #1d4ed8 !important;
             font-weight: 700 !important;
         }
 
@@ -293,10 +304,10 @@
 
                         <div style="display:flex; gap:0; border:1px solid var(--border-color); border-radius:6px; overflow:hidden; font-size:0.82rem; font-weight:500;">
                             <label id="mode-label-standard" style="flex:1; text-align:center; padding:0.38rem 0; cursor:pointer; background:#1e40af; color:#fff; transition:all 0.15s;">
-                                <input type="radio" name="report-mode" value="standard" style="display:none;" checked> 기본 양식
+                                <input type="radio" name="report-mode" value="standard" style="display:none;" checked> 양식 1
                             </label>
                             <label id="mode-label-simple" style="flex:1; text-align:center; padding:0.38rem 0; cursor:pointer; background:#f8fafc; color:#6b7280; transition:all 0.15s;">
-                                <input type="radio" name="report-mode" value="simple" style="display:none;"> 간략 양식
+                                <input type="radio" name="report-mode" value="simple" style="display:none;"> 양식 2
                             </label>
                         </div>
                         <button id="print-btn" class="primary-btn"
@@ -2654,9 +2665,11 @@
                     // [추가] 이번 페이지의 지각자 명단을 수집할 배열
                     let pageTardySummary = [];
 
-                    // [간략 양식] 날짜별 최조출근 / 최만퇴근 사원 사전 계산
-                    const earliestInMap = {};  // dt → { name, time }
-                    const latestOutMap = {};   // dt → { name, time }
+                    // [간략 양식] 날짜별 최조출근 / 최만퇴근 사원 사전 계산 (그룹별 분리)
+                    const earliestInMap = {};      // dt → { name } — 밸브파크 외
+                    const latestOutMap = {};        // dt → { name } — 밸브파크 외
+                    const earliestInMapPark = {};   // dt → { name } — 밸브파크
+                    const latestOutMapPark = {};    // dt → { name } — 밸브파크
                     if (isSimpleMode) {
                         const toMinutes = str => {
                             if (!str || typeof str !== 'string') return null;
@@ -2669,15 +2682,19 @@
                                 const empI = employeeConfigList.find(e => normalizeName(e.name) === n) || {};
                                 const isOOR = (empI.joinDate && dt < empI.joinDate) || (empI.leaveDate && dt > empI.leaveDate);
                                 if (isOOR) return;
+                                const isPark = (empI.org || '').includes('밸브파크');
                                 const r = (recordsMap[n] || {})[dt] || {};
                                 const inMin = toMinutes(r.inTime);
                                 const outMin = toMinutes(r.outTime);
-                                if (inMin !== null) {
-                                    if (!earliestInMap[dt] || inMin < earliestInMap[dt].min)
+                                if (isPark) {
+                                    if (inMin !== null && (!earliestInMapPark[dt] || inMin < earliestInMapPark[dt].min))
+                                        earliestInMapPark[dt] = { name: n, min: inMin };
+                                    if (outMin !== null && (!latestOutMapPark[dt] || outMin > latestOutMapPark[dt].min))
+                                        latestOutMapPark[dt] = { name: n, min: outMin };
+                                } else {
+                                    if (inMin !== null && (!earliestInMap[dt] || inMin < earliestInMap[dt].min))
                                         earliestInMap[dt] = { name: n, min: inMin };
-                                }
-                                if (outMin !== null) {
-                                    if (!latestOutMap[dt] || outMin > latestOutMap[dt].min)
+                                    if (outMin !== null && (!latestOutMap[dt] || outMin > latestOutMap[dt].min))
                                         latestOutMap[dt] = { name: n, min: outMin };
                                 }
                             });
@@ -2696,7 +2713,15 @@
 
                     let tbodyHtml = `<tbody>`;
                     const renderNames = isSimpleMode
-                        ? [...filteredNames].sort((a, b) => a.localeCompare(b, 'ko'))
+                        ? (() => {
+                            const isValvePark = n => {
+                                const empI = employeeConfigList.find(e => normalizeName(e.name) === n) || {};
+                                return (empI.org || '').includes('밸브파크');
+                            };
+                            const main = [...filteredNames].filter(n => !isValvePark(n)).sort((a, b) => a.localeCompare(b, 'ko'));
+                            const park = [...filteredNames].filter(n => isValvePark(n)).sort((a, b) => a.localeCompare(b, 'ko'));
+                            return [...main, ...park];
+                        })()
                         : filteredNames;
                     renderNames.forEach((name, nameIdx) => {
                         const recs = recordsMap[name] || {};
@@ -2773,7 +2798,8 @@
                             else if (!isSimpleMode && val === '반차') cls = 'leave-half';
                             else if (isTardy && !isConfirmedIn) cls = 'tardy-yellow';
                             else if (!isSimpleMode && hasRec && isConfirmedIn) cls = 'confirmed-cell';
-                            else if (isSimpleMode && !isOutRange && earliestInMap[dt]?.name === name) cls = 'earliest-in-cell';
+                            else if (isSimpleMode && !isOutRange && (empInfo.org || '').includes('밸브파크') && earliestInMapPark[dt]?.name === name) cls = 'earliest-in-cell-park';
+                            else if (isSimpleMode && !isOutRange && !(empInfo.org || '').includes('밸브파크') && earliestInMap[dt]?.name === name) cls = 'earliest-in-cell';
 
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
@@ -2814,7 +2840,8 @@
                             else if (!isSimpleMode && val === '연차') cls = 'leave-annual';
                             else if (!isSimpleMode && val === '반차') cls = 'leave-half';
                             else if (!isSimpleMode && hasRecOut && isConfirmedOut) cls = 'confirmed-cell';
-                            else if (isSimpleMode && !isOutRange && latestOutMap[dt]?.name === name) cls = 'latest-out-cell';
+                            else if (isSimpleMode && !isOutRange && (empInfo.org || '').includes('밸브파크') && latestOutMapPark[dt]?.name === name) cls = 'latest-out-cell-park';
+                            else if (isSimpleMode && !isOutRange && !(empInfo.org || '').includes('밸브파크') && latestOutMap[dt]?.name === name) cls = 'latest-out-cell';
 
                             let hlClass = (!isSimpleMode && showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;

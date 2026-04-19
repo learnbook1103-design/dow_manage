@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>결재 시스템 — DOW Valve</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --surface: #ffffff;
+            --border: rgba(0, 0, 0, 0.08);
+            --text: #1d1d1f;
+            --text-sub: #6e6e73;
+            --blue: #0071e3;
+            --green: #1d8348;
+            --purple: #7C3AED;
+            --radius: 18px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* NAV */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 52px;
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            z-index: 100;
+        }
+        .nav-left { display: flex; align-items: center; gap: 14px; }
+        .nav-logo { font-size: 0.95rem; font-weight: 700; }
+        .nav-logo span { color: var(--blue); }
+        .nav-back {
+            font-size: 0.82rem;
+            color: var(--text-sub);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        .nav-back:hover { background: #f3f4f6; }
+        .nav-user {
+            font-size: 0.82rem;
+            color: var(--text-sub);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .nav-user button {
+            background: none;
+            border: 1px solid var(--border);
+            padding: 3px 12px;
+            border-radius: 8px;
+            font-size: 0.78rem;
+            cursor: pointer;
+            color: var(--text-sub);
+            font-family: inherit;
+        }
+
+        /* LAYOUT */
+        main {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 80px 22px 60px;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .page-sub {
+            font-size: 0.88rem;
+            color: var(--text-sub);
+            margin-bottom: 2rem;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.8rem;
+        }
+        .tab {
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-sub);
+            border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+        /* TYPE GRID */
+        .type-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 540px) { .type-grid { grid-template-columns: 1fr 1fr; } }
+        .type-card {
+            border: 1.5px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 10px;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            text-align: center;
+            background: var(--surface);
+        }
+        .type-card:hover { border-color: var(--blue); }
+        .type-card.selected { border-color: var(--blue); background: #eff6ff; }
+        .type-card-icon { font-size: 1.6rem; margin-bottom: 7px; }
+        .type-card-label { font-size: 0.8rem; font-weight: 600; color: var(--text); }
+
+        /* FORM */
+        .ap-form { display: none; }
+        .ap-form.visible { display: block; }
+        .form-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.6rem;
+        }
+        .ap-field { margin-bottom: 14px; }
+        .ap-field label {
+            display: block;
+            font-size: 0.79rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 5px;
+        }
+        .ap-field input, .ap-field select, .ap-field textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 9px 12px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fff;
+        }
+        .ap-field input:focus, .ap-field select:focus, .ap-field textarea:focus {
+            border-color: var(--blue);
+        }
+        .ap-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .ap-amount-total {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #065f46;
+            margin-bottom: 14px;
+        }
+        .btn-submit {
+            width: 100%;
+            background: var(--blue);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 13px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 4px;
+            transition: opacity 0.2s;
+            font-family: inherit;
+        }
+        .btn-submit:hover { opacity: 0.88; }
+        .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        /* LIST */
+        .list-filter {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 5px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            background: #fff;
+            color: var(--text-sub);
+            font-family: inherit;
+            transition: background 0.2s, color 0.2s;
+        }
+        .filter-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .ap-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 18px;
+            margin-bottom: 10px;
+        }
+        .ap-item-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+        .ap-item-title { font-size: 0.92rem; font-weight: 700; }
+        .ap-badge {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-approved { background: #d1fae5; color: #065f46; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
+        .ap-item-meta { font-size: 0.78rem; color: var(--text-sub); margin-bottom: 8px; }
+        .ap-item-actions { display: flex; gap: 8px; }
+        .btn-approve {
+            flex: 1; padding: 7px; border: none; border-radius: 8px;
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            background: #d1fae5; color: #065f46; font-family: inherit;
+        }
+        .btn-reject {
+            flex: 1; padding: 7px; border: none; border-radius: 8px;
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            background: #fee2e2; color: #991b1b; font-family: inherit;
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1d1d1f;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 24px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* LOGIN MODAL */
+        .login-modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 400;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-modal-backdrop.open { display: flex; }
+        .login-modal {
+            background: #fff;
+            border-radius: 20px;
+            padding: 36px 32px 28px;
+            width: 340px;
+            max-width: 92vw;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+            position: relative;
+        }
+        .login-modal-close {
+            position: absolute;
+            top: 16px; right: 16px;
+            width: 28px; height: 28px;
+            border: none; background: #f3f4f6;
+            border-radius: 7px; cursor: pointer;
+            font-size: 0.95rem; color: var(--text-sub);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .login-modal h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 6px; }
+        .login-modal-sub { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 22px; }
+        .lm-field { margin-bottom: 14px; }
+        .lm-field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 5px; }
+        .lm-field input {
+            width: 100%; border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 14px; font-size: 0.9rem; font-family: inherit;
+            outline: none; transition: border-color 0.2s;
+        }
+        .lm-field input:focus { border-color: var(--blue); }
+        .login-modal-err { font-size: 0.8rem; color: #dc2626; margin-bottom: 10px; min-height: 18px; }
+        .btn-login-submit {
+            width: 100%; background: var(--blue); color: #fff;
+            border: none; border-radius: 10px; padding: 11px;
+            font-size: 0.9rem; font-weight: 700; cursor: pointer;
+            transition: opacity 0.2s; font-family: inherit;
+        }
+        .btn-login-submit:hover { opacity: 0.88; }
+        .btn-login-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <div class="nav-left">
+            <span class="nav-logo">DOW <span>Valve</span></span>
+        </div>
+        <div class="nav-user">
+            <span id="nav-username">—</span>
+            <button id="btn-login-logout" onclick="onLoginLogout()">로그인</button>
+        </div>
+    </nav>
+
+    <main>
+        <h1 class="page-title">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5b21b6" stroke-width="1.8">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                <rect x="9" y="3" width="6" height="4" rx="1"/>
+                <line x1="9" y1="12" x2="15" y2="12"/>
+                <line x1="9" y1="16" x2="13" y2="16"/>
+            </svg>
+            결재 시스템
+        </h1>
+        <p class="page-sub">비품구매 · 경조사비 · 출장비 · 식비 신청 및 결재</p>
+
+        <div class="tabs">
+            <div class="tab active" id="tab-submit" onclick="switchTab('submit')">신청하기</div>
+            <div class="tab" id="tab-list" onclick="switchTab('list')">결재 현황</div>
+        </div>
+
+        <!-- 신청하기 -->
+        <div id="pane-submit">
+            <div class="type-grid">
+                <div class="type-card" onclick="window.open('https://docs.google.com/forms/d/15yH18qfJ6DWmmrhFx_1ugAaMr5LYVdmcYf4-3KEDFGw/edit','_blank')">
+                    <div class="type-card-icon">🛒</div>
+                    <div class="type-card-label">비품 · 소모품</div>
+                </div>
+                <div class="type-card" onclick="window.open('https://docs.google.com/forms/d/12KIH2-QR28HV7JDasz9mdhrvI9xpR1ghiDr0r8PDp1w/edit','_blank')">
+                    <div class="type-card-icon">🌸</div>
+                    <div class="type-card-label">경조사비</div>
+                </div>
+                <div class="type-card" onclick="selectType('출장비', this)">
+                    <div class="type-card-icon">✈️</div>
+                    <div class="type-card-label">출장비 신청</div>
+                </div>
+                <div class="type-card" onclick="selectType('식비', this)">
+                    <div class="type-card-icon">🍽️</div>
+                    <div class="type-card-label">식비 사용내역</div>
+                </div>
+            </div>
+
+            <!-- 비품구매 폼 -->
+            <div class="ap-form" id="form-비품구매">
+                <div class="form-card">
+                    <div class="ap-field">
+                        <label>구매 구분</label>
+                        <select id="f-category">
+                            <option value="소모품">소모품</option>
+                            <option value="고정자산(비품)">고정자산 (비품)</option>
+                        </select>
+                    </div>
+                    <div class="ap-field">
+                        <label>품목명</label>
+                        <input type="text" id="f-item" placeholder="예) A4 용지">
+                    </div>
+                    <div class="ap-field">
+                        <label>상세 사양 / 모델명</label>
+                        <input type="text" id="f-spec" placeholder="예) 500매 1박스">
+                    </div>
+                    <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>수량</label>
+                            <input type="number" id="f-qty" placeholder="1" min="1">
+                        </div>
+                        <div class="ap-field">
+                            <label>신청 금액 (원)</label>
+                            <input type="number" id="f-amount-purchase" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="ap-field">
+                        <label>구매 링크</label>
+                        <input type="text" id="f-link" placeholder="https://...">
+                    </div>
+                    <div class="ap-field">
+                        <label>구매 사유</label>
+                        <input type="text" id="f-purchase-reason" placeholder="예) 사무용 소모품 보충">
+                    </div>
+                    <button class="btn-submit" onclick="submitApproval('비품구매')">신청하기</button>
+                </div>
+            </div>
+
+            <!-- 경조사비 폼 -->
+            <div class="ap-form" id="form-경조사비">
+                <div class="form-card">
+                    <div class="ap-field">
+                        <label>경조 사유</label>
+                        <select id="f-reason">
+                            <option value="결혼">결혼</option>
+                            <option value="출산">출산</option>
+                            <option value="부친상">부친상</option>
+                            <option value="모친상">모친상</option>
+                            <option value="조부모상">조부모상</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div class="ap-field">
+                        <label>대상자 (성명)</label>
+                        <input type="text" id="f-recipient" placeholder="예) 홍길동">
+                    </div>
+                    <div class="ap-field">
+                        <label>관계</label>
+                        <input type="text" id="f-relation" placeholder="예) 직계존속, 배우자">
+                    </div>
+                    <div class="ap-field">
+                        <label>신청 금액 (원)</label>
+                        <input type="number" id="f-amount-condolence" placeholder="0">
+                    </div>
+                    <button class="btn-submit" onclick="submitApproval('경조사비')">신청하기</button>
+                </div>
+            </div>
+
+            <!-- 출장비 폼 -->
+            <div class="ap-form" id="form-출장비">
+                <div class="form-card">
+                    <div class="ap-field">
+                        <label>출장지</label>
+                        <input type="text" id="f-destination" placeholder="예) 부산">
+                    </div>
+                    <div class="ap-field">
+                        <label>출장 목적</label>
+                        <input type="text" id="f-purpose" placeholder="예) 고객사 방문">
+                    </div>
+                    <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>출장 시작일</label>
+                            <input type="date" id="f-date-from">
+                        </div>
+                        <div class="ap-field">
+                            <label>출장 종료일</label>
+                            <input type="date" id="f-date-to">
+                        </div>
+                    </div>
+                    <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>교통비 (원)</label>
+                            <input type="number" id="f-transport" placeholder="0" oninput="calcTrip()">
+                        </div>
+                        <div class="ap-field">
+                            <label>숙박비 (원)</label>
+                            <input type="number" id="f-accommodation" placeholder="0" oninput="calcTrip()">
+                        </div>
+                    </div>
+                    <div class="ap-field">
+                        <label>기타 경비 (원)</label>
+                        <input type="number" id="f-etc" placeholder="0" oninput="calcTrip()">
+                    </div>
+                    <div class="ap-amount-total" id="trip-total">합계: 0 원</div>
+                    <button class="btn-submit" onclick="submitApproval('출장비')">신청하기</button>
+                </div>
+            </div>
+
+            <!-- 식비 폼 -->
+            <div class="ap-form" id="form-식비">
+                <div class="form-card">
+                    <div class="ap-field">
+                        <label>사용 일자</label>
+                        <input type="date" id="f-meal-date">
+                    </div>
+                    <div class="ap-field">
+                        <label>사용처</label>
+                        <input type="text" id="f-place" placeholder="예) 한우마을 강남점">
+                    </div>
+                    <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>참석 인원</label>
+                            <input type="number" id="f-headcount" placeholder="1" min="1">
+                        </div>
+                        <div class="ap-field">
+                            <label>금액 (원)</label>
+                            <input type="number" id="f-amount-meal" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="ap-field">
+                        <label>목적</label>
+                        <select id="f-meal-purpose">
+                            <option value="거래처 접대">거래처 접대</option>
+                            <option value="팀 회식">팀 회식</option>
+                            <option value="사내 미팅">사내 미팅</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <button class="btn-submit" onclick="submitApproval('식비')">신청하기</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 결재 현황 -->
+        <div id="pane-list" style="display:none;">
+            <div class="list-filter">
+                <button class="filter-btn active" onclick="filterList('all', this)">전체</button>
+                <button class="filter-btn" onclick="filterList('pending', this)">대기</button>
+                <button class="filter-btn" onclick="filterList('approved', this)">승인</button>
+                <button class="filter-btn" onclick="filterList('rejected', this)">반려</button>
+            </div>
+            <div id="ap-list-container"><p style="color:var(--text-sub);font-size:0.85rem;">불러오는 중...</p></div>
+        </div>
+    </main>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- 로그인 모달 -->
+    <div class="login-modal-backdrop" id="login-modal-backdrop" onclick="onBackdropClick(event)">
+        <div class="login-modal">
+            <button class="login-modal-close" onclick="closeLoginModal()">✕</button>
+            <h3>로그인</h3>
+            <p class="login-modal-sub">DOW 인트라넷 계정으로 로그인하세요</p>
+            <div class="lm-field">
+                <label>성명</label>
+                <input type="text" id="lm-name" placeholder="이름 입력" autocomplete="name">
+            </div>
+            <div class="lm-field">
+                <label>PIN</label>
+                <input type="password" id="lm-pin" placeholder="PIN 입력" maxlength="10"
+                    onkeydown="if(event.key==='Enter') doLogin()">
+            </div>
+            <p class="login-modal-err" id="lm-err"></p>
+            <button class="btn-login-submit" id="lm-btn" onclick="doLogin()">로그인</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const SUPABASE_URL = 'https://grxslikvzxafmxuepusy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc';
+        const GAS_APPROVAL_URL = 'https://script.google.com/macros/s/AKfycbw9ilToZxa0TbUJcOSisgYXVL-g-S5jy8eptzaHLcgAu53GmYdtZ5AXsxmoKxphBLTomA/exec';
+        const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentType = null;
+        let listFilter = 'all';
+        let userName = localStorage.getItem('attendance_user_name') || '';
+        let isAdmin = sessionStorage.getItem('attendance_user_is_admin') === 'true';
+
+        // 초기 UI 세팅
+        (function () {
+            if (userName) {
+                document.getElementById('nav-username').textContent = userName + (isAdmin ? ' (관리자)' : '');
+                document.getElementById('btn-login-logout').textContent = '로그아웃';
+            }
+        })();
+
+        // ── 탭 ──────────────────────────────────────────────────────
+        function switchTab(tab) {
+            document.getElementById('pane-submit').style.display = tab === 'submit' ? '' : 'none';
+            document.getElementById('pane-list').style.display = tab === 'list' ? '' : 'none';
+            document.getElementById('tab-submit').classList.toggle('active', tab === 'submit');
+            document.getElementById('tab-list').classList.toggle('active', tab === 'list');
+            if (tab === 'list') loadList();
+        }
+
+        // ── 유형 선택 ────────────────────────────────────────────────
+        function selectType(type, card) {
+            currentType = type;
+            document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            document.querySelectorAll('.ap-form').forEach(f => f.classList.remove('visible'));
+            document.getElementById('form-' + type).classList.add('visible');
+        }
+
+        function calcTrip() {
+            const t = Number(document.getElementById('f-transport').value) || 0;
+            const a = Number(document.getElementById('f-accommodation').value) || 0;
+            const e = Number(document.getElementById('f-etc').value) || 0;
+            document.getElementById('trip-total').textContent = '합계: ' + (t + a + e).toLocaleString() + ' 원';
+        }
+
+        // ── 토스트 ──────────────────────────────────────────────────
+        function showToast(msg) {
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), 2800);
+        }
+
+        // ── 신청 ────────────────────────────────────────────────────
+        async function submitApproval(type) {
+            if (!userName) { showToast('로그인 정보가 없습니다.'); return; }
+            let data = {}, amount = 0;
+            if (type === '비품구매') {
+                const item = document.getElementById('f-item').value.trim();
+                if (!item) { showToast('품목명을 입력해주세요.'); return; }
+                amount = Number(document.getElementById('f-amount-purchase').value) || 0;
+                data = { category: document.getElementById('f-category').value, item, spec: document.getElementById('f-spec').value, qty: Number(document.getElementById('f-qty').value) || 1, link: document.getElementById('f-link').value, reason: document.getElementById('f-purchase-reason').value };
+            } else if (type === '경조사비') {
+                const recipient = document.getElementById('f-recipient').value.trim();
+                if (!recipient) { showToast('대상자를 입력해주세요.'); return; }
+                amount = Number(document.getElementById('f-amount-condolence').value) || 0;
+                data = { reason: document.getElementById('f-reason').value, recipient, relation: document.getElementById('f-relation').value };
+            } else if (type === '출장비') {
+                const destination = document.getElementById('f-destination').value.trim();
+                if (!destination) { showToast('출장지를 입력해주세요.'); return; }
+                const t = Number(document.getElementById('f-transport').value) || 0;
+                const a = Number(document.getElementById('f-accommodation').value) || 0;
+                const e = Number(document.getElementById('f-etc').value) || 0;
+                amount = t + a + e;
+                data = { destination, purpose: document.getElementById('f-purpose').value, date_from: document.getElementById('f-date-from').value, date_to: document.getElementById('f-date-to').value, transport: t, accommodation: a, etc: e };
+            } else if (type === '식비') {
+                const place = document.getElementById('f-place').value.trim();
+                if (!place) { showToast('사용처를 입력해주세요.'); return; }
+                amount = Number(document.getElementById('f-amount-meal').value) || 0;
+                data = { date: document.getElementById('f-meal-date').value, place, headcount: document.getElementById('f-headcount').value, purpose: document.getElementById('f-meal-purpose').value };
+            }
+            const btn = event.currentTarget;
+            btn.disabled = true; btn.textContent = '신청 중...';
+            try {
+                const { data: row, error } = await _sb.from('approvals').insert({ type, applicant: userName, data, amount: amount || 0 }).select().single();
+                if (error) throw new Error(error.message);
+                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'submit', id: row.id, type, applicant: userName, amount: amount || 0, data }) }).catch(() => {});
+                showToast('신청이 완료됐습니다.');
+                document.getElementById('form-' + type).querySelectorAll('input, select').forEach(el => { if (el.type !== 'select-one') el.value = ''; });
+                document.getElementById('trip-total').textContent = '합계: 0 원';
+            } catch (e) {
+                showToast('오류: ' + e.message);
+            } finally {
+                btn.disabled = false; btn.textContent = '신청하기';
+            }
+        }
+
+        // ── 결재 현황 ────────────────────────────────────────────────
+        async function loadList() {
+            const container = document.getElementById('ap-list-container');
+            container.innerHTML = '<p style="color:var(--text-sub);font-size:0.85rem;">불러오는 중...</p>';
+            try {
+                let query = _sb.from('approvals').select('*').order('created_at', { ascending: false });
+                if (listFilter !== 'all') query = query.eq('status', listFilter);
+                if (!isAdmin) query = query.eq('applicant', userName);
+                const { data: list, error } = await query;
+                if (error) throw new Error(error.message);
+                if (!list.length) { container.innerHTML = '<p style="color:var(--text-sub);font-size:0.85rem;text-align:center;padding:40px 0;">내역이 없습니다.</p>'; return; }
+                const statusLabel = { pending: '대기', approved: '승인', rejected: '반려' };
+                const statusBadge = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected' };
+                container.innerHTML = list.map(item => {
+                    const d = item.data || {};
+                    const summary = item.type === '비품구매' ? d.item : item.type === '경조사비' ? d.reason + ' / ' + d.recipient : item.type === '출장비' ? d.destination + ' (' + d.date_from + '~' + d.date_to + ')' : d.place;
+                    const actions = (isAdmin && item.status === 'pending')
+                        ? `<div class="ap-item-actions"><button class="btn-approve" onclick="decide('${item.id}','approved','')">승인</button><button class="btn-reject" onclick="promptReject('${item.id}')">반려</button></div>`
+                        : item.status === 'rejected' && item.note
+                        ? `<p style="font-size:0.77rem;color:#991b1b;margin-top:4px;">반려 사유: ${item.note}</p>`
+                        : '';
+                    return `<div class="ap-item"><div class="ap-item-top"><span class="ap-item-title">[${item.type}] ${summary || ''}</span><span class="ap-badge ${statusBadge[item.status]}">${statusLabel[item.status]}</span></div><div class="ap-item-meta">${item.applicant} · ${item.amount ? item.amount.toLocaleString() + '원' : '금액 미기재'} · ${new Date(item.created_at).toLocaleDateString('ko-KR')}</div>${actions}</div>`;
+                }).join('');
+            } catch (e) {
+                container.innerHTML = '<p style="color:#991b1b;font-size:0.85rem;">오류: ' + e.message + '</p>';
+            }
+        }
+
+        function filterList(filter, btn) {
+            listFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            loadList();
+        }
+
+        async function decide(id, status, note) {
+            try {
+                const { error } = await _sb.from('approvals').update({ status, note: note || '', decided_by: userName, decided_at: new Date().toISOString() }).eq('id', id);
+                if (error) throw new Error(error.message);
+                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'decide', id, status, note: note || '', decided_by: userName }) }).catch(() => {});
+                showToast(status === 'approved' ? '승인 완료' : '반려 완료');
+                loadList();
+            } catch (e) {
+                showToast('오류: ' + e.message);
+            }
+        }
+
+        function promptReject(id) {
+            const note = prompt('반려 사유를 입력해주세요.');
+            if (note === null) return;
+            decide(id, 'rejected', note);
+        }
+
+        // ── 로그인 ───────────────────────────────────────────────────
+        function onLoginLogout() {
+            if (userName) {
+                localStorage.removeItem('attendance_user_name');
+                localStorage.removeItem('attendance_user_pin');
+                sessionStorage.removeItem('attendance_user_is_admin');
+                userName = '';
+                isAdmin = false;
+                document.getElementById('nav-username').textContent = '—';
+                document.getElementById('btn-login-logout').textContent = '로그인';
+                showToast('로그아웃 됐습니다.');
+            } else {
+                openLoginModal();
+            }
+        }
+        function openLoginModal() {
+            document.getElementById('lm-name').value = '';
+            document.getElementById('lm-pin').value = '';
+            document.getElementById('lm-err').textContent = '';
+            document.getElementById('lm-btn').disabled = false;
+            document.getElementById('lm-btn').textContent = '로그인';
+            document.getElementById('login-modal-backdrop').classList.add('open');
+            setTimeout(() => document.getElementById('lm-name').focus(), 80);
+        }
+        function closeLoginModal() {
+            document.getElementById('login-modal-backdrop').classList.remove('open');
+        }
+        function onBackdropClick(e) {
+            if (e.target === document.getElementById('login-modal-backdrop')) closeLoginModal();
+        }
+        async function doLogin() {
+            const rawName = document.getElementById('lm-name').value.trim();
+            const pin = document.getElementById('lm-pin').value.trim();
+            const errEl = document.getElementById('lm-err');
+            const btn = document.getElementById('lm-btn');
+            errEl.textContent = '';
+            if (!rawName || !pin) { errEl.textContent = '성명과 PIN을 모두 입력해주세요.'; return; }
+            let name = rawName;
+            if (name === '한옥연') name = '한옥련';
+            btn.disabled = true; btn.textContent = '확인 중...';
+            try {
+                const { data, error } = await _sb.from('employees').select('name, pin, is_admin').eq('name', name).eq('pin', pin).maybeSingle();
+                if (error) throw new Error(error.message);
+                if (!data) { errEl.textContent = '이름 또는 PIN이 올바르지 않습니다.'; return; }
+                localStorage.setItem('attendance_user_name', data.name);
+                localStorage.setItem('attendance_user_pin', data.pin);
+                sessionStorage.setItem('attendance_user_is_admin', String(data.is_admin));
+                userName = data.name;
+                isAdmin = data.is_admin;
+                document.getElementById('nav-username').textContent = data.name + (isAdmin ? ' (관리자)' : '');
+                document.getElementById('btn-login-logout').textContent = '로그아웃';
+                closeLoginModal();
+                showToast(data.name + '님, 로그인됐습니다.');
+            } catch (e) {
+                errEl.textContent = '오류: ' + e.message;
+            } finally {
+                btn.disabled = false; btn.textContent = '로그인';
+            }
+        }
+    </script>
+</body>
+
+</html>
