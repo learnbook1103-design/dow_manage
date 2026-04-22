@@ -717,7 +717,7 @@
                     }
                 }
 
-                let query = _supabase.from('employees').select('name, pin, is_admin').eq('name', name).eq('pin', pin);
+                let query = _supabase.from('employees').select('name, pin, is_admin, org, rank').eq('name', name).eq('pin', pin);
                 if (currentRole === 'admin') query = query.eq('is_admin', true);
 
                 const { data, error } = await query.maybeSingle();
@@ -725,7 +725,7 @@
                 if (!data) { errorMsg.style.display = 'block'; return; }
 
                 // currentRole 기준으로 이동 (관리자 계정도 직원 카드 선택 시 supplement로)
-                saveAndGo(data.name, data.pin, currentRole === 'admin' ? data.is_admin : false);
+                saveAndGo(data.name, data.pin, currentRole === 'admin' ? data.is_admin : false, data.org, data.rank);
             } catch (err) {
                 alert('로그인 오류: ' + err.message);
             } finally {
@@ -734,9 +734,12 @@
             }
         }
 
-        function saveAndGo(name, pin, isAdmin) {
+        function saveAndGo(name, pin, isAdmin, org, rank) {
             localStorage.setItem('attendance_user_name', name);
             localStorage.setItem('attendance_user_pin', pin);
+            localStorage.setItem('attendance_user_org', org || '');
+            localStorage.setItem('attendance_user_rank', rank || '');
+            localStorage.setItem('attendance_login_date', new Date().toISOString().slice(0, 10));
             // sessionStorage는 실제 DB의 is_admin 값 저장 (관리자 페이지 접근 권한용)
             sessionStorage.setItem('attendance_user_is_admin', String(isAdmin));
             // 페이지 이동은 선택한 카드(currentRole) 기준

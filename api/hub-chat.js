@@ -108,13 +108,15 @@ async function execTool(name, input, userName) {
     return '[알 수 없는 도구]';
 }
 
-function loadSystemPrompt(userName) {
+function loadSystemPrompt(userName, userOrg, userRank) {
     const today = new Date().toISOString().slice(0, 10);
     let base = `당신은 업무 AI 어시스턴트입니다.
 자연어 요청을 받아 허브 파일을 읽고 쓰며 업무를 처리합니다.
 
 ## 현재 사용자
 - 이름: ${userName}
+- 부서: ${userOrg || '미확인'}
+- 직급: ${userRank || '미확인'}
 - 호칭: ${userName} 님
 
 ## 규칙
@@ -145,7 +147,7 @@ module.exports = async (req, res) => {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { messages, userName } = req.body;
+    const { messages, userName, userOrg, userRank } = req.body;
     if (!messages?.length) return res.status(400).json({ error: 'messages 필요' });
     const author = userName || '직원';
 
@@ -160,7 +162,7 @@ module.exports = async (req, res) => {
             const response = await client.messages.create({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 4096,
-                system: loadSystemPrompt(author),
+                system: loadSystemPrompt(author, userOrg, userRank),
                 tools: TOOLS,
                 messages: history
             });

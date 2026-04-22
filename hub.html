@@ -287,11 +287,20 @@
 </div>
 
 <script>
-    // ── 접근 제한 ──────────────────────────────────────────────────────────────
+    // ── 접근 제한 + 세션 만료 ──────────────────────────────────────────────────
     (function () {
         const name = localStorage.getItem('attendance_user_name');
-        if (!name) { location.href = 'index.html'; return; }
-        document.getElementById('nav-username').textContent = name;
+        const loginDate = localStorage.getItem('attendance_login_date');
+        const today = new Date().toISOString().slice(0, 10);
+        if (!name || loginDate !== today) {
+            ['attendance_user_name','attendance_user_pin','attendance_user_org','attendance_user_rank','attendance_login_date']
+                .forEach(k => localStorage.removeItem(k));
+            location.href = 'index.html';
+            return;
+        }
+        const org = localStorage.getItem('attendance_user_org') || '';
+        const rank = localStorage.getItem('attendance_user_rank') || '';
+        document.getElementById('nav-username').textContent = `${rank} ${name}`.trim();
     })();
 
     // ── marked 설정 ───────────────────────────────────────────────────────────
@@ -470,7 +479,12 @@
             const res = await fetch('/api/hub-chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ messages, userName: localStorage.getItem('attendance_user_name') || '직원' })
+                body: JSON.stringify({
+                    messages,
+                    userName: localStorage.getItem('attendance_user_name') || '직원',
+                    userOrg: localStorage.getItem('attendance_user_org') || '',
+                    userRank: localStorage.getItem('attendance_user_rank') || ''
+                })
             });
 
             loadingEl.remove();
