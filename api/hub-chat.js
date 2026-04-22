@@ -108,10 +108,14 @@ async function execTool(name, input, userName) {
     return '[알 수 없는 도구]';
 }
 
-function loadSystemPrompt() {
+function loadSystemPrompt(userName) {
     const today = new Date().toISOString().slice(0, 10);
     let base = `당신은 업무 AI 어시스턴트입니다.
 자연어 요청을 받아 허브 파일을 읽고 쓰며 업무를 처리합니다.
+
+## 현재 사용자
+- 이름: ${userName}
+- 호칭: ${userName} 님
 
 ## 규칙
 - 질문에 답하기 전 반드시 관련 파일을 먼저 읽으세요
@@ -156,7 +160,7 @@ module.exports = async (req, res) => {
             const response = await client.messages.create({
                 model: 'claude-sonnet-4-6',
                 max_tokens: 4096,
-                system: loadSystemPrompt(),
+                system: loadSystemPrompt(author),
                 tools: TOOLS,
                 messages: history
             });
