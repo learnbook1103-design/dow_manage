@@ -3,6 +3,9 @@ const fs = require('fs');
 const path = require('path');
 
 const HUB_PATH = path.resolve(__dirname, '../hub-data');
+const GH_OWNER = 'learnbook1103-design';
+const GH_REPO = 'dow_manage';
+const GH_BRANCH = 'main';
 
 const TOOLS = [
     {
@@ -47,17 +50,52 @@ function safePath(rel) {
     return abs;
 }
 
-function execTool(name, input) {
+async function githubWrite(relPath, content, userName) {
+    const token = process.env.GITHUB_TOKEN;
+    if (!token) throw new Error('GITHUB_TOKEN 환경변수 없음');
+
+    const apiPath = `hub-data/${relPath.replace(/\\/g, '/')}`;
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${apiPath}`;
+    const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'X-GitHub-Api-Version': '2022-11-28'
+    };
+
+    // 기존 파일 SHA 조회 (업데이트 시 필요)
+    let sha;
+    const getRes = await fetch(url, { headers });
+    if (getRes.ok) {
+        const data = await getRes.json();
+        sha = data.sha;
+    }
+
+    const body = {
+        message: `[hub] ${relPath} — ${userName}`,
+        content: Buffer.from(content, 'utf-8').toString('base64'),
+        branch: GH_BRANCH,
+        author: { name: userName, email: 'hub@dowvalve.com' }
+    };
+    if (sha) body.sha = sha;
+
+    const putRes = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+    if (!putRes.ok) {
+        const err = await putRes.json();
+        throw new Error(`GitHub API 오류: ${err.message}`);
+    }
+    return `저장 완료: ${relPath} (GitHub 커밋됨)`;
+}
+
+async function execTool(name, input, userName) {
     if (name === 'read_file') {
         const p = safePath(input.path);
         if (!fs.existsSync(p)) return `[파일 없음: ${input.path}]`;
         return fs.readFileSync(p, 'utf-8');
     }
     if (name === 'write_file') {
-        const p = safePath(input.path);
-        fs.mkdirSync(path.dirname(p), { recursive: true });
-        fs.writeFileSync(p, input.content, 'utf-8');
-        return `저장 완료: ${input.path}`;
+        safePath(input.path); // 경로 검증
+        return await githubWrite(input.path, input.content, userName);
     }
     if (name === 'list_files') {
         const p = input.directory ? safePath(input.directory) : HUB_PATH;
@@ -103,8 +141,9 @@ module.exports = async (req, res) => {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { messages } = req.body;
+    const { messages, userName } = req.body;
     if (!messages?.length) return res.status(400).json({ error: 'messages 필요' });
+    const author = userName || '직원';
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const history = [...messages];
@@ -135,7 +174,7 @@ module.exports = async (req, res) => {
                     if (block.type !== 'tool_use') continue;
                     const filePath = block.input.path || block.input.directory || '';
                     toolLog.push({ name: block.name, path: filePath });
-                    const result = execTool(block.name, block.input);
+                    const result = await execTool(block.name, block.input, author);
                     if (block.name === 'write_file') updatedFiles.push(filePath);
                     results.push({ type: 'tool_result', tool_use_id: block.id, content: result });
                 }
