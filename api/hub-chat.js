@@ -140,6 +140,10 @@ function loadSystemPrompt(userName, userOrg, userRank) {
 - 오늘 날짜: ${today}
 - 이번 주 기간: ${week.start} ~ ${week.end} (월~금)
 
+## 부서 기본값 규칙
+- 사용자가 별도로 부서를 지정하지 않으면 항상 현재 사용자의 부서(${userOrg || '미확인'}) 기준으로 답변하세요
+- "전체", "전 부서", "모든 팀" 등의 표현이 있을 때만 전체 데이터를 조회하세요
+
 ## 주간 리포트 저장 규칙
 - 주간 리포트를 저장할 때는 sales/weekly-report.md가 아닌 sales/weekly-reports/${week.start}.md 경로에 저장하세요
 - 예: 이번 주 리포트 → sales/weekly-reports/${week.start}.md
