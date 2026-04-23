@@ -79,7 +79,7 @@
         }
 
         /* Quick prompts */
-        .quick-prompts { display: flex; flex-direction: column; gap: 10px; padding: 0 0 8px; }
+        .quick-prompts { display: flex; flex-direction: column; gap: 10px; padding: 8px 16px; border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
         .quick-category { display: flex; flex-direction: column; gap: 6px; }
         .quick-category-label {
             font-size: 0.66rem; font-weight: 700; color: var(--text-sub);
@@ -237,29 +237,30 @@
                     자연어로 업무 현황을 묻거나 파이프라인을 업데이트할 수 있습니다.
                 </div>
             </div>
-            <div class="quick-prompts" id="quick-prompts">
-                <div class="quick-category">
-                    <div class="quick-category-label">업무 현황</div>
-                    <div class="quick-btns-row">
-                        <button class="quick-btn" onclick="sendQuick('파이프라인 현황 요약해줘')">📊 파이프라인 현황</button>
-                        <button class="quick-btn" onclick="sendQuick('이번 주 주간 리포트 만들어줘')">📋 주간 리포트</button>
-                        <button class="quick-btn" onclick="sendQuick('OKR 전체 현황과 기한 초과 건 알려줘')">🎯 OKR 현황</button>
-                        <button class="quick-btn" onclick="sendQuick('이번 주 주의해야 할 건 뭐야?')">⚠️ 주의 건 확인</button>
-                    </div>
+        </div>
+
+        <div class="quick-prompts" id="quick-prompts">
+            <div class="quick-category">
+                <div class="quick-category-label">업무 현황</div>
+                <div class="quick-btns-row">
+                    <button class="quick-btn" onclick="sendQuick('파이프라인 현황 요약해줘')">📊 파이프라인 현황</button>
+                    <button class="quick-btn" onclick="sendQuick('이번 주 주간 리포트 만들어줘')">📋 주간 리포트</button>
+                    <button class="quick-btn" onclick="sendQuick('OKR 전체 현황과 기한 초과 건 알려줘')">🎯 OKR 현황</button>
+                    <button class="quick-btn" onclick="sendQuick('이번 주 주의해야 할 건 뭐야?')">⚠️ 주의 건 확인</button>
                 </div>
-                <div class="quick-category">
-                    <div class="quick-category-label">거래처</div>
-                    <div class="quick-btns-row">
-                        <button class="quick-btn" onclick="sendQuick('거래처 목록 보여줘')">🏢 거래처 조회</button>
-                        <button class="quick-btn" onclick="focusInput('미팅 기록: ')">📝 미팅 기록</button>
-                    </div>
+            </div>
+            <div class="quick-category">
+                <div class="quick-category-label">거래처</div>
+                <div class="quick-btns-row">
+                    <button class="quick-btn" onclick="sendQuick('거래처 목록 보여줘')">🏢 거래처 조회</button>
+                    <button class="quick-btn" onclick="focusInput('미팅 기록: ')">📝 미팅 기록</button>
                 </div>
-                <div class="quick-category">
-                    <div class="quick-category-label">기록 / 정리</div>
-                    <div class="quick-btns-row">
-                        <button class="quick-btn" onclick="sendQuick('inbox 처리해줘')">📥 inbox 처리</button>
-                        <button class="quick-btn" onclick="sendQuick('채널별 영업 현황 알려줘')">📈 채널 현황</button>
-                    </div>
+            </div>
+            <div class="quick-category">
+                <div class="quick-category-label">기록 / 정리</div>
+                <div class="quick-btns-row">
+                    <button class="quick-btn" onclick="sendQuick('inbox 처리해줘')">📥 inbox 처리</button>
+                    <button class="quick-btn" onclick="sendQuick('채널별 영업 현황 알려줘')">📈 채널 현황</button>
                 </div>
             </div>
         </div>
@@ -462,9 +463,6 @@
         if (!text) return;
 
         // 퀵 프롬프트 숨기기
-        const qp = document.getElementById('quick-prompts');
-        if (qp) qp.style.display = 'none';
-
         input.value = '';
         input.style.height = 'auto';
 
