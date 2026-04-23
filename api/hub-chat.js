@@ -106,8 +106,22 @@ async function execTool(name, args, userName) {
     return '[알 수 없는 도구]';
 }
 
+function getWeekRange() {
+    const today = new Date();
+    const day = today.getDay(); // 0=일, 1=월 ... 6=토
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    return {
+        start: monday.toISOString().slice(0, 10),
+        end: friday.toISOString().slice(0, 10)
+    };
+}
+
 function loadSystemPrompt(userName, userOrg, userRank) {
     const today = new Date().toISOString().slice(0, 10);
+    const week = getWeekRange();
     let base = `당신은 업무 AI 어시스턴트입니다.
 자연어 요청을 받아 허브 파일을 읽고 쓰며 업무를 처리합니다.
 
@@ -123,6 +137,7 @@ function loadSystemPrompt(userName, userOrg, userRank) {
 - 변경한 파일과 내용을 사용자에게 명확히 알려주세요
 - 한국어로 간결하게 답변합니다
 - 오늘 날짜: ${today}
+- 이번 주 기간: ${week.start} ~ ${week.end} (월~금)
 
 ## 거래처 명칭 규칙
 - 회사명이 언급되면 write 전에 반드시 companies/_index.md를 먼저 읽어 정확한 명칭과 경로를 확인하세요
