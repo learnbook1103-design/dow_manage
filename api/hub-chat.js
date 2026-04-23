@@ -140,6 +140,10 @@ function loadSystemPrompt(userName, userOrg, userRank) {
 - 오늘 날짜: ${today}
 - 이번 주 기간: ${week.start} ~ ${week.end} (월~금)
 
+## 주간 리포트 저장 규칙
+- 주간 리포트를 저장할 때는 sales/weekly-report.md가 아닌 sales/weekly-reports/${week.start}.md 경로에 저장하세요
+- 예: 이번 주 리포트 → sales/weekly-reports/${week.start}.md
+
 ## 거래처 명칭 규칙
 - 회사명이 언급되면 write 전에 반드시 companies/_index.md를 먼저 읽어 정확한 명칭과 경로를 확인하세요
 - 입력값이 기존 명칭과 유사하지만 다를 경우 write 없이 사용자에게 먼저 확인하세요
