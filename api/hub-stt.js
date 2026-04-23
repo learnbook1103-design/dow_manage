@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const HUB_PATH = path.resolve(__dirname, '../hub-data');
-const GEMINI_MODEL = 'gemini-3.1-flash-lite-preview';
+const MODELS = ['gemini-2.5-flash', 'gemini-3.1-flash-lite-preview'];
 const GH_OWNER = 'learnbook1103-design';
 const GH_REPO = 'dow_manage';
 const GH_BRANCH = 'main';
@@ -93,22 +93,32 @@ module.exports = async (req, res) => {
         }]
     };
 
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`;
-    const geminiRes = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-    });
+    let lastErr;
+    for (const modelName of MODELS) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const geminiRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
 
-    if (!geminiRes.ok) {
-        const err = await geminiRes.text();
-        return res.status(geminiRes.status).json({ error: err });
+        if (geminiRes.status === 429 || geminiRes.status === 503) {
+            lastErr = await geminiRes.text();
+            continue;
+        }
+
+        if (!geminiRes.ok) {
+            const err = await geminiRes.text();
+            return res.status(geminiRes.status).json({ error: err });
+        }
+
+        const data = await geminiRes.json();
+        const meetingContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!meetingContent) return res.status(500).json({ error: 'Gemini 응답 없음' });
+
+        const filePath = `inbox/${today}-${company}-meeting.md`;
+        return res.status(200).json({ content: meetingContent, filePath });
     }
 
-    const data = await geminiRes.json();
-    const meetingContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!meetingContent) return res.status(500).json({ error: 'Gemini 응답 없음' });
-
-    const filePath = `inbox/${today}-${company}-meeting.md`;
-    return res.status(200).json({ content: meetingContent, filePath });
+    return res.status(429).json({ error: lastErr || '모든 모델 사용 불가' });
 };

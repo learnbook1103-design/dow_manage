@@ -6,6 +6,7 @@ const HUB_PATH = path.resolve(__dirname, '../hub-data');
 const GH_OWNER = 'learnbook1103-design';
 const GH_REPO = 'dow_manage';
 const GH_BRANCH = 'main';
+const MODELS = ['gemini-2.5-flash', 'gemini-3.1-flash-lite-preview'];
 
 const FUNCTION_DECLARATIONS = [
     {
@@ -172,50 +173,60 @@ module.exports = async (req, res) => {
     const author = userName || '직원';
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({
-        model: 'gemini-3.1-flash-lite-preview',
-        tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
-        systemInstruction: loadSystemPrompt(author, userOrg, userRank)
-    });
-
+    const systemPrompt = loadSystemPrompt(author, userOrg, userRank);
     const contents = toGeminiContents(messages);
     const updatedFiles = [];
     const toolLog = [];
-    let iterations = 0;
 
-    try {
-        while (iterations++ < 12) {
-            const result = await model.generateContent({ contents });
-            const candidate = result.response.candidates[0];
-            const parts = candidate.content.parts;
+    let lastError;
+    for (const modelName of MODELS) {
+        try {
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
+                systemInstruction: systemPrompt
+            });
 
-            const functionCalls = parts.filter(p => p.functionCall);
+            let iterations = 0;
+            while (iterations++ < 12) {
+                const result = await model.generateContent({ contents });
+                const candidate = result.response.candidates[0];
+                const parts = candidate.content.parts;
 
-            if (functionCalls.length === 0) {
-                const text = parts.filter(p => p.text).map(p => p.text).join('');
-                return res.status(200).json({ content: text, updatedFiles, toolLog });
+                const functionCalls = parts.filter(p => p.functionCall);
+
+                if (functionCalls.length === 0) {
+                    const text = parts.filter(p => p.text).map(p => p.text).join('');
+                    return res.status(200).json({ content: text, updatedFiles, toolLog });
+                }
+
+                contents.push({ role: 'model', parts });
+
+                const toolResponseParts = [];
+                for (const part of functionCalls) {
+                    const { name, args } = part.functionCall;
+                    const filePath = args.path || args.directory || '';
+                    toolLog.push({ name, path: filePath });
+                    const toolResult = await execTool(name, args, author);
+                    if (name === 'write_file') updatedFiles.push(filePath);
+                    toolResponseParts.push({
+                        functionResponse: { name, response: { output: toolResult } }
+                    });
+                }
+
+                contents.push({ role: 'user', parts: toolResponseParts });
             }
 
-            contents.push({ role: 'model', parts });
-
-            const toolResponseParts = [];
-            for (const part of functionCalls) {
-                const { name, args } = part.functionCall;
-                const filePath = args.path || args.directory || '';
-                toolLog.push({ name, path: filePath });
-                const toolResult = await execTool(name, args, author);
-                if (name === 'write_file') updatedFiles.push(filePath);
-                toolResponseParts.push({
-                    functionResponse: { name, response: { output: toolResult } }
-                });
+            return res.status(500).json({ error: '최대 반복 횟수 초과' });
+        } catch (err) {
+            if (err.message?.includes('429') || err.message?.includes('503')) {
+                lastError = err;
+                continue;
             }
-
-            contents.push({ role: 'user', parts: toolResponseParts });
+            console.error(err);
+            return res.status(500).json({ error: err.message });
         }
-
-        res.status(500).json({ error: '최대 반복 횟수 초과' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
     }
+
+    return res.status(500).json({ error: lastError?.message || '모든 모델 사용 불가' });
 };
