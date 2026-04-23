@@ -301,13 +301,14 @@
 
 <!-- 미팅 기록 모달 -->
 <div class="modal-overlay" id="meeting-modal" onclick="closeMeetingModal(event)">
-    <div class="modal">
+    <div class="modal" style="width:min(680px,94vw);">
         <div class="modal-head">
-            <span class="modal-title">📝 미팅 기록</span>
+            <span class="modal-title" id="meeting-modal-title">📝 미팅 기록</span>
             <button class="modal-close" onclick="closeMeetingModal()">✕</button>
         </div>
         <div class="modal-body">
-            <div class="meeting-form">
+            <!-- Step 1: 입력 -->
+            <div id="meeting-step1" class="meeting-form">
                 <div>
                     <label>거래처명</label>
                     <input type="text" id="meeting-company" placeholder="예: 알파테크" />
@@ -319,7 +320,22 @@
                     </label>
                     <input type="file" id="meeting-audio" accept="audio/*" onchange="onAudioSelected(this)" />
                 </div>
-                <button class="meeting-submit" id="meeting-submit-btn" onclick="submitMeeting()">변환 및 저장</button>
+                <button class="meeting-submit" id="meeting-transcribe-btn" onclick="transcribeMeeting()">변환</button>
+            </div>
+            <!-- Step 2: 검토 및 수정 -->
+            <div id="meeting-step2" style="display:none;" class="meeting-form">
+                <div>
+                    <label>저장 경로</label>
+                    <input type="text" id="meeting-filepath" />
+                </div>
+                <div>
+                    <label>내용 확인 및 수정</label>
+                    <textarea id="meeting-content-edit" style="width:100%;min-height:280px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="meeting-submit" style="background:var(--text-sub);flex:1;" onclick="backToStep1()">← 다시</button>
+                    <button class="meeting-submit" style="flex:2;" id="meeting-save-btn" onclick="saveMeeting()">저장</button>
+                </div>
             </div>
         </div>
     </div>
@@ -584,17 +600,28 @@
     });
 
     // ── 미팅 기록 모달 ────────────────────────────────────────────────────────
+    let meetingUserMsg = '';
+
     function openMeetingModal() {
         document.getElementById('meeting-company').value = '';
         document.getElementById('meeting-audio').value = '';
         document.getElementById('meeting-file-label').textContent = '🎙 파일 선택 (mp3, m4a, wav 등)';
         document.getElementById('meeting-file-label').classList.remove('selected');
+        document.getElementById('meeting-step1').style.display = 'flex';
+        document.getElementById('meeting-step2').style.display = 'none';
+        document.getElementById('meeting-modal-title').textContent = '📝 미팅 기록';
         document.getElementById('meeting-modal').classList.add('open');
     }
 
     function closeMeetingModal(e) {
         if (e && e.target !== document.getElementById('meeting-modal')) return;
         document.getElementById('meeting-modal').classList.remove('open');
+    }
+
+    function backToStep1() {
+        document.getElementById('meeting-step1').style.display = 'flex';
+        document.getElementById('meeting-step2').style.display = 'none';
+        document.getElementById('meeting-modal-title').textContent = '📝 미팅 기록';
     }
 
     function onAudioSelected(input) {
@@ -605,7 +632,7 @@
         }
     }
 
-    async function submitMeeting() {
+    async function transcribeMeeting() {
         const company = document.getElementById('meeting-company').value.trim();
         const fileInput = document.getElementById('meeting-audio');
         const file = fileInput.files[0];
@@ -613,13 +640,11 @@
         if (!company) { alert('거래처명을 입력해주세요.'); return; }
         if (!file) { alert('녹음 파일을 선택해주세요.'); return; }
 
-        const btn = document.getElementById('meeting-submit-btn');
+        const btn = document.getElementById('meeting-transcribe-btn');
         btn.disabled = true;
         btn.textContent = '변환 중...';
-        document.getElementById('meeting-modal').classList.remove('open');
 
-        appendUserMsg(`미팅 기록 — ${company} (${file.name})`);
-        const loadingEl = appendLoading();
+        meetingUserMsg = `미팅 기록 — ${company} (${file.name})`;
 
         try {
             const audioBase64 = await new Promise((resolve, reject) => {
@@ -637,18 +662,56 @@
             });
             const data = await res.json();
 
+            if (data.error) {
+                alert(`변환 오류: ${data.error}`);
+            } else {
+                document.getElementById('meeting-content-edit').value = data.content;
+                document.getElementById('meeting-filepath').value = data.filePath;
+                document.getElementById('meeting-step1').style.display = 'none';
+                document.getElementById('meeting-step2').style.display = 'flex';
+                document.getElementById('meeting-modal-title').textContent = '📝 내용 확인 및 수정';
+            }
+        } catch (err) {
+            alert(`오류: ${err.message}`);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '변환';
+        }
+    }
+
+    async function saveMeeting() {
+        const content = document.getElementById('meeting-content-edit').value.trim();
+        const filePath = document.getElementById('meeting-filepath').value.trim();
+        const userName = localStorage.getItem('attendance_user_name') || '직원';
+
+        const btn = document.getElementById('meeting-save-btn');
+        btn.disabled = true;
+        btn.textContent = '저장 중...';
+
+        document.getElementById('meeting-modal').classList.remove('open');
+        appendUserMsg(meetingUserMsg);
+        const loadingEl = appendLoading();
+
+        try {
+            const res = await fetch('/api/hub-stt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'save', content, filePath, userName })
+            });
+            const data = await res.json();
+
             loadingEl.remove();
             if (data.error) {
-                appendAssistantMsg(`오류가 발생했습니다: ${data.error}`, [], []);
+                appendAssistantMsg(`저장 오류: ${data.error}`, [], []);
             } else {
-                appendAssistantMsg(data.content, [{ name: 'write_file', path: data.filePath }], [data.filePath]);
+                appendAssistantMsg(content, [{ name: 'write_file', path: filePath }], [filePath]);
             }
         } catch (err) {
             loadingEl.remove();
-            appendAssistantMsg(`오류가 발생했습니다: ${err.message}`, [], []);
+            appendAssistantMsg(`오류: ${err.message}`, [], []);
         } finally {
             btn.disabled = false;
-            btn.textContent = '변환 및 저장';
+            btn.textContent = '저장';
         }
     }
 

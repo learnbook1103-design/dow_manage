@@ -45,7 +45,19 @@ module.exports = async (req, res) => {
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-    const { audioBase64, mimeType, company, userName } = req.body;
+    const { action, audioBase64, mimeType, company, userName, content: saveContent, filePath: saveFilePath } = req.body;
+
+    // 저장 액션
+    if (action === 'save') {
+        if (!saveContent || !saveFilePath) return res.status(400).json({ error: 'content, filePath 필요' });
+        try {
+            await githubWrite(saveFilePath, saveContent, userName || '직원');
+            return res.status(200).json({ ok: true, filePath: saveFilePath });
+        } catch (e) {
+            return res.status(500).json({ error: e.message });
+        }
+    }
+
     if (!audioBase64 || !mimeType || !company) {
         return res.status(400).json({ error: '오디오 파일, MIME 타입, 거래처명이 필요합니다.' });
     }
@@ -98,11 +110,5 @@ module.exports = async (req, res) => {
     if (!meetingContent) return res.status(500).json({ error: 'Gemini 응답 없음' });
 
     const filePath = `inbox/${today}-${company}-meeting.md`;
-    try {
-        await githubWrite(filePath, meetingContent, author);
-    } catch (e) {
-        console.error('GitHub 저장 실패:', e.message);
-    }
-
     return res.status(200).json({ content: meetingContent, filePath });
 };
