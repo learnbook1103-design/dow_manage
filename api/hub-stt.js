@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 
 const HUB_PATH = path.resolve(__dirname, '../hub-data');
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-3.1-flash-lite';
 const GH_OWNER = 'learnbook1103-design';
 const GH_REPO = 'dow_manage';
 const GH_BRANCH = 'main';
