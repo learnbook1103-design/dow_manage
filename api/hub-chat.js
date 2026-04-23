@@ -1,4 +1,4 @@
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs');
 const path = require('path');
 
@@ -7,11 +7,11 @@ const GH_OWNER = 'learnbook1103-design';
 const GH_REPO = 'dow_manage';
 const GH_BRANCH = 'main';
 
-const TOOLS = [
+const FUNCTION_DECLARATIONS = [
     {
         name: 'read_file',
         description: '허브의 파일을 읽습니다.',
-        input_schema: {
+        parameters: {
             type: 'object',
             properties: {
                 path: { type: 'string', description: '허브 루트 기준 상대 경로 (예: sales/pipeline.md)' }
@@ -22,7 +22,7 @@ const TOOLS = [
     {
         name: 'write_file',
         description: '허브의 파일을 저장하거나 업데이트합니다.',
-        input_schema: {
+        parameters: {
             type: 'object',
             properties: {
                 path: { type: 'string', description: '허브 루트 기준 상대 경로' },
@@ -34,12 +34,11 @@ const TOOLS = [
     {
         name: 'list_files',
         description: '허브 내 디렉토리의 파일 목록을 조회합니다.',
-        input_schema: {
+        parameters: {
             type: 'object',
             properties: {
                 directory: { type: 'string', description: '허브 루트 기준 상대 경로. 비우면 루트 목록.' }
-            },
-            required: []
+            }
         }
     }
 ];
@@ -63,7 +62,6 @@ async function githubWrite(relPath, content, userName) {
         'X-GitHub-Api-Version': '2022-11-28'
     };
 
-    // 기존 파일 SHA 조회 (업데이트 시 필요)
     let sha;
     const getRes = await fetch(url, { headers });
     if (getRes.ok) {
@@ -87,18 +85,18 @@ async function githubWrite(relPath, content, userName) {
     return `저장 완료: ${relPath} (GitHub 커밋됨)`;
 }
 
-async function execTool(name, input, userName) {
+async function execTool(name, args, userName) {
     if (name === 'read_file') {
-        const p = safePath(input.path);
-        if (!fs.existsSync(p)) return `[파일 없음: ${input.path}]`;
+        const p = safePath(args.path);
+        if (!fs.existsSync(p)) return `[파일 없음: ${args.path}]`;
         return fs.readFileSync(p, 'utf-8');
     }
     if (name === 'write_file') {
-        safePath(input.path); // 경로 검증
-        return await githubWrite(input.path, input.content, userName);
+        safePath(args.path);
+        return await githubWrite(args.path, args.content, userName);
     }
     if (name === 'list_files') {
-        const p = input.directory ? safePath(input.directory) : HUB_PATH;
+        const p = args.directory ? safePath(args.directory) : HUB_PATH;
         if (!fs.existsSync(p)) return '[디렉토리 없음]';
         return fs.readdirSync(p, { withFileTypes: true })
             .filter(d => !d.name.startsWith('.') && d.name !== 'node_modules')
@@ -139,6 +137,13 @@ function loadSystemPrompt(userName, userOrg, userRank) {
     return base;
 }
 
+function toGeminiContents(messages) {
+    return messages.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) }]
+    }));
+}
+
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -151,46 +156,48 @@ module.exports = async (req, res) => {
     if (!messages?.length) return res.status(400).json({ error: 'messages 필요' });
     const author = userName || '직원';
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const history = [...messages];
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({
+        model: 'gemini-2.0-flash',
+        tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
+        systemInstruction: loadSystemPrompt(author, userOrg, userRank)
+    });
+
+    const contents = toGeminiContents(messages);
     const updatedFiles = [];
     const toolLog = [];
     let iterations = 0;
 
     try {
         while (iterations++ < 12) {
-            const response = await client.messages.create({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 4096,
-                system: loadSystemPrompt(author, userOrg, userRank),
-                tools: TOOLS,
-                messages: history
-            });
+            const result = await model.generateContent({ contents });
+            const candidate = result.response.candidates[0];
+            const parts = candidate.content.parts;
 
-            if (response.stop_reason === 'end_turn') {
-                const text = response.content.find(c => c.type === 'text')?.text || '';
+            const functionCalls = parts.filter(p => p.functionCall);
+
+            if (functionCalls.length === 0) {
+                const text = parts.filter(p => p.text).map(p => p.text).join('');
                 return res.status(200).json({ content: text, updatedFiles, toolLog });
             }
 
-            if (response.stop_reason === 'tool_use') {
-                history.push({ role: 'assistant', content: response.content });
-                const results = [];
+            contents.push({ role: 'model', parts });
 
-                for (const block of response.content) {
-                    if (block.type !== 'tool_use') continue;
-                    const filePath = block.input.path || block.input.directory || '';
-                    toolLog.push({ name: block.name, path: filePath });
-                    const result = await execTool(block.name, block.input, author);
-                    if (block.name === 'write_file') updatedFiles.push(filePath);
-                    results.push({ type: 'tool_result', tool_use_id: block.id, content: result });
-                }
-
-                history.push({ role: 'user', content: results });
-            } else {
-                const text = response.content.find(c => c.type === 'text')?.text || '';
-                return res.status(200).json({ content: text, updatedFiles, toolLog });
+            const toolResponseParts = [];
+            for (const part of functionCalls) {
+                const { name, args } = part.functionCall;
+                const filePath = args.path || args.directory || '';
+                toolLog.push({ name, path: filePath });
+                const toolResult = await execTool(name, args, author);
+                if (name === 'write_file') updatedFiles.push(filePath);
+                toolResponseParts.push({
+                    functionResponse: { name, response: { output: toolResult } }
+                });
             }
+
+            contents.push({ role: 'user', parts: toolResponseParts });
         }
+
         res.status(500).json({ error: '최대 반복 횟수 초과' });
     } catch (err) {
         console.error(err);
