@@ -203,6 +203,31 @@
         .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-sub); padding: 0 4px; }
         .modal-body { flex: 1; overflow-y: auto; padding: 20px; }
         .modal-body pre { font-family: 'Noto Sans KR', sans-serif; font-size: 0.82rem; line-height: 1.7; white-space: pre-wrap; }
+
+        /* MEETING MODAL */
+        .meeting-form { display: flex; flex-direction: column; gap: 16px; }
+        .meeting-form label { font-size: 0.8rem; font-weight: 600; color: var(--text-sub); margin-bottom: 4px; display: block; }
+        .meeting-form input[type="text"] {
+            width: 100%; border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 14px; font-size: 0.88rem; font-family: inherit;
+            outline: none; color: var(--text); box-sizing: border-box;
+        }
+        .meeting-form input[type="text"]:focus { border-color: var(--blue); }
+        .meeting-file-label {
+            display: flex; align-items: center; gap: 10px;
+            border: 1.5px dashed var(--border); border-radius: 10px;
+            padding: 14px 16px; cursor: pointer; font-size: 0.85rem; color: var(--text-sub);
+            transition: border-color 0.15s;
+        }
+        .meeting-file-label:hover { border-color: var(--blue); color: var(--blue); }
+        .meeting-file-label.selected { border-color: var(--green); color: var(--green); }
+        .meeting-form input[type="file"] { display: none; }
+        .meeting-submit {
+            background: var(--blue); color: white; border: none;
+            border-radius: 10px; padding: 11px; font-size: 0.88rem;
+            font-weight: 600; cursor: pointer; font-family: inherit;
+        }
+        .meeting-submit:disabled { opacity: 0.45; cursor: not-allowed; }
     </style>
 </head>
 
@@ -253,7 +278,7 @@
                 <div class="quick-category-label">거래처</div>
                 <div class="quick-btns-row">
                     <button class="quick-btn" onclick="sendQuick('거래처 목록 보여줘')">🏢 거래처 조회</button>
-                    <button class="quick-btn" onclick="focusInput('미팅 기록: ')">📝 미팅 기록</button>
+                    <button class="quick-btn" onclick="openMeetingModal()">📝 미팅 기록</button>
                 </div>
             </div>
             <div class="quick-category">
@@ -270,6 +295,32 @@
                 <textarea id="chat-input" placeholder="예: &quot;E-002 선적 완료됐어&quot; / &quot;이번 주 파이프라인 현황 알려줘&quot;" rows="1"></textarea>
             </div>
             <button id="send-btn" onclick="sendMessage()">전송</button>
+        </div>
+    </div>
+</div>
+
+<!-- 미팅 기록 모달 -->
+<div class="modal-overlay" id="meeting-modal" onclick="closeMeetingModal(event)">
+    <div class="modal">
+        <div class="modal-head">
+            <span class="modal-title">📝 미팅 기록</span>
+            <button class="modal-close" onclick="closeMeetingModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="meeting-form">
+                <div>
+                    <label>거래처명</label>
+                    <input type="text" id="meeting-company" placeholder="예: 알파테크" />
+                </div>
+                <div>
+                    <label>녹음 파일</label>
+                    <label class="meeting-file-label" id="meeting-file-label" for="meeting-audio">
+                        🎙 파일 선택 (mp3, m4a, wav 등)
+                    </label>
+                    <input type="file" id="meeting-audio" accept="audio/*" onchange="onAudioSelected(this)" />
+                </div>
+                <button class="meeting-submit" id="meeting-submit-btn" onclick="submitMeeting()">변환 및 저장</button>
+            </div>
         </div>
     </div>
 </div>
@@ -531,6 +582,75 @@
             sendMessage();
         }
     });
+
+    // ── 미팅 기록 모달 ────────────────────────────────────────────────────────
+    function openMeetingModal() {
+        document.getElementById('meeting-company').value = '';
+        document.getElementById('meeting-audio').value = '';
+        document.getElementById('meeting-file-label').textContent = '🎙 파일 선택 (mp3, m4a, wav 등)';
+        document.getElementById('meeting-file-label').classList.remove('selected');
+        document.getElementById('meeting-modal').classList.add('open');
+    }
+
+    function closeMeetingModal(e) {
+        if (e && e.target !== document.getElementById('meeting-modal')) return;
+        document.getElementById('meeting-modal').classList.remove('open');
+    }
+
+    function onAudioSelected(input) {
+        const label = document.getElementById('meeting-file-label');
+        if (input.files[0]) {
+            label.textContent = `🎙 ${input.files[0].name}`;
+            label.classList.add('selected');
+        }
+    }
+
+    async function submitMeeting() {
+        const company = document.getElementById('meeting-company').value.trim();
+        const fileInput = document.getElementById('meeting-audio');
+        const file = fileInput.files[0];
+
+        if (!company) { alert('거래처명을 입력해주세요.'); return; }
+        if (!file) { alert('녹음 파일을 선택해주세요.'); return; }
+
+        const btn = document.getElementById('meeting-submit-btn');
+        btn.disabled = true;
+        btn.textContent = '변환 중...';
+        document.getElementById('meeting-modal').classList.remove('open');
+
+        appendUserMsg(`미팅 기록 — ${company} (${file.name})`);
+        const loadingEl = appendLoading();
+
+        try {
+            const audioBase64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+
+            const userName = localStorage.getItem('attendance_user_name') || '직원';
+            const res = await fetch('/api/hub-stt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audioBase64, mimeType: file.type, company, userName })
+            });
+            const data = await res.json();
+
+            loadingEl.remove();
+            if (data.error) {
+                appendAssistantMsg(`오류가 발생했습니다: ${data.error}`, [], []);
+            } else {
+                appendAssistantMsg(data.content, [{ name: 'write_file', path: data.filePath }], [data.filePath]);
+            }
+        } catch (err) {
+            loadingEl.remove();
+            appendAssistantMsg(`오류가 발생했습니다: ${err.message}`, [], []);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '변환 및 저장';
+        }
+    }
 
     // ── 초기 로드 ──────────────────────────────────────────────────────────────
     loadFileTree();
