@@ -1,8 +1,5 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const fs = require('fs');
-const path = require('path');
 
-const HUB_PATH = path.resolve(__dirname, '../hub-data');
 const GH_OWNER = 'learnbook1103-design';
 const GH_REPO = 'dow_manage';
 const GH_BRANCH = 'main';
@@ -44,27 +41,40 @@ const FUNCTION_DECLARATIONS = [
     }
 ];
 
-function safePath(rel) {
-    const abs = path.resolve(HUB_PATH, rel || '');
-    if (!abs.startsWith(HUB_PATH)) throw new Error('허브 외부 경로 접근 불가');
-    return abs;
-}
-
-async function githubWrite(relPath, content, userName, retries = 2) {
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) throw new Error('GITHUB_TOKEN 환경변수 없음');
-
-    const apiPath = `hub-data/${relPath.replace(/\\/g, '/')}`;
-    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${apiPath}`;
-    const headers = {
-        'Authorization': `Bearer ${token}`,
+function ghHeaders() {
+    return {
+        'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
         'Accept': 'application/vnd.github+json',
         'Content-Type': 'application/json',
         'X-GitHub-Api-Version': '2022-11-28'
     };
+}
+
+async function githubRead(relPath) {
+    const apiPath = `hub-data/${relPath.replace(/\\/g, '/')}`;
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${apiPath}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Buffer.from(data.content, 'base64').toString('utf-8');
+}
+
+async function githubList(relDir) {
+    const apiPath = relDir ? `hub-data/${relDir.replace(/\\/g, '/')}` : 'hub-data';
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${apiPath}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (!res.ok) return null;
+    return res.json();
+}
+
+async function githubWrite(relPath, content, userName, retries = 2) {
+    if (!process.env.GITHUB_TOKEN) throw new Error('GITHUB_TOKEN 환경변수 없음');
+
+    const apiPath = `hub-data/${relPath.replace(/\\/g, '/')}`;
+    const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/contents/${apiPath}`;
 
     let sha;
-    const getRes = await fetch(url, { headers });
+    const getRes = await fetch(url, { headers: ghHeaders() });
     if (getRes.ok) {
         const data = await getRes.json();
         sha = data.sha;
@@ -78,7 +88,7 @@ async function githubWrite(relPath, content, userName, retries = 2) {
     };
     if (sha) body.sha = sha;
 
-    const putRes = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+    const putRes = await fetch(url, { method: 'PUT', headers: ghHeaders(), body: JSON.stringify(body) });
     if (putRes.status === 409 && retries > 0) {
         // SHA 충돌(동시 수정) → SHA 갱신 후 재시도
         return githubWrite(relPath, content, userName, retries - 1);
@@ -92,20 +102,18 @@ async function githubWrite(relPath, content, userName, retries = 2) {
 
 async function execTool(name, args, userName) {
     if (name === 'read_file') {
-        const p = safePath(args.path);
-        if (!fs.existsSync(p)) return `[파일 없음: ${args.path}]`;
-        return fs.readFileSync(p, 'utf-8');
+        const content = await githubRead(args.path);
+        return content !== null ? content : `[파일 없음: ${args.path}]`;
     }
     if (name === 'write_file') {
-        safePath(args.path);
         return await githubWrite(args.path, args.content, userName);
     }
     if (name === 'list_files') {
-        const p = args.directory ? safePath(args.directory) : HUB_PATH;
-        if (!fs.existsSync(p)) return '[디렉토리 없음]';
-        return fs.readdirSync(p, { withFileTypes: true })
-            .filter(d => !d.name.startsWith('.') && d.name !== 'node_modules')
-            .map(d => (d.isDirectory() ? '📁 ' : '📄 ') + d.name)
+        const items = await githubList(args.directory || '');
+        if (!items) return '[디렉토리 없음]';
+        return items
+            .filter(i => !i.name.startsWith('.') && i.name !== 'node_modules')
+            .map(i => (i.type === 'dir' ? '📁 ' : '📄 ') + i.name)
             .join('\n');
     }
     return '[알 수 없는 도구]';
