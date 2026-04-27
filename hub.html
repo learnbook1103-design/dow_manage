@@ -8,6 +8,7 @@
     <title>AI 업무 허브 — DOW</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.5/dist/purify.min.js"></script>
     <style>
         :root {
             --bg: #f5f5f7;
@@ -474,7 +475,7 @@
         try {
             const res = await fetch(`/api/hub-file?path=${encodeURIComponent(filePath)}`);
             const data = await res.json();
-            document.getElementById('modal-content').innerHTML = marked.parse(data.content || '*(빈 파일)*');
+            document.getElementById('modal-content').innerHTML = DOMPurify.sanitize(marked.parse(data.content || '*(빈 파일)*'));
         } catch (e) {
             document.getElementById('modal-content').textContent = '파일 로드 실패: ' + e.message;
         }
@@ -502,7 +503,7 @@
         el.className = 'msg assistant';
 
         // 마크다운 렌더링
-        let html = `<div class="bubble">${marked.parse(text)}</div>`;
+        let html = `<div class="bubble">${DOMPurify.sanitize(marked.parse(text))}</div>`;
 
         // Tool log chips
         if (toolLog?.length) {
@@ -565,6 +566,9 @@
 
         appendUserMsg(text);
         messages.push({ role: 'user', content: text });
+
+        // 최근 20개(10턴)만 유지 — 토큰 비용 제한
+        if (messages.length > 20) messages = messages.slice(-20);
 
         const loadingEl = appendLoading();
         isLoading = true;

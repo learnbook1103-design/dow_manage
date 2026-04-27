@@ -50,7 +50,7 @@ function safePath(rel) {
     return abs;
 }
 
-async function githubWrite(relPath, content, userName) {
+async function githubWrite(relPath, content, userName, retries = 2) {
     const token = process.env.GITHUB_TOKEN;
     if (!token) throw new Error('GITHUB_TOKEN 환경변수 없음');
 
@@ -79,6 +79,10 @@ async function githubWrite(relPath, content, userName) {
     if (sha) body.sha = sha;
 
     const putRes = await fetch(url, { method: 'PUT', headers, body: JSON.stringify(body) });
+    if (putRes.status === 409 && retries > 0) {
+        // SHA 충돌(동시 수정) → SHA 갱신 후 재시도
+        return githubWrite(relPath, content, userName, retries - 1);
+    }
     if (!putRes.ok) {
         const err = await putRes.json();
         throw new Error(`GitHub API 오류: ${err.message}`);
@@ -243,5 +247,5 @@ module.exports = async (req, res) => {
         }
     }
 
-    return res.status(500).json({ error: lastError?.message || '모든 모델 사용 불가' });
+    return res.status(500).json({ error: 'AI 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해 주세요.' });
 };
