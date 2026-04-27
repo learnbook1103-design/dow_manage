@@ -27,6 +27,8 @@ module.exports = (req, res) => {
     ['sales', 'team', 'ontology', 'inbox', 'companies', 'operations', 'project'].forEach(d =>
         scan(path.join(HUB_PATH, d), d)
     );
+    // sales/pipeline 하위는 별도 스캔
+    scan(path.join(HUB_PATH, 'sales', 'pipeline'), 'sales/pipeline');
 
     res.status(200).json(result);
 };

@@ -398,6 +398,7 @@
         'companies/suppliers': '공급사',
         'team': '팀',
         'ontology': '온톨로지',
+        'sales/pipeline': '팀별 미결업무',
         'operations/발주': '발주',
         'operations/재고': '재고',
         'operations/입출고': '입출고',
@@ -407,7 +408,7 @@
 
     function renderFileTree(data) {
         const tree = document.getElementById('file-tree');
-        const order = ['sales', 'sales/channels', 'sales/analysis', 'companies/customers', 'companies/suppliers', 'team', 'ontology', 'operations/발주', 'operations/재고', 'operations/입출고', 'project', 'inbox'];
+        const order = ['sales', 'sales/pipeline', 'sales/channels', 'sales/analysis', 'companies/customers', 'companies/suppliers', 'team', 'ontology', 'operations/발주', 'operations/재고', 'operations/입출고', 'project', 'inbox'];
         let html = '';
 
         order.forEach(section => {
