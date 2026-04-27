@@ -222,6 +222,15 @@
         .meeting-file-label:hover { border-color: var(--blue); color: var(--blue); }
         .meeting-file-label.selected { border-color: var(--green); color: var(--green); }
         .meeting-form input[type="file"] { display: none; }
+        /* Meeting tabs */
+        .meeting-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 16px; gap: 0; }
+        .meeting-tab {
+            flex: 1; padding: 8px 12px; background: none; border: none;
+            border-bottom: 2px solid transparent; cursor: pointer;
+            font-size: 0.82rem; color: var(--text-sub); font-family: inherit; transition: all 0.15s;
+        }
+        .meeting-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+
         .meeting-submit {
             background: var(--blue); color: white; border: none;
             border-radius: 10px; padding: 11px; font-size: 0.88rem;
@@ -313,14 +322,30 @@
                     <label>거래처명</label>
                     <input type="text" id="meeting-company" placeholder="예: HPRAY, Tema Oil Refinery" />
                 </div>
-                <div>
-                    <label>녹음 파일</label>
-                    <label class="meeting-file-label" id="meeting-file-label" for="meeting-audio">
-                        🎙 파일 선택 (mp3, m4a, wav 등)
-                    </label>
-                    <input type="file" id="meeting-audio" accept="audio/*" onchange="onAudioSelected(this)" />
+                <!-- 탭 -->
+                <div class="meeting-tabs">
+                    <button class="meeting-tab active" id="tab-audio-btn" onclick="switchMeetingTab('audio')">🎙 오디오 변환</button>
+                    <button class="meeting-tab" id="tab-text-btn" onclick="switchMeetingTab('text')">📋 직접 입력</button>
                 </div>
-                <button class="meeting-submit" id="meeting-transcribe-btn" onclick="transcribeMeeting()">변환</button>
+                <!-- 오디오 탭 -->
+                <div id="tab-audio" style="display:flex;flex-direction:column;gap:12px;">
+                    <div>
+                        <label>녹음 파일 <span style="font-size:0.72rem;color:var(--text-sub);font-weight:400;">(5분 이하 권장)</span></label>
+                        <label class="meeting-file-label" id="meeting-file-label" for="meeting-audio">
+                            🎙 파일 선택 (mp3, m4a, wav 등)
+                        </label>
+                        <input type="file" id="meeting-audio" accept="audio/*" onchange="onAudioSelected(this)" />
+                    </div>
+                    <button class="meeting-submit" id="meeting-transcribe-btn" onclick="transcribeMeeting()">변환</button>
+                </div>
+                <!-- 직접 입력 탭 -->
+                <div id="tab-text" style="display:none;flex-direction:column;gap:12px;">
+                    <div>
+                        <label>내용 붙여넣기 <span style="font-size:0.72rem;color:var(--text-sub);font-weight:400;">클로바노트 전사 결과 또는 직접 작성</span></label>
+                        <textarea id="meeting-direct-input" placeholder="클로바노트에서 복사한 내용을 붙여넣으세요..." style="width:100%;min-height:200px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                    </div>
+                    <button class="meeting-submit" onclick="submitDirectInput()">다음 →</button>
+                </div>
             </div>
             <!-- Step 2: 검토 및 수정 -->
             <div id="meeting-step2" style="display:none;" class="meeting-form">
@@ -349,7 +374,7 @@
             <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
         </div>
         <div class="modal-body">
-            <pre id="modal-content"></pre>
+            <div id="modal-content" style="font-size:0.85rem;line-height:1.7;"></div>
         </div>
     </div>
 </div>
@@ -449,7 +474,7 @@
         try {
             const res = await fetch(`/api/hub-file?path=${encodeURIComponent(filePath)}`);
             const data = await res.json();
-            document.getElementById('modal-content').textContent = data.content || '(빈 파일)';
+            document.getElementById('modal-content').innerHTML = marked.parse(data.content || '*(빈 파일)*');
         } catch (e) {
             document.getElementById('modal-content').textContent = '파일 로드 실패: ' + e.message;
         }
@@ -606,21 +631,50 @@
 
     // ── 미팅 기록 모달 ────────────────────────────────────────────────────────
     let meetingUserMsg = '';
+    let meetingActiveTab = 'audio';
 
     function openMeetingModal() {
         document.getElementById('meeting-company').value = '';
         document.getElementById('meeting-audio').value = '';
+        document.getElementById('meeting-direct-input').value = '';
         document.getElementById('meeting-file-label').textContent = '🎙 파일 선택 (mp3, m4a, wav 등)';
         document.getElementById('meeting-file-label').classList.remove('selected');
         document.getElementById('meeting-step1').style.display = 'flex';
         document.getElementById('meeting-step2').style.display = 'none';
         document.getElementById('meeting-modal-title').textContent = '📝 미팅 기록';
+        switchMeetingTab('audio');
         document.getElementById('meeting-modal').classList.add('open');
     }
 
     function closeMeetingModal(e) {
         if (e && e.target !== document.getElementById('meeting-modal')) return;
         document.getElementById('meeting-modal').classList.remove('open');
+    }
+
+    function switchMeetingTab(tab) {
+        meetingActiveTab = tab;
+        document.getElementById('tab-audio').style.display = tab === 'audio' ? 'flex' : 'none';
+        document.getElementById('tab-text').style.display = tab === 'text' ? 'flex' : 'none';
+        document.getElementById('tab-audio-btn').classList.toggle('active', tab === 'audio');
+        document.getElementById('tab-text-btn').classList.toggle('active', tab === 'text');
+    }
+
+    function submitDirectInput() {
+        const company = document.getElementById('meeting-company').value.trim();
+        const text = document.getElementById('meeting-direct-input').value.trim();
+        if (!company) { alert('거래처명을 입력해주세요.'); return; }
+        if (!text) { alert('내용을 입력해주세요.'); return; }
+
+        const today = new Date().toISOString().slice(0, 10);
+        const author = localStorage.getItem('attendance_user_name') || '직원';
+        const formatted = `# 미팅 기록 — ${company}\n날짜: ${today}\n작성자: ${author}\n\n${text}`;
+
+        meetingUserMsg = `미팅 기록 — ${company} (직접 입력)`;
+        document.getElementById('meeting-content-edit').value = formatted;
+        document.getElementById('meeting-filepath').value = `inbox/${today}-${company}-meeting.md`;
+        document.getElementById('meeting-step1').style.display = 'none';
+        document.getElementById('meeting-step2').style.display = 'flex';
+        document.getElementById('meeting-modal-title').textContent = '📝 내용 확인 및 수정';
     }
 
     function backToStep1() {
