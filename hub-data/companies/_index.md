@@ -5,16 +5,27 @@
 
 ---
 
-## 거래처 목록
+## 고객사 (customers)
 
-| 회사명 | 구분 | 경로 |
-|--------|------|------|
-| 알파테크 | 고객사 | companies/customers/알파테크/ |
-| 베타솔루션 | 고객사 | companies/customers/베타솔루션/ |
-| 감마산업 | 고객사 | companies/customers/감마산업/ |
-| 델타공업 | 공급사 | companies/suppliers/델타공업/ |
-| 에이원밸브 | 공급사 | companies/suppliers/에이원밸브/ |
-| 비투피팅 | 공급사 | companies/suppliers/비투피팅/ |
+| 회사명 | 구분 | 채널 | 담당 | 경로 |
+|--------|------|------|------|------|
+| HPRAY (HP Ray Clean Technology) | 국외 (중국) | 반도체/Plant | 한옥련 | companies/customers/HPRAY/ |
+| Tema Oil Refinery | 국외 (가나) | 수출/MRO | 이대희 | companies/customers/Tema_Oil_Refinery/ |
+| HAM-LET | 국외 (이스라엘) | 수출 | 이대희 | companies/customers/HAM-LET/ |
+
+---
+
+## 공급사 (suppliers)
+
+→ 전체 목록: `companies/suppliers/_index.md` (75개사, 2026-04-09 스냅샷)
+
+| 주요 공급사 | 품목 |
+|------------|------|
+| KB Valve | 밸브 |
+| 극동밸브 | 3way, 버터플라이, 글로브 |
+| 영텍 (ROTORK YTC) | 액추에이터 (ROTORK 대리점) |
+| 태영쎄니타리 | 쌔니타리 밸브 |
+| HUASHENG (화승) / HPRAY | CPVC 밸브 (중국, 수입) |
 
 ---
 

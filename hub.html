@@ -311,7 +311,7 @@
             <div id="meeting-step1" class="meeting-form">
                 <div>
                     <label>거래처명</label>
-                    <input type="text" id="meeting-company" placeholder="예: 알파테크" />
+                    <input type="text" id="meeting-company" placeholder="예: HPRAY, Tema Oil Refinery" />
                 </div>
                 <div>
                     <label>녹음 파일</label>
@@ -398,12 +398,16 @@
         'companies/suppliers': '공급사',
         'team': '팀',
         'ontology': '온톨로지',
+        'operations/발주': '발주',
+        'operations/재고': '재고',
+        'operations/입출고': '입출고',
+        'project': '프로젝트',
         'inbox': 'Inbox'
     };
 
     function renderFileTree(data) {
         const tree = document.getElementById('file-tree');
-        const order = ['sales', 'companies/customers', 'companies/suppliers', 'team', 'ontology', 'inbox', 'sales/analysis', 'sales/channels'];
+        const order = ['sales', 'sales/channels', 'sales/analysis', 'companies/customers', 'companies/suppliers', 'team', 'ontology', 'operations/발주', 'operations/재고', 'operations/입출고', 'project', 'inbox'];
         let html = '';
 
         order.forEach(section => {

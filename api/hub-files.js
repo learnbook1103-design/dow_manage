@@ -24,7 +24,7 @@ module.exports = (req, res) => {
         });
     };
 
-    ['sales', 'team', 'ontology', 'inbox', 'companies'].forEach(d =>
+    ['sales', 'team', 'ontology', 'inbox', 'companies', 'operations', 'project'].forEach(d =>
         scan(path.join(HUB_PATH, d), d)
     );
 
