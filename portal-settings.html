@@ -131,6 +131,87 @@ main { max-width: 860px; margin: 0 auto; padding: 80px 22px 60px; }
 }
 .btn-save:hover { opacity: 0.88; }
 .btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
+/* 결재선 */
+.line-type-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.line-type-tab {
+  padding: 6px 16px; border-radius: 20px;
+  border: 1px solid var(--border); font-size: 0.82rem;
+  font-weight: 600; cursor: pointer; background: #fff;
+  color: var(--text-sub); font-family: inherit;
+  transition: background 0.2s, color 0.2s;
+}
+.line-type-tab.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+.line-range-list { display: flex; flex-direction: column; gap: 12px; }
+.line-range {
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; background: var(--bg);
+}
+.line-range-header {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 12px; flex-wrap: wrap;
+}
+.line-range-header label { font-size: 0.78rem; font-weight: 600; color: var(--text-sub); white-space: nowrap; }
+.line-amount-input {
+  width: 130px; border: 1px solid var(--border); border-radius: 7px;
+  padding: 6px 10px; font-size: 0.84rem; font-family: inherit;
+  outline: none; text-align: right;
+}
+.line-amount-input:focus { border-color: var(--purple); }
+.line-range-sep { font-size: 0.82rem; color: var(--text-sub); }
+.btn-del-range {
+  margin-left: auto; background: #fee2e2; color: #991b1b;
+  border: none; border-radius: 7px; padding: 5px 12px;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+.line-steps { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.line-step {
+  display: flex; align-items: center; gap: 8px;
+}
+.step-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--purple); color: #fff;
+  font-size: 0.72rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.line-step select {
+  flex: 1; border: 1px solid var(--border); border-radius: 7px;
+  padding: 6px 10px; font-size: 0.84rem; font-family: inherit;
+  outline: none; background: #fff;
+}
+.line-step select:focus { border-color: var(--purple); }
+.btn-del-step {
+  background: none; border: none; color: var(--text-sub);
+  font-size: 1rem; cursor: pointer; padding: 2px 6px;
+  border-radius: 5px; line-height: 1;
+}
+.btn-del-step:hover { background: #fee2e2; color: #991b1b; }
+.btn-add-step {
+  background: none; border: 1.5px dashed var(--border);
+  border-radius: 7px; padding: 6px 14px;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  color: var(--text-sub); font-family: inherit; width: 100%;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-add-step:hover { border-color: var(--purple); color: var(--purple); }
+.btn-add-range {
+  background: none; border: 1.5px dashed var(--border);
+  border-radius: 10px; padding: 10px;
+  font-size: 0.84rem; font-weight: 600; cursor: pointer;
+  color: var(--text-sub); font-family: inherit; width: 100%;
+  margin-top: 4px; transition: border-color 0.2s, color 0.2s;
+}
+.btn-add-range:hover { border-color: var(--purple); color: var(--purple); }
+/* 폼 방식 토글 */
+.form-type-toggle { display: flex; gap: 0; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; width: fit-content; margin-bottom: 18px; }
+.form-type-btn { padding: 9px 22px; border: none; background: #fff; font-size: 0.85rem; font-weight: 600; cursor: pointer; font-family: inherit; color: var(--text-sub); transition: background 0.15s, color 0.15s; }
+.form-type-btn:first-child { border-right: 1px solid var(--border); }
+.form-type-btn.active { background: var(--blue); color: #fff; }
+.gform-url-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 560px) { .gform-url-grid { grid-template-columns: 1fr; } }
+.gform-url-item label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-sub); margin-bottom: 5px; }
+.gform-url-item input { width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; font-family: inherit; outline: none; }
+.gform-url-item input:focus { border-color: var(--blue); }
 /* 로딩 */
 .loading-msg { color: var(--text-sub); font-size: 0.85rem; padding: 24px 0; text-align: center; }
 /* 토스트 */
@@ -184,6 +265,18 @@ main { max-width: 860px; margin: 0 auto; padding: 80px 22px 60px; }
     </div>
   </div>
 
+  <!-- 금액별 결재선 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="dot" style="background:var(--purple);"></div>
+      금액별 결재선 <span style="font-size:0.75rem;font-weight:400;color:var(--text-sub);margin-left:6px;">(금액 구간별 결재 단계 설정)</span>
+    </div>
+    <div class="card">
+      <div class="line-type-tabs" id="line-type-tabs"></div>
+      <div id="line-ranges-wrap"></div>
+    </div>
+  </div>
+
   <!-- 팀별 한도 -->
   <div class="section">
     <div class="section-header">
@@ -206,6 +299,46 @@ main { max-width: 860px; margin: 0 auto; padding: 80px 22px 60px; }
             <tr><td colspan="5" class="loading-msg">불러오는 중...</td></tr>
           </tbody>
         </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 결재 폼 방식 -->
+  <div class="section">
+    <div class="section-header">
+      <div class="dot" style="background:var(--blue);"></div>
+      결재 폼 방식
+    </div>
+    <div class="card">
+      <p style="font-size:0.83rem;color:var(--text-sub);margin-bottom:14px;">신청 폼을 내부 폼으로 처리할지, 구글 폼 링크로 연결할지 선택합니다.</p>
+      <div class="form-type-toggle">
+        <button class="form-type-btn active" id="ftype-btn-internal" onclick="setFormType('internal')">내부 폼</button>
+        <button class="form-type-btn" id="ftype-btn-google" onclick="setFormType('google')">구글 폼</button>
+      </div>
+      <div id="gform-urls-section" style="display:none;">
+        <p style="font-size:0.8rem;color:var(--text-sub);margin-bottom:12px;">유형별 구글 폼 URL을 입력하세요. (비워두면 해당 유형은 구글 폼 링크 없음으로 표시)</p>
+        <div class="gform-url-grid">
+          <div class="gform-url-item">
+            <label>🛒 비품·소모품 구매</label>
+            <input type="url" id="gf-비품구매" placeholder="https://forms.gle/...">
+          </div>
+          <div class="gform-url-item">
+            <label>🌸 경조사비</label>
+            <input type="url" id="gf-경조사비" placeholder="https://forms.gle/...">
+          </div>
+          <div class="gform-url-item">
+            <label>✈️ 출장비</label>
+            <input type="url" id="gf-출장비" placeholder="https://forms.gle/...">
+          </div>
+          <div class="gform-url-item">
+            <label>🍽️ 식비</label>
+            <input type="url" id="gf-식비" placeholder="https://forms.gle/...">
+          </div>
+          <div class="gform-url-item">
+            <label>📋 품의서</label>
+            <input type="url" id="gf-품의서" placeholder="https://forms.gle/...">
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -263,9 +396,13 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TYPES = ['비품구매', '경조사비', '출장비', '식비'];
+const TYPE_LABELS = { '비품구매': '🛒 비품·소모품', '경조사비': '🌸 경조사비', '출장비': '✈️ 출장비', '식비': '🍽️ 식비' };
 let teams = [];
 let employees = [];
 let settings = {};
+let activeLineType = '비품구매';
+let approvalLines = {};
+let currentFormType = 'internal';
 
 async function init() {
   // 재직 중 직원 + 팀 목록 로드
@@ -278,9 +415,13 @@ async function init() {
   const { data: rows } = await _sb.from('app_settings').select('key, value').eq('module', 'approval');
   if (rows) rows.forEach(r => { settings[r.key] = r.value; });
 
+  approvalLines = settings['approval_lines'] || {};
   renderApprovers();
+  renderLineTypeTabs();
+  renderLineRanges();
   renderLimits();
   renderOverLimit();
+  renderFormTypeSettings();
   document.getElementById('page-sub').textContent = `재직 직원 ${employees.length}명 · ${teams.length}개 팀`;
 }
 
@@ -315,6 +456,100 @@ function applyAll() {
   });
 }
 
+// ── 결재선 ──────────────────────────────────────────────────
+function renderLineTypeTabs() {
+  const wrap = document.getElementById('line-type-tabs');
+  wrap.innerHTML = TYPES.map(type =>
+    `<button class="line-type-tab ${type === activeLineType ? 'active' : ''}" onclick="switchLineType('${type}')">${TYPE_LABELS[type]}</button>`
+  ).join('');
+}
+
+function switchLineType(type) {
+  activeLineType = type;
+  renderLineTypeTabs();
+  renderLineRanges();
+}
+
+function renderLineRanges() {
+  const wrap = document.getElementById('line-ranges-wrap');
+  const ranges = approvalLines[activeLineType] || [];
+  const empOptions = employees.map(e =>
+    `<option value="${e.name}">${e.name} (${e.rank} · ${e.org})</option>`
+  ).join('');
+
+  wrap.innerHTML = `
+    <div class="line-range-list" id="line-range-list">
+      ${ranges.map((r, ri) => renderRangeHTML(r, ri, empOptions)).join('')}
+    </div>
+    <button class="btn-add-range" onclick="addRange()">+ 금액 구간 추가</button>
+  `;
+}
+
+function renderRangeHTML(r, ri, empOptions) {
+  const steps = (r.steps || []).map((name, si) => `
+    <div class="line-step" id="step-${ri}-${si}">
+      <div class="step-num">${si + 1}</div>
+      <select onchange="updateStep(${ri}, ${si}, this.value)">
+        <option value="">— 결재자 선택 —</option>
+        <option value="__TEAM_LEADER__" ${'__TEAM_LEADER__' === name ? 'selected' : ''}>👤 팀장 (신청자 소속팀 자동 지정)</option>
+        ${employees.map(e => `<option value="${e.name}" ${e.name === name ? 'selected' : ''}>${e.name} (${e.rank} · ${e.org})</option>`).join('')}
+      </select>
+      <button class="btn-del-step" onclick="delStep(${ri}, ${si})" title="단계 삭제">✕</button>
+    </div>
+  `).join('');
+
+  const maxVal = r.amount_max === Infinity || r.amount_max == null ? '' : r.amount_max;
+  return `
+    <div class="line-range" id="range-${ri}">
+      <div class="line-range-header">
+        <label>최소 금액 (원)</label>
+        <input class="line-amount-input" type="number" min="0" step="10000"
+          value="${r.amount_min ?? ''}" placeholder="0"
+          onchange="updateRange(${ri}, 'amount_min', this.value)">
+        <span class="line-range-sep">~</span>
+        <label>최대 금액 (원)</label>
+        <input class="line-amount-input" type="number" min="0" step="10000"
+          value="${maxVal}" placeholder="제한 없음"
+          onchange="updateRange(${ri}, 'amount_max', this.value)">
+        <button class="btn-del-range" onclick="delRange(${ri})">구간 삭제</button>
+      </div>
+      <div class="line-steps" id="steps-${ri}">${steps}</div>
+      <button class="btn-add-step" onclick="addStep(${ri})">+ 결재 단계 추가</button>
+    </div>
+  `;
+}
+
+function addRange() {
+  if (!approvalLines[activeLineType]) approvalLines[activeLineType] = [];
+  approvalLines[activeLineType].push({ amount_min: 0, amount_max: null, steps: [] });
+  renderLineRanges();
+}
+
+function delRange(ri) {
+  approvalLines[activeLineType].splice(ri, 1);
+  renderLineRanges();
+}
+
+function updateRange(ri, field, value) {
+  const v = value === '' ? null : Number(value);
+  approvalLines[activeLineType][ri][field] = v;
+}
+
+function addStep(ri) {
+  if (!approvalLines[activeLineType][ri].steps) approvalLines[activeLineType][ri].steps = [];
+  approvalLines[activeLineType][ri].steps.push('');
+  renderLineRanges();
+}
+
+function delStep(ri, si) {
+  approvalLines[activeLineType][ri].steps.splice(si, 1);
+  renderLineRanges();
+}
+
+function updateStep(ri, si, value) {
+  approvalLines[activeLineType][ri].steps[si] = value;
+}
+
 function renderLimits() {
   const limits = settings['team_limits'] || {};
   const tbody = document.getElementById('limit-tbody');
@@ -344,6 +579,30 @@ function renderOverLimit() {
   });
 }
 
+const DEFAULT_GOOGLE_FORM_URLS = {
+  '비품구매': 'https://docs.google.com/forms/d/e/1FAIpQLSe2nYmT0-Qcw7sToHYuV63iMoQtYnucIiaMxh50Kue-DKkMMw/viewform',
+  '경조사비': 'https://docs.google.com/forms/d/e/1FAIpQLSdlGpy92nzkzhIH45oBA9ZtxKUsgq4g3YZi2DUDkukf2VVJhg/viewform',
+};
+
+function renderFormTypeSettings() {
+  currentFormType = settings['form_type'] || 'internal';
+  document.getElementById('ftype-btn-internal').classList.toggle('active', currentFormType === 'internal');
+  document.getElementById('ftype-btn-google').classList.toggle('active', currentFormType === 'google');
+  document.getElementById('gform-urls-section').style.display = currentFormType === 'google' ? '' : 'none';
+  const urls = settings['google_form_urls'] || DEFAULT_GOOGLE_FORM_URLS;
+  ['비품구매', '경조사비', '출장비', '식비', '품의서'].forEach(type => {
+    const el = document.getElementById('gf-' + type);
+    if (el) el.value = urls[type] || '';
+  });
+}
+
+function setFormType(type) {
+  currentFormType = type;
+  document.getElementById('ftype-btn-internal').classList.toggle('active', type === 'internal');
+  document.getElementById('ftype-btn-google').classList.toggle('active', type === 'google');
+  document.getElementById('gform-urls-section').style.display = type === 'google' ? '' : 'none';
+}
+
 function typeLabel(type) {
   return { '비품구매': '🛒 비품 · 소모품', '경조사비': '🌸 경조사비', '출장비': '✈️ 출장비', '식비': '🍽️ 식비' }[type] || type;
 }
@@ -370,10 +629,20 @@ async function saveAll() {
     // 한도 초과 처리
     const overLimit = { action: document.querySelector('input[name=over_limit]:checked')?.value || 'warn' };
 
+    // 폼 방식
+    const googleFormUrls = {};
+    ['비품구매', '경조사비', '출장비', '식비', '품의서'].forEach(type => {
+      const val = document.getElementById('gf-' + type)?.value.trim();
+      if (val) googleFormUrls[type] = val;
+    });
+
     const upserts = [
       { module: 'approval', key: 'approvers', value: approvers, updated_at: new Date().toISOString() },
+      { module: 'approval', key: 'approval_lines', value: approvalLines, updated_at: new Date().toISOString() },
       { module: 'approval', key: 'team_limits', value: teamLimits, updated_at: new Date().toISOString() },
       { module: 'approval', key: 'over_limit', value: overLimit, updated_at: new Date().toISOString() },
+      { module: 'approval', key: 'form_type', value: currentFormType, updated_at: new Date().toISOString() },
+      { module: 'approval', key: 'google_form_urls', value: googleFormUrls, updated_at: new Date().toISOString() },
     ];
     const { error } = await _sb.from('app_settings').upsert(upserts, { onConflict: 'module,key' });
     if (error) throw new Error(error.message);

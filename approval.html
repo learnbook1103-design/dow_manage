@@ -197,6 +197,84 @@
         .btn-submit:hover { opacity: 0.88; }
         .btn-submit:disabled { opacity: 0.45; cursor: not-allowed; }
 
+        /* ITEM TABLE */
+        .item-table-wrap { overflow-x: auto; }
+        .item-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+        .item-table th { background: #f3f4f6; padding: 7px 8px; font-weight: 600; color: var(--text-sub); border: 1px solid var(--border); text-align: center; }
+        .item-table td { border: 1px solid var(--border); padding: 3px 4px; }
+        .item-table td input { width: 100%; border: none; outline: none; padding: 5px 6px; font-size: 0.82rem; font-family: inherit; background: transparent; }
+        .item-table td input:focus { background: #f0f9ff; border-radius: 4px; }
+        .btn-add-item { margin-top: 8px; background: none; border: 1px dashed var(--border); border-radius: 7px; padding: 6px 14px; font-size: 0.8rem; color: var(--text-sub); cursor: pointer; width: 100%; font-family: inherit; }
+        .btn-add-item:hover { border-color: var(--blue); color: var(--blue); }
+        .btn-remove-item { background: none; border: none; cursor: pointer; color: #dc2626; font-size: 1rem; padding: 2px 4px; }
+
+        /* PREVIEW MODAL */
+        .preview-backdrop { display:none; position:fixed; inset:0; background:#3a3a3c; z-index:300; overflow-y:auto; padding:60px 20px 20px; }
+        .preview-backdrop.open { display:block; }
+        .preview-toolbar { position:fixed; top:0; left:0; right:0; height:52px; background:#1c1c1e; display:flex; align-items:center; justify-content:space-between; padding:0 24px; z-index:301; }
+        .preview-toolbar-title { color:#fff; font-size:0.88rem; font-weight:600; }
+        .preview-toolbar-btns { display:flex; gap:10px; }
+        .btn-preview-cancel { background:rgba(255,255,255,0.12); color:#fff; border:none; border-radius:8px; padding:7px 18px; font-size:0.83rem; cursor:pointer; font-family:inherit; }
+        .btn-preview-submit { background:#0071e3; color:#fff; border:none; border-radius:8px; padding:7px 20px; font-size:0.83rem; font-weight:700; cursor:pointer; font-family:inherit; }
+        .btn-preview-cancel:hover { background:rgba(255,255,255,0.2); }
+        .btn-preview-submit:hover { opacity:0.88; }
+        /* A4 용지 */
+        .a4-wrap { display:flex; justify-content:center; }
+        .a4-page { background:#fff; width:595px; min-height:842px; padding:48px 52px; box-shadow:0 4px 32px rgba(0,0,0,0.35); font-family:'Noto Sans KR',sans-serif; color:#111; font-size:10pt; line-height:1.5; }
+        .doc-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; }
+        .doc-logo { font-size:9pt; font-weight:700; color:#0071e3; letter-spacing:0.05em; }
+        .doc-approve-box { display:flex; border:1px solid #333; }
+        .doc-approve-cell { width:58px; text-align:center; font-size:8pt; border-left:1px solid #333; }
+        .doc-approve-cell:first-child { border-left:none; }
+        .doc-approve-cell-label { background:#f3f4f6; padding:3px 0; font-weight:700; border-bottom:1px solid #333; }
+        .doc-approve-cell-sign { height:44px; }
+        .doc-title-wrap { text-align:center; margin:16px 0 20px; }
+        .doc-title { font-size:16pt; font-weight:700; letter-spacing:0.08em; border-bottom:2px solid #111; display:inline-block; padding-bottom:4px; }
+        .doc-meta-row { display:flex; justify-content:flex-end; gap:24px; font-size:9pt; color:#444; margin-bottom:20px; }
+        .doc-table { width:100%; border-collapse:collapse; font-size:9.5pt; margin-bottom:12px; }
+        .doc-table th { background:#f3f4f6; padding:6px 10px; font-weight:700; border:1px solid #555; text-align:center; white-space:nowrap; }
+        .doc-table td { padding:6px 10px; border:1px solid #555; vertical-align:middle; }
+        .doc-table td.label { background:#f9fafb; font-weight:600; text-align:center; width:80px; white-space:nowrap; }
+        .doc-table td.total { background:#f0fdf4; font-weight:700; color:#065f46; text-align:right; }
+        .doc-table td.amount { font-weight:700; color:#0071e3; }
+        .doc-section-title { font-size:9pt; font-weight:700; color:#444; margin:14px 0 4px; border-left:3px solid #5b21b6; padding-left:7px; }
+        .doc-attach-list { font-size:8.5pt; color:#555; margin-top:10px; }
+        .doc-footer { margin-top:40px; text-align:center; font-size:8pt; color:#888; border-top:1px solid #ddd; padding-top:10px; }
+
+        /* FILE UPLOAD */
+        .file-upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            position: relative;
+            transition: border-color 0.2s;
+        }
+        .file-upload-area:hover { border-color: var(--blue); }
+        .file-upload-area input[type="file"] {
+            position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+        }
+        .file-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 10px; background: #f9fafb; border-radius: 6px; margin-top: 5px;
+            font-size: 0.82rem;
+        }
+        .attach-link {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 12px; background: #f0f9ff; border-radius: 7px; margin-top: 5px;
+            font-size: 0.83rem; color: var(--blue); text-decoration: none;
+        }
+        .attach-link:hover { background: #e0f2fe; }
+
+        @media print {
+            body > *:not(#preview-modal) { display: none !important; }
+            #preview-modal { display: block !important; position: static !important; background: none !important; padding: 0 !important; overflow: visible !important; }
+            .preview-toolbar { display: none !important; }
+            .a4-wrap { display: block !important; }
+            .a4-page { box-shadow: none !important; width: 100% !important; padding: 0 !important; }
+        }
+
         /* LIST */
         .list-filter {
             display: flex;
@@ -308,6 +386,132 @@
             .tl-date { padding-top: 0; }
         }
 
+        /* 공통 모달 */
+        .modal-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal-box {
+            background: #fff;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+            position: relative;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 22px 24px 16px;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: #fff;
+            border-radius: 20px 20px 0 0;
+        }
+        .modal-header h3 { font-size: 1rem; font-weight: 700; }
+        .modal-close {
+            width: 30px; height: 30px;
+            border: none; background: #f3f4f6;
+            border-radius: 8px; cursor: pointer;
+            font-size: 0.95rem; color: var(--text-sub);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .modal-body { padding: 20px 24px; }
+        .modal-footer {
+            padding: 14px 24px 20px;
+            display: flex;
+            gap: 10px;
+        }
+        /* 상세 모달 */
+        .detail-field { margin-bottom: 14px; }
+        .detail-field-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-sub);
+            margin-bottom: 3px;
+        }
+        .detail-field-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        .detail-divider {
+            border: none;
+            border-top: 1px solid var(--border);
+            margin: 16px 0;
+        }
+        .detail-step-bar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 4px;
+        }
+        .detail-step-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-size: 0.84rem;
+        }
+        .detail-step-num {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        /* 반려 모달 textarea */
+        .reject-textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.88rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .reject-textarea:focus { border-color: #dc2626; }
+        /* 버튼 공통 */
+        .btn-modal-cancel {
+            flex: 1; padding: 11px; border: 1px solid var(--border);
+            border-radius: 10px; font-size: 0.88rem; font-weight: 600;
+            cursor: pointer; background: #fff; color: var(--text-sub);
+            font-family: inherit;
+        }
+        .btn-modal-approve {
+            flex: 2; padding: 11px; border: none;
+            border-radius: 10px; font-size: 0.88rem; font-weight: 700;
+            cursor: pointer; background: #d1fae5; color: #065f46;
+            font-family: inherit; transition: opacity 0.2s;
+        }
+        .btn-modal-approve:hover { opacity: 0.85; }
+        .btn-modal-approve:disabled { opacity: 0.45; cursor: not-allowed; }
+        .btn-modal-reject {
+            flex: 2; padding: 11px; border: none;
+            border-radius: 10px; font-size: 0.88rem; font-weight: 700;
+            cursor: pointer; background: #fee2e2; color: #991b1b;
+            font-family: inherit; transition: opacity 0.2s;
+        }
+        .btn-modal-reject:hover { opacity: 0.85; }
+        .btn-modal-reject:disabled { opacity: 0.45; cursor: not-allowed; }
+
         /* LOGIN MODAL */
         .login-modal-backdrop {
             display: none;
@@ -390,11 +594,11 @@
         <!-- 신청하기 -->
         <div id="pane-submit">
             <div class="type-grid">
-                <div class="type-card" onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSe2nYmT0-Qcw7sToHYuV63iMoQtYnucIiaMxh50Kue-DKkMMw/viewform?usp=dialog','_blank')">
+                <div class="type-card" onclick="selectType('비품구매', this)">
                     <div class="type-card-icon">🛒</div>
                     <div class="type-card-label">비품 · 소모품</div>
                 </div>
-                <div class="type-card" onclick="window.open('https://docs.google.com/forms/d/e/1FAIpQLSdlGpy92nzkzhIH45oBA9ZtxKUsgq4g3YZi2DUDkukf2VVJhg/viewform?usp=dialog','_blank')">
+                <div class="type-card" onclick="selectType('경조사비', this)">
                     <div class="type-card-icon">🌸</div>
                     <div class="type-card-label">경조사비</div>
                 </div>
@@ -408,45 +612,78 @@
                     <div class="type-card-icon">🍽️</div>
                     <div class="type-card-label">식비 사용내역</div>
                 </div>
+                <div class="type-card" onclick="selectType('품의서', this)">
+                    <div class="type-card-icon">📋</div>
+                    <div class="type-card-label">품의서</div>
+                </div>
             </div>
 
             <!-- 비품구매 폼 -->
             <div class="ap-form" id="form-비품구매">
                 <div class="form-card">
-                    <div class="ap-field">
-                        <label>구매 구분</label>
-                        <select id="f-category">
-                            <option value="소모품">소모품</option>
-                            <option value="고정자산(비품)">고정자산 (비품)</option>
-                        </select>
-                    </div>
-                    <div class="ap-field">
-                        <label>품목명</label>
-                        <input type="text" id="f-item" placeholder="예) A4 용지">
-                    </div>
-                    <div class="ap-field">
-                        <label>상세 사양 / 모델명</label>
-                        <input type="text" id="f-spec" placeholder="예) 500매 1박스">
+                    <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>구매 구분</label>
+                            <select id="f-category">
+                                <option value="소모품">소모품</option>
+                                <option value="고정자산(비품)">고정자산 (비품)</option>
+                            </select>
+                        </div>
+                        <div class="ap-field">
+                            <label>구매처</label>
+                            <select id="f-store-type">
+                                <option value="온라인">온라인</option>
+                                <option value="오프라인">오프라인</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="ap-field-row">
                         <div class="ap-field">
-                            <label>수량</label>
-                            <input type="number" id="f-qty" placeholder="1" min="1">
+                            <label>희망 구매일</label>
+                            <input type="date" id="f-wish-date">
                         </div>
                         <div class="ap-field">
-                            <label>신청 금액 (원)</label>
-                            <input type="number" id="f-amount-purchase" placeholder="0">
+                            <label>구매 링크</label>
+                            <input type="text" id="f-link" placeholder="https://...">
                         </div>
                     </div>
                     <div class="ap-field">
-                        <label>구매 링크</label>
-                        <input type="text" id="f-link" placeholder="https://...">
-                    </div>
-                    <div class="ap-field">
-                        <label>구매 사유</label>
+                        <label>구매 사유 <span style="color:#dc2626;">*</span></label>
                         <input type="text" id="f-purchase-reason" placeholder="예) 사무용 소모품 보충">
                     </div>
-                    <button class="btn-submit" onclick="submitApproval('비품구매')">신청하기</button>
+                    <!-- 품목 테이블 -->
+                    <div class="ap-field">
+                        <label>구매 품목 <span style="color:#dc2626;">*</span></label>
+                        <div class="item-table-wrap">
+                            <table class="item-table">
+                                <thead>
+                                    <tr><th>품목명</th><th>사양</th><th style="width:60px;">수량</th><th style="width:90px;">단가(원)</th><th style="width:90px;">금액(원)</th><th style="width:32px;"></th></tr>
+                                </thead>
+                                <tbody id="items-비품구매">
+                                    <tr>
+                                        <td><input type="text" placeholder="예) A4 용지"></td>
+                                        <td><input type="text" placeholder="예) 500매 1박스"></td>
+                                        <td><input type="number" placeholder="1" min="1" value="1" oninput="calcItemRow(this);calcPurchaseTotal()"></td>
+                                        <td><input type="number" placeholder="0" oninput="calcItemRow(this);calcPurchaseTotal()"></td>
+                                        <td><input type="number" placeholder="0" readonly style="background:#f9fafb;"></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn-add-item" onclick="addItem('비품구매')">+ 항목 추가</button>
+                        </div>
+                    </div>
+                    <div class="ap-amount-total" id="purchase-total">합계: 0 원</div>
+                    <div class="ap-field">
+                        <label>첨부파일 <span style="font-size:0.75rem;font-weight:400;color:var(--text-sub);">(선택 · 최대 10MB/파일)</span></label>
+                        <div class="file-upload-area">
+                            <input type="file" id="f-files-비품구매" multiple accept="image/*,.pdf,.xls,.xlsx" onchange="updateFileList('비품구매')">
+                            <div style="font-size:0.85rem;color:var(--text-sub);">📎 파일 선택 또는 여기에 드래그</div>
+                        </div>
+                        <div id="file-list-비품구매"></div>
+                    </div>
+                    <button class="btn-submit" onclick="showPreview('비품구매')">미리보기 · 신청</button>
                 </div>
             </div>
 
@@ -454,7 +691,7 @@
             <div class="ap-form" id="form-경조사비">
                 <div class="form-card">
                     <div class="ap-field">
-                        <label>경조 사유</label>
+                        <label>경조 사유 <span style="color:#dc2626;">*</span></label>
                         <select id="f-reason">
                             <option value="결혼">결혼</option>
                             <option value="출산">출산</option>
@@ -464,19 +701,48 @@
                             <option value="기타">기타</option>
                         </select>
                     </div>
-                    <div class="ap-field">
-                        <label>대상자 (성명)</label>
-                        <input type="text" id="f-recipient" placeholder="예) 홍길동">
+                    <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>대상자 (성명) <span style="color:#dc2626;">*</span></label>
+                            <input type="text" id="f-recipient" placeholder="예) 홍길동">
+                        </div>
+                        <div class="ap-field">
+                            <label>관계 <span style="color:#dc2626;">*</span></label>
+                            <input type="text" id="f-relation" placeholder="예) 배우자 부친">
+                        </div>
+                    </div>
+                    <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>행사일</label>
+                            <input type="date" id="f-event-date">
+                        </div>
+                        <div class="ap-field">
+                            <label>신청 금액 (원) <span style="color:#dc2626;">*</span></label>
+                            <input type="number" id="f-amount-condolence" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>지급 방식</label>
+                            <select id="f-pay-method">
+                                <option value="계좌이체">계좌이체</option>
+                                <option value="현금">현금</option>
+                            </select>
+                        </div>
+                        <div class="ap-field">
+                            <label>수령 계좌 (은행 · 번호)</label>
+                            <input type="text" id="f-account" placeholder="예) 국민 123-456-789012">
+                        </div>
                     </div>
                     <div class="ap-field">
-                        <label>관계</label>
-                        <input type="text" id="f-relation" placeholder="예) 직계존속, 배우자">
+                        <label>첨부파일 <span style="font-size:0.75rem;font-weight:400;color:var(--text-sub);">(선택 · 최대 10MB/파일)</span></label>
+                        <div class="file-upload-area">
+                            <input type="file" id="f-files-경조사비" multiple accept="image/*,.pdf,.xls,.xlsx" onchange="updateFileList('경조사비')">
+                            <div style="font-size:0.85rem;color:var(--text-sub);">📎 파일 선택 또는 여기에 드래그</div>
+                        </div>
+                        <div id="file-list-경조사비"></div>
                     </div>
-                    <div class="ap-field">
-                        <label>신청 금액 (원)</label>
-                        <input type="number" id="f-amount-condolence" placeholder="0">
-                    </div>
-                    <button class="btn-submit" onclick="submitApproval('경조사비')">신청하기</button>
+                    <button class="btn-submit" onclick="showPreview('경조사비')">미리보기 · 신청</button>
                 </div>
             </div>
 
@@ -516,41 +782,120 @@
                         <input type="number" id="f-etc" placeholder="0" oninput="calcTrip()">
                     </div>
                     <div class="ap-amount-total" id="trip-total">합계: 0 원</div>
-                    <button class="btn-submit" onclick="submitApproval('출장비')">신청하기</button>
+                    <div class="ap-field">
+                        <label>첨부파일 <span style="font-size:0.75rem;font-weight:400;color:var(--text-sub);">(선택 · 최대 10MB/파일)</span></label>
+                        <div class="file-upload-area">
+                            <input type="file" id="f-files-출장비" multiple accept="image/*,.pdf,.xls,.xlsx" onchange="updateFileList('출장비')">
+                            <div style="font-size:0.85rem;color:var(--text-sub);">📎 파일 선택 또는 여기에 드래그</div>
+                        </div>
+                        <div id="file-list-출장비"></div>
+                    </div>
+                    <button class="btn-submit" onclick="showPreview('출장비')">미리보기 · 신청</button>
                 </div>
             </div>
+
+            <!-- 품의서 폼 -->
+            <div class="ap-form" id="form-품의서">
+                <div class="form-card">
+                    <div class="ap-field">
+                        <label>품의 제목 <span style="color:#dc2626;">*</span></label>
+                        <input type="text" id="f-doc-title" placeholder="예) 레이저 마킹기 도입 품의">
+                    </div>
+                    <div class="ap-field">
+                        <label>목적 · 사유 <span style="color:#dc2626;">*</span></label>
+                        <textarea id="f-doc-purpose" rows="3" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.88rem;resize:vertical;" placeholder="예) 생산 공정 효율화 및 품질 관리 강화를 위해 레이저 마킹기 도입을 품의합니다."></textarea>
+                    </div>
+                    <div class="ap-field">
+                        <label>기대 효과</label>
+                        <textarea id="f-doc-effect" rows="2" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font-family:inherit;font-size:0.88rem;resize:vertical;" placeholder="예) 마킹 공정 시간 50% 단축, 불량률 감소"></textarea>
+                    </div>
+                    <div class="ap-field">
+                        <label>품목 내역 <span style="color:#dc2626;">*</span></label>
+                        <div class="item-table-wrap">
+                            <table class="item-table">
+                                <thead>
+                                    <tr><th>품목명</th><th>규격·사양</th><th style="width:60px;">수량</th><th style="width:90px;">단가(원)</th><th style="width:90px;">금액(원)</th><th style="width:80px;">결제 주기</th><th>구매링크</th><th style="width:32px;"></th></tr>
+                                </thead>
+                                <tbody id="items-품의서">
+                                    <tr>
+                                        <td><input type="text" placeholder="예) 레이저 마킹기"></td>
+                                        <td><input type="text" placeholder="예) 20W, CO2"></td>
+                                        <td><input type="number" placeholder="1" min="1" value="1" oninput="calcItemRow(this);calcDocTotal()"></td>
+                                        <td><input type="number" placeholder="0" oninput="calcItemRow(this);calcDocTotal()"></td>
+                                        <td><input type="number" placeholder="0" readonly style="background:#f9fafb;"></td>
+                                        <td><select style="width:100%;padding:4px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:0.82rem;"><option value="일회성">일회성</option><option value="월정액">월정액</option><option value="연간">연간</option></select></td>
+                                        <td><input type="text" placeholder="https://..."></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn-add-item" onclick="addItem('품의서')">+ 항목 추가</button>
+                        </div>
+                    </div>
+                    <div class="ap-amount-total" id="doc-total">합계: 0 원</div>
+                    <div class="ap-field">
+                        <label>첨부파일 <span style="font-size:0.75rem;font-weight:400;color:var(--text-sub);">(견적서 등 · 선택 · 최대 10MB/파일)</span></label>
+                        <div class="file-upload-area">
+                            <input type="file" id="f-files-품의서" multiple accept="image/*,.pdf,.xls,.xlsx" onchange="updateFileList('품의서')">
+                            <div style="font-size:0.85rem;color:var(--text-sub);">📎 파일 선택 또는 여기에 드래그</div>
+                        </div>
+                        <div id="file-list-품의서"></div>
+                    </div>
+                    <button class="btn-submit" onclick="showPreview('품의서')">미리보기 · 신청</button>
+                </div>
+            </div>
+
+            <!-- 구글폼 모드 래퍼 -->
+            <div id="gform-wrapper" style="display:none;"></div>
 
             <!-- 식비 폼 -->
             <div class="ap-form" id="form-식비">
                 <div class="form-card">
-                    <div class="ap-field">
-                        <label>사용 일자</label>
-                        <input type="date" id="f-meal-date">
-                    </div>
-                    <div class="ap-field">
-                        <label>사용처</label>
-                        <input type="text" id="f-place" placeholder="예) 한우마을 강남점">
-                    </div>
                     <div class="ap-field-row">
+                        <div class="ap-field">
+                            <label>목적</label>
+                            <select id="f-meal-purpose">
+                                <option value="거래처 접대">거래처 접대</option>
+                                <option value="팀 회식">팀 회식</option>
+                                <option value="사내 미팅">사내 미팅</option>
+                                <option value="기타">기타</option>
+                            </select>
+                        </div>
                         <div class="ap-field">
                             <label>참석 인원</label>
                             <input type="number" id="f-headcount" placeholder="1" min="1">
                         </div>
-                        <div class="ap-field">
-                            <label>금액 (원)</label>
-                            <input type="number" id="f-amount-meal" placeholder="0">
+                    </div>
+                    <!-- 식비 항목 테이블 -->
+                    <div class="ap-field">
+                        <label>사용 내역 <span style="color:#dc2626;">*</span></label>
+                        <div class="item-table-wrap">
+                            <table class="item-table">
+                                <thead>
+                                    <tr><th>일자</th><th>사용처</th><th style="width:100px;">금액(원)</th><th style="width:32px;"></th></tr>
+                                </thead>
+                                <tbody id="items-식비">
+                                    <tr>
+                                        <td><input type="date"></td>
+                                        <td><input type="text" placeholder="예) 한우마을 강남점"></td>
+                                        <td><input type="number" placeholder="0" oninput="calcMealTotal()"></td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <button type="button" class="btn-add-item" onclick="addItem('식비')">+ 항목 추가</button>
                         </div>
                     </div>
+                    <div class="ap-amount-total" id="meal-total">합계: 0 원</div>
                     <div class="ap-field">
-                        <label>목적</label>
-                        <select id="f-meal-purpose">
-                            <option value="거래처 접대">거래처 접대</option>
-                            <option value="팀 회식">팀 회식</option>
-                            <option value="사내 미팅">사내 미팅</option>
-                            <option value="기타">기타</option>
-                        </select>
+                        <label>첨부파일 <span style="font-size:0.75rem;font-weight:400;color:var(--text-sub);">(선택 · 최대 10MB/파일)</span></label>
+                        <div class="file-upload-area">
+                            <input type="file" id="f-files-식비" multiple accept="image/*,.pdf,.xls,.xlsx" onchange="updateFileList('식비')">
+                            <div style="font-size:0.85rem;color:var(--text-sub);">📎 파일 선택 또는 여기에 드래그</div>
+                        </div>
+                        <div id="file-list-식비"></div>
                     </div>
-                    <button class="btn-submit" onclick="submitApproval('식비')">신청하기</button>
+                    <button class="btn-submit" onclick="showPreview('식비')">미리보기 · 신청</button>
                 </div>
             </div>
         </div>
@@ -569,6 +914,68 @@
     </main>
 
     <div class="toast" id="toast"></div>
+
+    <!-- 상세 보기 모달 -->
+    <div class="modal-backdrop" id="detail-modal" onclick="onModalBackdropClick(event,'detail-modal')">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="detail-title">신청 상세</h3>
+                <button class="modal-close" onclick="closeModal('detail-modal')">✕</button>
+            </div>
+            <div class="modal-body" id="detail-body"></div>
+            <div class="modal-footer" id="detail-footer"></div>
+        </div>
+    </div>
+
+    <!-- 승인 확인 모달 -->
+    <div class="modal-backdrop" id="approve-modal" onclick="onModalBackdropClick(event,'approve-modal')">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>승인 확인</h3>
+                <button class="modal-close" onclick="closeModal('approve-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p id="approve-msg" style="font-size:0.9rem;line-height:1.6;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" onclick="closeModal('approve-modal')">취소</button>
+                <button class="btn-modal-approve" id="btn-approve-confirm" onclick="confirmApprove()">승인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 반려 사유 모달 -->
+    <div class="modal-backdrop" id="reject-modal" onclick="onModalBackdropClick(event,'reject-modal')">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>반려 사유 입력</h3>
+                <button class="modal-close" onclick="closeModal('reject-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.85rem;color:var(--text-sub);margin-bottom:12px;" id="reject-msg"></p>
+                <textarea class="reject-textarea" id="reject-note" placeholder="사유 입력 (선택사항)"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" onclick="closeModal('reject-modal')">취소</button>
+                <button class="btn-modal-reject" id="btn-reject-confirm" onclick="confirmReject()">반려</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 미리보기 모달 -->
+    <div class="preview-backdrop" id="preview-modal">
+        <div class="preview-toolbar">
+            <span class="preview-toolbar-title" id="preview-title">신청서 미리보기</span>
+            <div class="preview-toolbar-btns">
+                <button class="btn-preview-cancel" onclick="closeModal('preview-modal')">← 수정하기</button>
+                <button class="btn-preview-cancel" onclick="window.print()" style="background:#f3f4f6;">🖨️ 인쇄</button>
+                <button class="btn-preview-submit" id="btn-preview-submit" onclick="confirmPreviewSubmit()">제출하기</button>
+            </div>
+        </div>
+        <div class="a4-wrap">
+            <div class="a4-page" id="preview-doc"></div>
+        </div>
+    </div>
 
     <!-- 로그인 모달 -->
     <div class="login-modal-backdrop" id="login-modal-backdrop" onclick="onBackdropClick(event)">
@@ -601,6 +1008,23 @@
         let listFilter = 'all';
         let userName = localStorage.getItem('attendance_user_name') || '';
         let isAdmin = sessionStorage.getItem('attendance_user_is_admin') === 'true';
+        let formType = 'google';
+        const DEFAULT_GOOGLE_FORM_URLS = {
+            '비품구매': 'https://docs.google.com/forms/d/e/1FAIpQLSe2nYmT0-Qcw7sToHYuV63iMoQtYnucIiaMxh50Kue-DKkMMw/viewform',
+            '경조사비': 'https://docs.google.com/forms/d/e/1FAIpQLSdlGpy92nzkzhIH45oBA9ZtxKUsgq4g3YZi2DUDkukf2VVJhg/viewform',
+        };
+        let googleFormUrls = { ...DEFAULT_GOOGLE_FORM_URLS };
+
+        // 폼 방식 설정 로드 (Supabase 값이 있으면 덮어씀)
+        async function loadFormSettings() {
+            const { data: rows } = await _sb.from('app_settings').select('key, value')
+                .eq('module', 'approval').in('key', ['form_type', 'google_form_urls']);
+            (rows || []).forEach(r => {
+                if (r.key === 'form_type') formType = r.value || 'google';
+                if (r.key === 'google_form_urls') googleFormUrls = Object.keys(r.value || {}).length ? r.value : DEFAULT_GOOGLE_FORM_URLS;
+            });
+        }
+        loadFormSettings();
 
         // 초기 UI 세팅
         (function () {
@@ -625,7 +1049,27 @@
             document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             document.querySelectorAll('.ap-form').forEach(f => f.classList.remove('visible'));
-            document.getElementById('form-' + type).classList.add('visible');
+            document.getElementById('gform-wrapper').style.display = 'none';
+
+            const url = formType === 'google' ? googleFormUrls[type] : null;
+            if (url) {
+                const typeLabels = { '비품구매': '비품·소모품 구매', '경조사비': '경조사비', '출장비': '출장비 신청', '식비': '식비 사용내역', '품의서': '품의서' };
+                const wrapper = document.getElementById('gform-wrapper');
+                wrapper.innerHTML = `
+                    <div class="form-card" style="text-align:center;padding:2rem;">
+                        <div style="font-size:1.4rem;margin-bottom:10px;">📋</div>
+                        <div style="font-size:1rem;font-weight:700;margin-bottom:6px;">${typeLabels[type] || type} 신청</div>
+                        <div style="font-size:0.83rem;color:var(--text-sub);margin-bottom:20px;">구글 폼으로 신청합니다</div>
+                        <a href="${url}" target="_blank" rel="noopener"
+                           style="display:inline-block;background:var(--blue);color:#fff;border-radius:10px;padding:11px 32px;font-size:0.9rem;font-weight:700;text-decoration:none;">
+                           구글 폼 열기 →
+                        </a>
+                    </div>`;
+                wrapper.style.display = 'block';
+            } else {
+                // 구글폼 URL 없으면 내부폼으로 fallback
+                document.getElementById('form-' + type).classList.add('visible');
+            }
         }
 
         function calcTrip() {
@@ -633,6 +1077,291 @@
             const a = Number(document.getElementById('f-accommodation').value) || 0;
             const e = Number(document.getElementById('f-etc').value) || 0;
             document.getElementById('trip-total').textContent = '합계: ' + (t + a + e).toLocaleString() + ' 원';
+        }
+
+        // ── 품목 행 추가/삭제/계산 ──────────────────────────────────
+        function addItem(type) {
+            const tbody = document.getElementById('items-' + type);
+            const tr = document.createElement('tr');
+            if (type === '비품구매') {
+                tr.innerHTML = `
+                    <td><input type="text" placeholder="예) 볼펜"></td>
+                    <td><input type="text" placeholder="사양"></td>
+                    <td><input type="number" placeholder="1" min="1" value="1" oninput="calcItemRow(this);calcPurchaseTotal()"></td>
+                    <td><input type="number" placeholder="0" oninput="calcItemRow(this);calcPurchaseTotal()"></td>
+                    <td><input type="number" placeholder="0" readonly style="background:#f9fafb;"></td>
+                    <td><button class="btn-remove-item" onclick="removeItem(this)">✕</button></td>`;
+            } else if (type === '품의서') {
+                tr.innerHTML = `
+                    <td><input type="text" placeholder="품목명"></td>
+                    <td><input type="text" placeholder="규격·사양"></td>
+                    <td><input type="number" placeholder="1" min="1" value="1" oninput="calcItemRow(this);calcDocTotal()"></td>
+                    <td><input type="number" placeholder="0" oninput="calcItemRow(this);calcDocTotal()"></td>
+                    <td><input type="number" placeholder="0" readonly style="background:#f9fafb;"></td>
+                    <td><select style="width:100%;padding:4px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:0.82rem;"><option value="일회성">일회성</option><option value="월정액">월정액</option><option value="연간">연간</option></select></td>
+                    <td><input type="text" placeholder="https://..."></td>
+                    <td><button class="btn-remove-item" onclick="removeItem(this)">✕</button></td>`;
+            } else {
+                tr.innerHTML = `
+                    <td><input type="date"></td>
+                    <td><input type="text" placeholder="사용처"></td>
+                    <td><input type="number" placeholder="0" oninput="calcMealTotal()"></td>
+                    <td><button class="btn-remove-item" onclick="removeItem(this)">✕</button></td>`;
+            }
+            tbody.appendChild(tr);
+        }
+
+        function removeItem(btn) {
+            const tbody = btn.closest('tbody');
+            if (tbody.rows.length <= 1) return;
+            btn.closest('tr').remove();
+            calcPurchaseTotal();
+            calcMealTotal();
+        }
+
+        function calcItemRow(input) {
+            const tr = input.closest('tr');
+            const inputs = tr.querySelectorAll('input[type="number"]');
+            const qty = Number(inputs[0].value) || 0;
+            const price = Number(inputs[1].value) || 0;
+            inputs[2].value = qty * price || '';
+        }
+
+        function calcDocTotal() {
+            const rows = document.querySelectorAll('#items-품의서 tr');
+            let total = 0;
+            rows.forEach(tr => {
+                const inputs = tr.querySelectorAll('input[type="number"]');
+                total += Number(inputs[2]?.value) || 0;
+            });
+            document.getElementById('doc-total').textContent = '합계: ' + total.toLocaleString() + ' 원';
+        }
+
+        function calcPurchaseTotal() {
+            const rows = document.querySelectorAll('#items-비품구매 tr');
+            let total = 0;
+            rows.forEach(tr => {
+                const inputs = tr.querySelectorAll('input[type="number"]');
+                total += Number(inputs[2]?.value) || 0;
+            });
+            document.getElementById('purchase-total').textContent = '합계: ' + total.toLocaleString() + ' 원';
+        }
+
+        function calcMealTotal() {
+            const rows = document.querySelectorAll('#items-식비 tr');
+            let total = 0;
+            rows.forEach(tr => {
+                const inputs = tr.querySelectorAll('input[type="number"]');
+                total += Number(inputs[0]?.value) || 0;
+            });
+            document.getElementById('meal-total').textContent = '합계: ' + total.toLocaleString() + ' 원';
+        }
+
+        // ── 미리보기 ────────────────────────────────────────────────
+        let _previewType = null;
+        let _previewData = null;
+        let _previewAmount = 0;
+
+        function onPreviewBackdropClick(e) {
+            if (e.target === document.getElementById('preview-modal')) closeModal('preview-modal');
+        }
+
+        async function showPreview(type) {
+            if (!userName) { showToast('로그인 정보가 없습니다.'); return; }
+            let data = {}, amount = 0;
+
+            if (type === '비품구매') {
+                const reason = document.getElementById('f-purchase-reason').value.trim();
+                if (!reason) { showToast('구매 사유를 입력해주세요.'); return; }
+                const rows = document.querySelectorAll('#items-비품구매 tr');
+                const items = [];
+                for (const tr of rows) {
+                    const tds = tr.querySelectorAll('input');
+                    const name = tds[0].value.trim();
+                    if (!name) { showToast('품목명을 모두 입력해주세요.'); return; }
+                    const qty = Number(tds[2].value) || 1;
+                    const price = Number(tds[3].value) || 0;
+                    const subtotal = Number(tds[4].value) || (qty * price);
+                    items.push({ name, spec: tds[1].value, qty, price, subtotal });
+                    amount += subtotal;
+                }
+                if (!amount) { showToast('금액을 입력해주세요.'); return; }
+                data = { category: document.getElementById('f-category').value, store_type: document.getElementById('f-store-type').value, wish_date: document.getElementById('f-wish-date').value, link: document.getElementById('f-link').value, reason, items };
+
+            } else if (type === '경조사비') {
+                const recipient = document.getElementById('f-recipient').value.trim();
+                const relation = document.getElementById('f-relation').value.trim();
+                if (!recipient) { showToast('대상자를 입력해주세요.'); return; }
+                if (!relation) { showToast('관계를 입력해주세요.'); return; }
+                amount = Number(document.getElementById('f-amount-condolence').value) || 0;
+                if (!amount) { showToast('신청 금액을 입력해주세요.'); return; }
+                data = { reason: document.getElementById('f-reason').value, recipient, relation, event_date: document.getElementById('f-event-date').value, pay_method: document.getElementById('f-pay-method').value, account: document.getElementById('f-account').value };
+
+            } else if (type === '출장비') {
+                const destination = document.getElementById('f-destination').value.trim();
+                if (!destination) { showToast('출장지를 입력해주세요.'); return; }
+                const t = Number(document.getElementById('f-transport').value) || 0;
+                const a = Number(document.getElementById('f-accommodation').value) || 0;
+                const e = Number(document.getElementById('f-etc').value) || 0;
+                amount = t + a + e;
+                data = { destination, purpose: document.getElementById('f-purpose').value, date_from: document.getElementById('f-date-from').value, date_to: document.getElementById('f-date-to').value, transport: t, accommodation: a, etc: e };
+
+            } else if (type === '식비') {
+                const rows = document.querySelectorAll('#items-식비 tr');
+                const items = [];
+                for (const tr of rows) {
+                    const tds = tr.querySelectorAll('input');
+                    const place = tds[1].value.trim();
+                    if (!place) { showToast('사용처를 모두 입력해주세요.'); return; }
+                    const amt = Number(tds[2].value) || 0;
+                    items.push({ date: tds[0].value, place, amount: amt });
+                    amount += amt;
+                }
+                if (!amount) { showToast('금액을 입력해주세요.'); return; }
+                data = { purpose: document.getElementById('f-meal-purpose').value, headcount: document.getElementById('f-headcount').value, items };
+
+            } else if (type === '품의서') {
+                const title = document.getElementById('f-doc-title').value.trim();
+                const purpose = document.getElementById('f-doc-purpose').value.trim();
+                if (!title) { showToast('품의 제목을 입력해주세요.'); return; }
+                if (!purpose) { showToast('목적·사유를 입력해주세요.'); return; }
+                const rows = document.querySelectorAll('#items-품의서 tr');
+                const items = [];
+                for (const tr of rows) {
+                    const tds = tr.querySelectorAll('input');
+                    const name = tds[0].value.trim();
+                    if (!name) { showToast('품목명을 모두 입력해주세요.'); return; }
+                    const qty = Number(tds[2].value) || 1;
+                    const price = Number(tds[3].value) || 0;
+                    const subtotal = Number(tds[4].value) || (qty * price);
+                    const cycle = tr.querySelector('select')?.value || '일회성';
+                    const link = tds[5]?.value.trim() || '';
+                    items.push({ name, spec: tds[1].value, qty, price, subtotal, cycle, link });
+                    amount += subtotal;
+                }
+                if (!amount) { showToast('금액을 입력해주세요.'); return; }
+                data = { title, purpose, effect: document.getElementById('f-doc-effect').value.trim(), items };
+            }
+
+            // 결재선 조회
+            const steps = await getApprovalSteps(type, amount);
+            _previewType = type; _previewData = data; _previewAmount = amount;
+
+            // 결재란 — 서식 고정 5칸
+            const approveBoxes = ['팀장', '부장', '전무', '대표이사', '회장']
+                .map(label => `<div class="doc-approve-cell"><div class="doc-approve-cell-label">${label}</div><div class="doc-approve-cell-sign"></div></div>`)
+                .join('');
+
+            const titles = { '비품구매':'비품·소모품 구매 신청서', '경조사비':'경조사비 지급 신청서', '출장비':'출장비 신청서', '식비':'식비 사용내역서', '품의서':'품의서' };
+
+            // 본문 테이블
+            let bodyRows = '';
+            if (type === '비품구매') {
+                bodyRows = `
+                    <tr><td class="label">구매구분</td><td>${data.category}</td><td class="label">구매처</td><td>${data.store_type}</td></tr>
+                    <tr><td class="label">희망구매일</td><td>${data.wish_date || '—'}</td><td class="label">구매사유</td><td>${data.reason}</td></tr>
+                    ${data.link ? `<tr><td class="label">구매링크</td><td colspan="3" style="word-break:break-all;">${data.link}</td></tr>` : ''}`;
+                const itemRows = data.items.map(it => `<tr><td>${it.name}</td><td>${it.spec || '—'}</td><td style="text-align:center;">${it.qty}</td><td style="text-align:right;">${it.price.toLocaleString()}</td><td style="text-align:right;font-weight:600;">${it.subtotal.toLocaleString()}</td></tr>`).join('');
+                bodyRows += `</table>
+                    <div class="doc-section-title">구매 품목</div>
+                    <table class="doc-table">
+                        <thead><tr><th>품목명</th><th>사양</th><th style="width:44px;">수량</th><th style="width:80px;">단가(원)</th><th style="width:90px;">금액(원)</th></tr></thead>
+                        <tbody>${itemRows}</tbody>
+                        <tfoot><tr><td colspan="4" class="total" style="text-align:right;">합계</td><td class="total" style="text-align:right;">${amount.toLocaleString()}</td></tr></tfoot>
+                    </table><table class="doc-table" style="display:none;">`;
+            } else if (type === '경조사비') {
+                bodyRows = `
+                    <tr><td class="label">경조사유</td><td>${data.reason}</td><td class="label">대상자</td><td>${data.recipient}</td></tr>
+                    <tr><td class="label">관계</td><td>${data.relation}</td><td class="label">행사일</td><td>${data.event_date || '—'}</td></tr>
+                    <tr><td class="label">지급방식</td><td>${data.pay_method}</td><td class="label">수령계좌</td><td>${data.account || '—'}</td></tr>
+                    <tr><td class="label">신청금액</td><td colspan="3" class="amount">${amount.toLocaleString()} 원</td></tr>`;
+            } else if (type === '출장비') {
+                bodyRows = `
+                    <tr><td class="label">출장지</td><td>${data.destination}</td><td class="label">출장목적</td><td>${data.purpose || '—'}</td></tr>
+                    <tr><td class="label">출장기간</td><td colspan="3">${data.date_from || '—'} ~ ${data.date_to || '—'}</td></tr>
+                    <tr><td class="label">교통비</td><td>${data.transport.toLocaleString()} 원</td><td class="label">숙박비</td><td>${data.accommodation.toLocaleString()} 원</td></tr>
+                    <tr><td class="label">기타경비</td><td>${data.etc.toLocaleString()} 원</td><td class="label">합계</td><td class="amount">${amount.toLocaleString()} 원</td></tr>`;
+            } else if (type === '식비') {
+                const itemRows = data.items.map(it => `<tr><td>${it.date || '—'}</td><td>${it.place}</td><td style="text-align:right;font-weight:600;">${it.amount.toLocaleString()}</td></tr>`).join('');
+                bodyRows = `
+                    <tr><td class="label">목적</td><td>${data.purpose}</td><td class="label">참석인원</td><td>${data.headcount || '—'}명</td></tr>
+                    </table>
+                    <div class="doc-section-title">사용 내역</div>
+                    <table class="doc-table">
+                        <thead><tr><th style="width:90px;">일자</th><th>사용처</th><th style="width:100px;">금액(원)</th></tr></thead>
+                        <tbody>${itemRows}</tbody>
+                        <tfoot><tr><td colspan="2" class="total" style="text-align:right;">합계</td><td class="total" style="text-align:right;">${amount.toLocaleString()}</td></tr></tfoot>
+                    </table><table class="doc-table" style="display:none;">`;
+            } else if (type === '품의서') {
+                const cycleLabel = { '일회성': '일회성', '월정액': '월정액', '연간': '연간' };
+                const itemRows = data.items.map(it => `<tr><td>${it.name}</td><td>${it.spec || '—'}</td><td style="text-align:center;">${it.qty}</td><td style="text-align:right;">${it.price.toLocaleString()}</td><td style="text-align:right;font-weight:600;">${it.subtotal.toLocaleString()}</td><td style="text-align:center;font-size:0.78rem;">${cycleLabel[it.cycle] || '일회성'}</td><td style="word-break:break-all;font-size:0.78rem;">${it.link ? `<a href="${it.link}" target="_blank" style="color:var(--blue);">${it.link}</a>` : '—'}</td></tr>`).join('');
+                bodyRows = `
+                    <tr><td class="label">품의 제목</td><td colspan="3">${data.title}</td></tr>
+                    <tr><td class="label">목적 · 사유</td><td colspan="3" style="white-space:pre-wrap;">${data.purpose}</td></tr>
+                    ${data.effect ? `<tr><td class="label">기대 효과</td><td colspan="3" style="white-space:pre-wrap;">${data.effect}</td></tr>` : ''}
+                    </table>
+                    <div class="doc-section-title">품목 내역</div>
+                    <table class="doc-table">
+                        <thead><tr><th>품목명</th><th>규격·사양</th><th style="width:44px;">수량</th><th style="width:80px;">단가(원)</th><th style="width:90px;">금액(원)</th><th style="width:60px;">결제주기</th><th>구매링크</th></tr></thead>
+                        <tbody>${itemRows}</tbody>
+                        <tfoot><tr><td colspan="6" class="total" style="text-align:right;">합계</td><td class="total" style="text-align:right;">${amount.toLocaleString()}</td></tr></tfoot>
+                    </table><table class="doc-table" style="display:none;">`;
+            }
+
+            const fileInput = document.getElementById('f-files-' + type);
+            const fileNames = fileInput && fileInput.files.length ? Array.from(fileInput.files).map(f => f.name).join(', ') : '';
+
+            document.getElementById('preview-doc').innerHTML = `
+                <div class="doc-header">
+                    <div class="doc-logo">DOW Valve</div>
+                    <div class="doc-approve-box">${approveBoxes}</div>
+                </div>
+                <div class="doc-title-wrap"><div class="doc-title">${titles[type]}</div></div>
+                <div class="doc-meta-row">
+                    <span>신청자: <strong>${userName}</strong></span>
+                    <span>신청일: ${new Date().toLocaleDateString('ko-KR')}</span>
+                </div>
+                <table class="doc-table"><tbody>${bodyRows}</tbody></table>
+                ${fileNames ? `<div class="doc-attach-list">📎 첨부파일: ${fileNames}</div>` : ''}
+                <div class="doc-footer">DOW Valve 전자결재 시스템</div>`;
+
+            document.getElementById('preview-title').textContent = titles[type] + ' 미리보기';
+            document.getElementById('preview-modal').classList.add('open');
+        }
+
+        async function confirmPreviewSubmit() {
+            document.getElementById('btn-preview-submit').disabled = true;
+            document.getElementById('btn-preview-submit').textContent = '제출 중...';
+            closeModal('preview-modal');
+            await submitApproval(_previewType, _previewData, _previewAmount);
+            document.getElementById('btn-preview-submit').disabled = false;
+            document.getElementById('btn-preview-submit').textContent = '제출하기';
+        }
+
+        function updateFileList(type) {
+            const input = document.getElementById('f-files-' + type);
+            const list = document.getElementById('file-list-' + type);
+            list.innerHTML = Array.from(input.files).map(f => {
+                const mb = (f.size / 1024 / 1024).toFixed(1);
+                const over = f.size > 10 * 1024 * 1024;
+                return `<div class="file-item">
+                    <span>📄 ${f.name} <span style="color:var(--text-sub);">(${mb}MB)</span></span>
+                    ${over ? '<span style="color:#dc2626;font-size:0.75rem;">10MB 초과</span>' : ''}
+                </div>`;
+            }).join('');
+        }
+
+        async function uploadFiles(approvalId, type) {
+            const input = document.getElementById('f-files-' + type);
+            if (!input || !input.files.length) return [];
+            const results = [];
+            for (const file of input.files) {
+                if (file.size > 10 * 1024 * 1024) continue;
+                const path = `${approvalId}/${Date.now()}_${file.name}`;
+                const { error } = await _sb.storage.from('approval-files').upload(path, file);
+                if (!error) results.push({ name: file.name, path, size: file.size });
+            }
+            return results;
         }
 
         // ── 토스트 ──────────────────────────────────────────────────
@@ -644,47 +1373,94 @@
         }
 
         // ── 신청 ────────────────────────────────────────────────────
-        async function submitApproval(type) {
-            if (!userName) { showToast('로그인 정보가 없습니다.'); return; }
-            let data = {}, amount = 0;
-            if (type === '비품구매') {
-                const item = document.getElementById('f-item').value.trim();
-                if (!item) { showToast('품목명을 입력해주세요.'); return; }
-                amount = Number(document.getElementById('f-amount-purchase').value) || 0;
-                data = { category: document.getElementById('f-category').value, item, spec: document.getElementById('f-spec').value, qty: Number(document.getElementById('f-qty').value) || 1, link: document.getElementById('f-link').value, reason: document.getElementById('f-purchase-reason').value };
-            } else if (type === '경조사비') {
-                const recipient = document.getElementById('f-recipient').value.trim();
-                if (!recipient) { showToast('대상자를 입력해주세요.'); return; }
-                amount = Number(document.getElementById('f-amount-condolence').value) || 0;
-                data = { reason: document.getElementById('f-reason').value, recipient, relation: document.getElementById('f-relation').value };
-            } else if (type === '출장비') {
-                const destination = document.getElementById('f-destination').value.trim();
-                if (!destination) { showToast('출장지를 입력해주세요.'); return; }
-                const t = Number(document.getElementById('f-transport').value) || 0;
-                const a = Number(document.getElementById('f-accommodation').value) || 0;
-                const e = Number(document.getElementById('f-etc').value) || 0;
-                amount = t + a + e;
-                data = { destination, purpose: document.getElementById('f-purpose').value, date_from: document.getElementById('f-date-from').value, date_to: document.getElementById('f-date-to').value, transport: t, accommodation: a, etc: e };
-            } else if (type === '식비') {
-                const place = document.getElementById('f-place').value.trim();
-                if (!place) { showToast('사용처를 입력해주세요.'); return; }
-                amount = Number(document.getElementById('f-amount-meal').value) || 0;
-                data = { date: document.getElementById('f-meal-date').value, place, headcount: document.getElementById('f-headcount').value, purpose: document.getElementById('f-meal-purpose').value };
-            }
-            const btn = event.currentTarget;
-            btn.disabled = true; btn.textContent = '신청 중...';
+        async function submitApproval(type, data, amount) {
             try {
-                const { data: row, error } = await _sb.from('approvals').insert({ type, applicant: userName, data, amount: amount || 0 }).select().single();
+                // 결재선 조회
+                const approvalSteps = await getApprovalSteps(type, amount);
+                const { data: row, error } = await _sb.from('approvals').insert({
+                    type, applicant: userName, data, amount: amount || 0,
+                    current_step: 1,
+                    approval_steps: approvalSteps
+                }).select().single();
                 if (error) throw new Error(error.message);
-                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'submit', id: row.id, type, applicant: userName, amount: amount || 0, data }) }).catch(() => {});
-                showToast('신청이 완료됐습니다.');
-                document.getElementById('form-' + type).querySelectorAll('input, select').forEach(el => { if (el.type !== 'select-one') el.value = ''; });
+                // 파일 업로드
+                document.getElementById('btn-preview-submit').textContent = '파일 업로드 중...';
+                const attachments = await uploadFiles(row.id, type);
+                if (attachments.length > 0) {
+                    await _sb.from('approvals').update({ attachments }).eq('id', row.id);
+                }
+                // 신청자 + 1단계 결재자 이메일 조회
+                let approverEmail = '', approverName = '', applicantEmail = '';
+                const { data: myEmp } = await _sb.from('employees').select('email').eq('name', userName).maybeSingle();
+                applicantEmail = myEmp?.email || '';
+                if (approvalSteps.length > 0) {
+                    approverName = approvalSteps[0].approver;
+                    const { data: empData } = await _sb.from('employees').select('email').eq('name', approverName).maybeSingle();
+                    approverEmail = empData?.email || '';
+                }
+                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'submit', id: row.id, type, applicant: userName, amount: amount || 0, data, approval_steps: approvalSteps, approverEmail, approverName, applicantEmail, step: 1 }) }).catch(() => {});
+                showToast('신청이 완료됐습니다.' + (approvalSteps.length ? ` (${approvalSteps.length}단계 결재)` : ''));
+                // 폼 초기화
+                document.getElementById('form-' + type).querySelectorAll('input:not([type=file]), textarea').forEach(el => { el.value = ''; });
+                document.getElementById('file-list-' + type).innerHTML = '';
+                const fi = document.getElementById('f-files-' + type);
+                if (fi) fi.value = '';
                 document.getElementById('trip-total').textContent = '합계: 0 원';
+                document.getElementById('purchase-total').textContent = '합계: 0 원';
+                document.getElementById('meal-total').textContent = '합계: 0 원';
+                // 다중 항목 행 초기화 (첫 행만 남기기)
+                ['비품구매', '식비', '품의서'].forEach(t => {
+                    const tbody = document.getElementById('items-' + t);
+                    if (tbody) while (tbody.rows.length > 1) tbody.deleteRow(1);
+                });
+                document.getElementById('doc-total').textContent = '합계: 0 원';
+                _previewType = null; _previewData = null; _previewAmount = 0;
             } catch (e) {
                 showToast('오류: ' + e.message);
-            } finally {
-                btn.disabled = false; btn.textContent = '신청하기';
             }
+        }
+
+        // ── 결재선 조회 ──────────────────────────────────────────────
+        async function getApprovalSteps(type, amount) {
+            const { data: rows } = await _sb.from('app_settings').select('key, value').eq('module', 'approval').in('key', ['approval_lines', 'approvers']);
+            const settings = {};
+            (rows || []).forEach(r => { settings[r.key] = r.value; });
+
+            // 금액별 결재선 우선
+            const lines = (settings['approval_lines'] || {})[type] || [];
+            const match = lines.find(r => {
+                const min = Number(r.amount_min) || 0;
+                const max = r.amount_max == null ? Infinity : Number(r.amount_max);
+                return amount >= min && amount <= max;
+            });
+            if (match && match.steps?.length) {
+                const steps = match.steps.filter(Boolean);
+                // __TEAM_LEADER__ 치환
+                const resolved = await resolveSteps(steps);
+                return resolved.map((approver, i) => ({ step: i + 1, approver, status: 'pending' }));
+            }
+
+            // fallback: 유형별 단일 결재자
+            const approver = (settings['approvers'] || {})[type];
+            if (approver) {
+                const resolved = await resolveSteps([approver]);
+                return resolved.map((a, i) => ({ step: i + 1, approver: a, status: 'pending' }));
+            }
+
+            return [];
+        }
+
+        async function resolveSteps(steps) {
+            const needsLeader = steps.includes('__TEAM_LEADER__');
+            let teamLeader = null;
+            if (needsLeader) {
+                const { data: myInfo } = await _sb.from('employees').select('org, is_leader').eq('name', userName).maybeSingle();
+                if (myInfo?.org && !myInfo?.is_leader) {
+                    const { data: ld } = await _sb.from('employees').select('name').eq('org', myInfo.org).eq('is_leader', true).maybeSingle();
+                    teamLeader = ld?.name || null;
+                }
+            }
+            return steps.map(s => s === '__TEAM_LEADER__' ? (teamLeader || null) : s).filter(Boolean);
         }
 
         // ── 결재 현황 ────────────────────────────────────────────────
@@ -692,23 +1468,86 @@
             const container = document.getElementById('ap-list-container');
             container.innerHTML = '<p style="color:var(--text-sub);font-size:0.85rem;">불러오는 중...</p>';
             try {
-                let query = _sb.from('approvals').select('*').order('created_at', { ascending: false });
-                if (listFilter !== 'all') query = query.eq('status', listFilter);
-                if (!isAdmin) query = query.eq('applicant', userName);
-                const { data: list, error } = await query;
-                if (error) throw new Error(error.message);
+                let list = [];
+                if (isAdmin) {
+                    let query = _sb.from('approvals').select('*').order('created_at', { ascending: false });
+                    if (listFilter !== 'all') query = query.eq('status', listFilter);
+                    const { data, error } = await query;
+                    if (error) throw new Error(error.message);
+                    list = data || [];
+                } else {
+                    // 본인 신청 + 본인이 결재자인 항목
+                    const [ownRes, pendingRes] = await Promise.all([
+                        _sb.from('approvals').select('*').eq('applicant', userName).order('created_at', { ascending: false }),
+                        _sb.from('approvals').select('*').eq('status', 'pending').order('created_at', { ascending: false })
+                    ]);
+                    if (ownRes.error) throw new Error(ownRes.error.message);
+                    const myApproval = (pendingRes.data || []).filter(item => {
+                        const steps = item.approval_steps || [];
+                        const cur = steps.find(s => s.step === item.current_step);
+                        return cur?.approver === userName;
+                    });
+                    const seen = new Set((ownRes.data || []).map(i => i.id));
+                    list = [...(ownRes.data || []), ...myApproval.filter(i => !seen.has(i.id))];
+                    list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    if (listFilter !== 'all') list = list.filter(i => i.status === listFilter);
+                }
+
                 if (!list.length) { container.innerHTML = '<p style="color:var(--text-sub);font-size:0.85rem;text-align:center;padding:40px 0;">내역이 없습니다.</p>'; return; }
+
                 const statusLabel = { pending: '대기', approved: '승인', rejected: '반려' };
                 const statusBadge = { pending: 'badge-pending', approved: 'badge-approved', rejected: 'badge-rejected' };
+
                 container.innerHTML = list.map(item => {
                     const d = item.data || {};
-                    const summary = item.type === '비품구매' ? d.item : item.type === '경조사비' ? d.reason + ' / ' + d.recipient : item.type === '출장비' ? d.destination + ' (' + d.date_from + '~' + d.date_to + ')' : d.place;
-                    const actions = (isAdmin && item.status === 'pending')
-                        ? `<div class="ap-item-actions"><button class="btn-approve" onclick="decide('${item.id}','approved','')">승인</button><button class="btn-reject" onclick="promptReject('${item.id}')">반려</button></div>`
+                    const summary = item.type === '비품구매' ? d.item
+                        : item.type === '경조사비' ? d.reason + ' / ' + d.recipient
+                        : item.type === '출장비' ? d.destination + ' (' + d.date_from + '~' + d.date_to + ')'
+                        : item.type === '품의서' ? d.title
+                        : d.place;
+
+                    const steps = item.approval_steps || [];
+                    const currentStep = item.current_step || 1;
+                    const curStepData = steps.find(s => s.step === currentStep);
+                    const isMyTurn = item.status === 'pending' && curStepData?.approver === userName;
+
+                    // 결재선 진행 표시
+                    const stepBar = steps.length > 0 ? `
+                        <div style="display:flex;align-items:center;gap:4px;margin-bottom:8px;flex-wrap:wrap;">
+                            ${steps.map(s => {
+                                const isCur = s.step === currentStep && item.status === 'pending';
+                                const isDone = s.status === 'approved';
+                                const isRej = s.status === 'rejected';
+                                const bg = isDone ? '#d1fae5' : isRej ? '#fee2e2' : isCur ? '#ede9fe' : '#f3f4f6';
+                                const color = isDone ? '#065f46' : isRej ? '#991b1b' : isCur ? '#5b21b6' : '#9ca3af';
+                                const icon = isDone ? '✓' : isRej ? '✕' : isCur ? '●' : '○';
+                                return `<span style="font-size:0.72rem;font-weight:600;padding:2px 9px;border-radius:20px;background:${bg};color:${color};">${icon} ${s.step}. ${s.approver}</span>`;
+                            }).join('<span style="color:#d1d5db;font-size:0.7rem;">›</span>')}
+                        </div>` : '';
+
+                    const stepInfo = steps.length > 0 && item.status === 'pending'
+                        ? `<span style="font-size:0.75rem;color:#5b21b6;font-weight:600;">${currentStep}/${steps.length}단계</span>`
+                        : '';
+
+                    const canDecide = isMyTurn || (isAdmin && item.status === 'pending' && steps.length === 0);
+                    const actions = canDecide
+                        ? `<div class="ap-item-actions" style="margin-top:8px;">
+                            <button class="btn-approve" onclick="event.stopPropagation();openApproveModal('${item.id}','${item.type}','${item.amount?.toLocaleString()}원')">승인</button>
+                            <button class="btn-reject" onclick="event.stopPropagation();openRejectModal('${item.id}','${item.type}')">반려</button>
+                           </div>`
                         : item.status === 'rejected' && item.note
                         ? `<p style="font-size:0.77rem;color:#991b1b;margin-top:4px;">반려 사유: ${item.note}</p>`
                         : '';
-                    return `<div class="ap-item"><div class="ap-item-top"><span class="ap-item-title">[${item.type}] ${summary || ''}</span><span class="ap-badge ${statusBadge[item.status]}">${statusLabel[item.status]}</span></div><div class="ap-item-meta">${item.applicant} · ${item.amount ? item.amount.toLocaleString() + '원' : '금액 미기재'} · ${new Date(item.created_at).toLocaleDateString('ko-KR')}</div>${actions}</div>`;
+
+                    const itemJson = JSON.stringify(item).replace(/'/g, '&#39;');
+                    return `<div class="ap-item" style="cursor:pointer;" onclick='openDetailById("${item.id}")'>
+                        <div class="ap-item-top">
+                            <span class="ap-item-title">[${item.type}] ${summary || ''}</span>
+                            <div style="display:flex;align-items:center;gap:6px;">${stepInfo}<span class="ap-badge ${statusBadge[item.status]}">${statusLabel[item.status]}</span></div>
+                        </div>
+                        <div class="ap-item-meta">${item.applicant} · ${item.amount ? item.amount.toLocaleString() + '원' : '금액 미기재'} · ${new Date(item.created_at).toLocaleDateString('ko-KR')}</div>
+                        ${stepBar}${actions}
+                    </div>`;
                 }).join('');
             } catch (e) {
                 container.innerHTML = '<p style="color:#991b1b;font-size:0.85rem;">오류: ' + e.message + '</p>';
@@ -724,10 +1563,61 @@
 
         async function decide(id, status, note) {
             try {
-                const { error } = await _sb.from('approvals').update({ status, note: note || '', decided_by: userName, decided_at: new Date().toISOString() }).eq('id', id);
+                const { data: item, error: fetchErr } = await _sb.from('approvals').select('*').eq('id', id).single();
+                if (fetchErr) throw new Error(fetchErr.message);
+
+                const steps = item.approval_steps || [];
+                const currentStep = item.current_step || 1;
+
+                const updatedSteps = steps.map(s =>
+                    s.step === currentStep
+                        ? { ...s, status, note: note || '', decided_by: userName, decided_at: new Date().toISOString() }
+                        : s
+                );
+
+                let overallStatus = item.status;
+                let nextStep = currentStep;
+
+                if (status === 'rejected') {
+                    overallStatus = 'rejected';
+                } else if (currentStep >= steps.length) {
+                    overallStatus = 'approved';
+                } else {
+                    nextStep = currentStep + 1;
+                }
+
+                const updateData = {
+                    approval_steps: updatedSteps,
+                    current_step: nextStep,
+                    ...(overallStatus !== 'pending' ? {
+                        status: overallStatus,
+                        note: note || '',
+                        decided_by: userName,
+                        decided_at: new Date().toISOString()
+                    } : {})
+                };
+
+                const { error } = await _sb.from('approvals').update(updateData).eq('id', id);
                 if (error) throw new Error(error.message);
-                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'decide', id, status, note: note || '', decided_by: userName }) }).catch(() => {});
-                showToast(status === 'approved' ? '승인 완료' : '반려 완료');
+
+                // 다음 결재자 또는 신청자 이메일 조회
+                let approverEmail = '', approverName = '', applicantEmail = '';
+                if (overallStatus === 'pending') {
+                    approverName = updatedSteps.find(s => s.step === nextStep)?.approver || '';
+                    if (approverName) {
+                        const { data: empData } = await _sb.from('employees').select('email').eq('name', approverName).maybeSingle();
+                        approverEmail = empData?.email || '';
+                    }
+                } else {
+                    const { data: appData } = await _sb.from('employees').select('email').eq('name', item.applicant).maybeSingle();
+                    applicantEmail = appData?.email || '';
+                }
+                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'decide', id, status, note: note || '', decided_by: userName, decided_step: currentStep, current_step: nextStep, overall_status: overallStatus, type: item.type, applicant: item.applicant, approverEmail, approverName, applicantEmail }) }).catch(() => {});
+
+                if (overallStatus === 'approved') showToast('최종 승인 완료');
+                else if (overallStatus === 'rejected') showToast('반려 완료');
+                else showToast(`${currentStep}단계 승인 완료 → ${nextStep}단계 결재 대기`);
+
                 loadList();
             } catch (e) {
                 showToast('오류: ' + e.message);
@@ -738,6 +1628,222 @@
             const note = prompt('반려 사유를 입력해주세요.');
             if (note === null) return;
             decide(id, 'rejected', note);
+        }
+
+        // ── 모달 공통 ────────────────────────────────────────────────
+        let _pendingApproveId = null;
+        let _pendingRejectId = null;
+
+        function openModal(id) { document.getElementById(id).classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+        function onModalBackdropClick(e, id) {
+            if (e.target === document.getElementById(id)) closeModal(id);
+        }
+
+        // ── 상세 보기 ────────────────────────────────────────────────
+        async function openDetail(item) {
+            // 모달 먼저 열고 로딩 표시
+            document.getElementById('detail-title').textContent = '불러오는 중...';
+            document.getElementById('detail-body').innerHTML = '<p style="color:var(--text-sub);font-size:0.85rem;padding:20px 0;">정보를 불러오는 중...</p>';
+            document.getElementById('detail-footer').innerHTML = '';
+            openModal('detail-modal');
+
+            // 신청자 정보 + 이전 이력 병렬 조회
+            const [empRes, histRes] = await Promise.all([
+                _sb.from('employees').select('org, rank').eq('name', item.applicant).maybeSingle(),
+                _sb.from('approvals').select('amount, status, created_at, data').eq('applicant', item.applicant).eq('type', item.type).neq('id', item.id).order('created_at', { ascending: false }).limit(5)
+            ]);
+            const emp = empRes.data || {};
+            const history = histRes.data || [];
+            const d = item.data || {};
+            const steps = item.approval_steps || [];
+            const statusLabel = { pending: '대기', approved: '승인', rejected: '반려' };
+            const currentStep = item.current_step || 1;
+            const isMyTurn = item.status === 'pending' && (steps.find(s => s.step === currentStep)?.approver === userName);
+
+            const typeMap = { '비품구매': '🛒 비품·소모품', '경조사비': '🌸 경조사비', '출장비': '✈️ 출장비', '식비': '🍽️ 식비', '품의서': '📋 품의서' };
+            document.getElementById('detail-title').textContent = typeMap[item.type] || item.type;
+
+            // 필드 맵
+            const fieldMap = {
+                '비품구매': [
+                    ['구매 구분', d.category], ['품목명', d.item], ['상세 사양', d.spec],
+                    ['수량', d.qty], ['구매처', d.store_type], ['희망 구매일', d.wish_date],
+                    ['구매 링크', d.link ? `<a href="${d.link}" target="_blank" style="color:var(--blue);">${d.link}</a>` : '—'],
+                    ['구매 사유', d.reason], ['신청 금액', item.amount ? item.amount.toLocaleString() + ' 원' : '—']
+                ],
+                '경조사비': [
+                    ['경조 사유', d.reason], ['대상자', d.recipient], ['관계', d.relation],
+                    ['행사일', d.event_date || '—'], ['지급 방식', d.pay_method], ['수령 계좌', d.account || '—'],
+                    ['신청 금액', item.amount ? item.amount.toLocaleString() + ' 원' : '—']
+                ],
+                '출장비': [
+                    ['출장지', d.destination], ['출장 목적', d.purpose],
+                    ['출장 기간', `${d.date_from || '—'} ~ ${d.date_to || '—'}`],
+                    ['교통비', d.transport ? Number(d.transport).toLocaleString() + ' 원' : '—'],
+                    ['숙박비', d.accommodation ? Number(d.accommodation).toLocaleString() + ' 원' : '—'],
+                    ['기타 경비', d.etc ? Number(d.etc).toLocaleString() + ' 원' : '—'],
+                    ['합계', item.amount ? item.amount.toLocaleString() + ' 원' : '—']
+                ],
+                '식비': [
+                    ['사용 일자', d.date || '—'], ['사용처', d.place],
+                    ['참석 인원', d.headcount], ['목적', d.purpose],
+                    ['금액', item.amount ? item.amount.toLocaleString() + ' 원' : '—']
+                ],
+                '품의서': [
+                    ['품의 제목', d.title],
+                    ['목적 · 사유', d.purpose],
+                    ['기대 효과', d.effect || '—'],
+                    ['신청 금액', item.amount ? item.amount.toLocaleString() + ' 원' : '—']
+                ]
+            };
+
+            const fields = (fieldMap[item.type] || []).map(([label, value]) => `
+                <div class="detail-field">
+                    <div class="detail-field-label">${label}</div>
+                    <div class="detail-field-value">${value ?? '—'}</div>
+                </div>`).join('');
+
+            const stepBar = steps.length > 0 ? `
+                <hr class="detail-divider">
+                <div class="detail-field-label" style="margin-bottom:8px;">결재선</div>
+                <div class="detail-step-bar">
+                    ${steps.map(s => {
+                        const isCur = s.step === currentStep && item.status === 'pending';
+                        const isDone = s.status === 'approved';
+                        const isRej = s.status === 'rejected';
+                        const bg = isDone ? '#d1fae5' : isRej ? '#fee2e2' : isCur ? '#ede9fe' : '#f9fafb';
+                        const numBg = isDone ? '#065f46' : isRej ? '#991b1b' : isCur ? '#5b21b6' : '#9ca3af';
+                        const icon = isDone ? '✓' : isRej ? '✕' : isCur ? '●' : s.step;
+                        const subtext = isDone ? `${s.decided_by} · ${new Date(s.decided_at).toLocaleDateString('ko-KR')} 승인`
+                            : isRej ? `${s.decided_by} · 반려${s.note ? ': ' + s.note : ''}`
+                            : isCur ? '결재 대기 중' : '대기';
+                        return `<div class="detail-step-item" style="background:${bg};">
+                            <div class="detail-step-num" style="background:${numBg};color:#fff;">${icon}</div>
+                            <div>
+                                <div style="font-weight:700;">${s.approver}</div>
+                                <div style="font-size:0.75rem;color:var(--text-sub);margin-top:2px;">${subtext}</div>
+                            </div>
+                        </div>`;
+                    }).join('')}
+                </div>` : '';
+
+            const metaInfo = `
+                <hr class="detail-divider">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <div class="detail-field"><div class="detail-field-label">신청자</div><div class="detail-field-value">${item.applicant}</div></div>
+                    <div class="detail-field"><div class="detail-field-label">신청일</div><div class="detail-field-value">${new Date(item.created_at).toLocaleDateString('ko-KR')}</div></div>
+                    <div class="detail-field"><div class="detail-field-label">상태</div><div class="detail-field-value">${statusLabel[item.status]}</div></div>
+                    ${item.decided_by ? `<div class="detail-field"><div class="detail-field-label">최종 처리</div><div class="detail-field-value">${item.decided_by}</div></div>` : ''}
+                </div>
+                ${item.status === 'rejected' && item.note ? `<div style="margin-top:10px;padding:10px 14px;background:#fee2e2;border-radius:8px;font-size:0.82rem;color:#991b1b;">반려 사유: ${item.note}</div>` : ''}`;
+
+            // 신청자 정보 섹션
+            const applicantInfo = `
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 16px;background:#f9fafb;border-radius:12px;margin-bottom:16px;">
+                    <div style="width:40px;height:40px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">👤</div>
+                    <div>
+                        <div style="font-weight:700;font-size:0.92rem;">${item.applicant}</div>
+                        <div style="font-size:0.78rem;color:var(--text-sub);margin-top:2px;">${emp.org || '—'} · ${emp.rank || '—'}</div>
+                    </div>
+                    <div style="margin-left:auto;text-align:right;">
+                        <div style="font-size:1rem;font-weight:700;color:var(--blue);">${item.amount ? item.amount.toLocaleString() + '원' : '—'}</div>
+                        <div style="font-size:0.72rem;color:var(--text-sub);">신청 금액</div>
+                    </div>
+                </div>`;
+
+            // 이전 신청 이력 섹션
+            let historySection = '';
+            if (history.length > 0) {
+                const hStatusLabel = { pending: '대기', approved: '승인', rejected: '반려' };
+                const hStatusColor = { pending: '#92400e', approved: '#065f46', rejected: '#991b1b' };
+                const hStatusBg = { pending: '#fef3c7', approved: '#d1fae5', rejected: '#fee2e2' };
+                const useAmountDiff = !['비품구매', '품의서'].includes(item.type);
+                const rows = history.map(h => {
+                    const diffStr = useAmountDiff && item.amount && h.amount
+                        ? (() => { const diff = item.amount - h.amount; return `<span style="font-size:0.75rem;font-weight:600;color:${diff > 0 ? '#dc2626' : '#065f46'};">${diff > 0 ? '▲' : '▼'} ${Math.abs(diff).toLocaleString()}원</span>`; })()
+                        : '';
+                    const summary = h.data
+                        ? (item.type === '경조사비' ? `${h.data.reason || ''} / ${h.data.recipient || ''}` : item.type === '출장비' ? `${h.data.destination || ''}` : item.type === '품의서' ? `${h.data.title || ''}` : '')
+                        : '';
+                    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+                        <div>
+                            <span style="font-size:0.78rem;color:var(--text-sub);">${new Date(h.created_at).toLocaleDateString('ko-KR')}</span>
+                            <span style="margin-left:8px;font-size:0.7rem;font-weight:600;padding:2px 7px;border-radius:10px;background:${hStatusBg[h.status]};color:${hStatusColor[h.status]};">${hStatusLabel[h.status]}</span>
+                            ${summary ? `<span style="margin-left:6px;font-size:0.78rem;color:var(--text-sub);">${summary}</span>` : ''}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            ${diffStr}
+                            <span style="font-size:0.84rem;font-weight:600;">${h.amount ? h.amount.toLocaleString() + '원' : '—'}</span>
+                        </div>
+                    </div>`;
+                }).join('');
+                historySection = `
+                    <hr class="detail-divider">
+                    <div style="font-size:0.75rem;font-weight:600;color:var(--text-sub);margin-bottom:8px;">이전 신청 이력 (${item.type})</div>
+                    ${rows}
+                    ${useAmountDiff ? '<div style="font-size:0.72rem;color:var(--text-sub);margin-top:8px;text-align:right;">▲▼ 이번 신청과의 금액 차이</div>' : ''}`;
+            }
+
+            // 첨부파일 섹션
+            let attachSection = '';
+            if (item.attachments && item.attachments.length > 0) {
+                const links = await Promise.all(item.attachments.map(async f => {
+                    const { data: sd } = await _sb.storage.from('approval-files').createSignedUrl(f.path, 3600);
+                    const url = sd?.signedUrl || '#';
+                    return `<a class="attach-link" href="${url}" target="_blank">📄 ${f.name} <span style="color:var(--text-sub);font-size:0.75rem;">(${(f.size/1024/1024).toFixed(1)}MB)</span></a>`;
+                }));
+                attachSection = `<hr class="detail-divider"><div style="font-size:0.75rem;font-weight:600;color:var(--text-sub);margin-bottom:6px;">첨부파일</div>${links.join('')}`;
+            }
+
+            document.getElementById('detail-body').innerHTML = applicantInfo + fields + attachSection + historySection + stepBar + metaInfo;
+
+            // 하단 버튼
+            const footer = document.getElementById('detail-footer');
+            const canDecide = isMyTurn || (isAdmin && item.status === 'pending' && steps.length === 0);
+            if (canDecide) {
+                footer.innerHTML = `
+                    <button class="btn-modal-cancel" onclick="closeModal('detail-modal')">닫기</button>
+                    <button class="btn-modal-approve" onclick="openApproveModal('${item.id}', '${item.type}', '${item.amount?.toLocaleString()}원')">승인</button>
+                    <button class="btn-modal-reject" onclick="openRejectModal('${item.id}', '${item.type}')">반려</button>`;
+            } else {
+                footer.innerHTML = `<button class="btn-modal-cancel" style="flex:1;" onclick="closeModal('detail-modal')">닫기</button>`;
+            }
+
+            openModal('detail-modal');
+        }
+
+        // ── 승인 확인 모달 ───────────────────────────────────────────
+        function openApproveModal(id, type, amountStr) {
+            _pendingApproveId = id;
+            document.getElementById('approve-msg').innerHTML =
+                `<strong>[${type}]</strong> 신청 건 (${amountStr})을<br>승인하시겠습니까?`;
+            closeModal('detail-modal');
+            openModal('approve-modal');
+        }
+        async function confirmApprove() {
+            const btn = document.getElementById('btn-approve-confirm');
+            btn.disabled = true; btn.textContent = '처리 중...';
+            await decide(_pendingApproveId, 'approved', '');
+            btn.disabled = false; btn.textContent = '승인';
+            closeModal('approve-modal');
+        }
+
+        // ── 반려 사유 모달 ───────────────────────────────────────────
+        function openRejectModal(id, type) {
+            _pendingRejectId = id;
+            document.getElementById('reject-msg').textContent = `[${type}] 신청 건을 반려합니다.`;
+            document.getElementById('reject-note').value = '';
+            closeModal('detail-modal');
+            openModal('reject-modal');
+        }
+        async function confirmReject() {
+            const note = document.getElementById('reject-note').value.trim();
+            const btn = document.getElementById('btn-reject-confirm');
+            btn.disabled = true; btn.textContent = '처리 중...';
+            await decide(_pendingRejectId, 'rejected', note);
+            btn.disabled = false; btn.textContent = '반려';
+            closeModal('reject-modal');
         }
 
         // ── 로그인 ───────────────────────────────────────────────────
@@ -770,6 +1876,144 @@
         function onBackdropClick(e) {
             if (e.target === document.getElementById('login-modal-backdrop')) closeLoginModal();
         }
+        // ── URL 파라미터로 상세보기 자동 실행 ───────────────────────
+        async function checkUrlParam() {
+            const id = new URLSearchParams(location.search).get('id');
+            if (!id) return;
+            if (!userName) {
+                // 로그인 후 다시 처리하도록 저장
+                sessionStorage.setItem('pending_approval_id', id);
+                openLoginModal();
+                return;
+            }
+            openDetailById(id);
+        }
+
+        async function openDetailById(id) {
+            const { data: item, error } = await _sb.from('approvals').select('*').eq('id', id).single();
+            if (error || !item) { showToast('결재 건을 찾을 수 없습니다.'); return; }
+            openDetailAsA4(item);
+        }
+
+        async function openDetailAsA4(item) {
+            const d = item.data || {};
+            const steps = item.approval_steps || [];
+            const currentStep = item.current_step || 1;
+            const isMyTurn = item.status === 'pending' && steps.find(s => s.step === currentStep)?.approver === userName;
+            const canDecide = isMyTurn || (isAdmin && item.status === 'pending' && steps.length === 0);
+
+            // 결재란 — 서식 고정 5칸
+            const approveBoxes = ['팀장', '부장', '전무', '대표이사', '회장']
+                .map(label => `<div class="doc-approve-cell"><div class="doc-approve-cell-label">${label}</div><div class="doc-approve-cell-sign"></div></div>`)
+                .join('');
+
+            const titles = { '비품구매':'비품·소모품 구매 신청서', '경조사비':'경조사비 지급 신청서', '출장비':'출장비 신청서', '식비':'식비 사용내역서', '품의서':'품의서' };
+
+            let bodyRows = '';
+            if (item.type === '비품구매') {
+                const items = d.items || [{ name: d.item, spec: d.spec, qty: d.qty, price: 0, subtotal: item.amount }];
+                const itemRows = items.map(it => `<tr><td>${it.name||'—'}</td><td>${it.spec||'—'}</td><td style="text-align:center;">${it.qty||1}</td><td style="text-align:right;">${(it.price||0).toLocaleString()}</td><td style="text-align:right;font-weight:600;">${(it.subtotal||0).toLocaleString()}</td></tr>`).join('');
+                bodyRows = `<tr><td class="label">구매구분</td><td>${d.category||'—'}</td><td class="label">구매처</td><td>${d.store_type||'—'}</td></tr>
+                    <tr><td class="label">희망구매일</td><td>${d.wish_date||'—'}</td><td class="label">구매사유</td><td>${d.reason||'—'}</td></tr>
+                    ${d.link ? `<tr><td class="label">구매링크</td><td colspan="3" style="word-break:break-all;">${d.link}</td></tr>` : ''}
+                    </table><div class="doc-section-title">구매 품목</div>
+                    <table class="doc-table"><thead><tr><th>품목명</th><th>사양</th><th style="width:44px;">수량</th><th style="width:80px;">단가(원)</th><th style="width:90px;">금액(원)</th></tr></thead>
+                    <tbody>${itemRows}</tbody>
+                    <tfoot><tr><td colspan="4" class="total" style="text-align:right;">합계</td><td class="total" style="text-align:right;">${item.amount.toLocaleString()}</td></tr></tfoot>
+                    </table><table class="doc-table" style="display:none;">`;
+            } else if (item.type === '경조사비') {
+                bodyRows = `<tr><td class="label">경조사유</td><td>${d.reason||'—'}</td><td class="label">대상자</td><td>${d.recipient||'—'}</td></tr>
+                    <tr><td class="label">관계</td><td>${d.relation||'—'}</td><td class="label">행사일</td><td>${d.event_date||'—'}</td></tr>
+                    <tr><td class="label">지급방식</td><td>${d.pay_method||'—'}</td><td class="label">수령계좌</td><td>${d.account||'—'}</td></tr>
+                    <tr><td class="label">신청금액</td><td colspan="3" class="amount">${item.amount.toLocaleString()} 원</td></tr>`;
+            } else if (item.type === '출장비') {
+                bodyRows = `<tr><td class="label">출장지</td><td>${d.destination||'—'}</td><td class="label">출장목적</td><td>${d.purpose||'—'}</td></tr>
+                    <tr><td class="label">출장기간</td><td colspan="3">${d.date_from||'—'} ~ ${d.date_to||'—'}</td></tr>
+                    <tr><td class="label">교통비</td><td>${(d.transport||0).toLocaleString()} 원</td><td class="label">숙박비</td><td>${(d.accommodation||0).toLocaleString()} 원</td></tr>
+                    <tr><td class="label">기타경비</td><td>${(d.etc||0).toLocaleString()} 원</td><td class="label">합계</td><td class="amount">${item.amount.toLocaleString()} 원</td></tr>`;
+            } else if (item.type === '식비') {
+                const items = d.items || [{ date: d.date, place: d.place, amount: item.amount }];
+                const itemRows = items.map(it => `<tr><td>${it.date||'—'}</td><td>${it.place||'—'}</td><td style="text-align:right;font-weight:600;">${(it.amount||0).toLocaleString()}</td></tr>`).join('');
+                bodyRows = `<tr><td class="label">목적</td><td>${d.purpose||'—'}</td><td class="label">참석인원</td><td>${d.headcount||'—'}명</td></tr>
+                    </table><div class="doc-section-title">사용 내역</div>
+                    <table class="doc-table"><thead><tr><th style="width:90px;">일자</th><th>사용처</th><th style="width:100px;">금액(원)</th></tr></thead>
+                    <tbody>${itemRows}</tbody>
+                    <tfoot><tr><td colspan="2" class="total" style="text-align:right;">합계</td><td class="total" style="text-align:right;">${item.amount.toLocaleString()}</td></tr></tfoot>
+                    </table><table class="doc-table" style="display:none;">`;
+            } else if (item.type === '품의서') {
+                const items = d.items || [];
+                const itemRows = items.map(it => `<tr><td>${it.name||'—'}</td><td>${it.spec||'—'}</td><td style="text-align:center;">${it.qty||1}</td><td style="text-align:right;">${(it.price||0).toLocaleString()}</td><td style="text-align:right;font-weight:600;">${(it.subtotal||0).toLocaleString()}</td><td style="text-align:center;font-size:0.78rem;">${it.cycle||'일회성'}</td><td style="word-break:break-all;font-size:0.78rem;">${it.link ? `<a href="${it.link}" target="_blank" style="color:var(--blue);">${it.link}</a>` : '—'}</td></tr>`).join('');
+                bodyRows = `<tr><td class="label">품의 제목</td><td colspan="3">${d.title||'—'}</td></tr>
+                    <tr><td class="label">목적 · 사유</td><td colspan="3" style="white-space:pre-wrap;">${d.purpose||'—'}</td></tr>
+                    ${d.effect ? `<tr><td class="label">기대 효과</td><td colspan="3" style="white-space:pre-wrap;">${d.effect}</td></tr>` : ''}
+                    </table><div class="doc-section-title">품목 내역</div>
+                    <table class="doc-table"><thead><tr><th>품목명</th><th>규격·사양</th><th style="width:44px;">수량</th><th style="width:80px;">단가(원)</th><th style="width:90px;">금액(원)</th><th style="width:60px;">결제주기</th><th>구매링크</th></tr></thead>
+                    <tbody>${itemRows}</tbody>
+                    <tfoot><tr><td colspan="6" class="total" style="text-align:right;">합계</td><td class="total" style="text-align:right;">${item.amount.toLocaleString()}</td></tr></tfoot>
+                    </table><table class="doc-table" style="display:none;">`;
+            }
+
+            // 상태 표시
+            const statusLabel = { pending:'대기 중', approved:'✅ 최종 승인', rejected:'❌ 반려' };
+            const statusColor = { pending:'#92400e', approved:'#065f46', rejected:'#991b1b' };
+            const statusBg = { pending:'#fef3c7', approved:'#d1fae5', rejected:'#fee2e2' };
+
+            document.getElementById('preview-doc').innerHTML = `
+                <div class="doc-header">
+                    <div class="doc-logo">DOW Valve</div>
+                    <div class="doc-approve-box">${approveBoxes}</div>
+                </div>
+                <div class="doc-title-wrap"><div class="doc-title">${titles[item.type]||item.type}</div></div>
+                <div class="doc-meta-row">
+                    <span>신청자: <strong>${item.applicant}</strong></span>
+                    <span>신청일: ${new Date(item.created_at).toLocaleDateString('ko-KR')}</span>
+                    <span style="font-weight:700;padding:2px 10px;border-radius:10px;background:${statusBg[item.status]};color:${statusColor[item.status]};">${statusLabel[item.status]}</span>
+                </div>
+                <table class="doc-table"><tbody>${bodyRows}</tbody></table>
+                ${item.status === 'rejected' && item.note ? `<div style="margin-top:10px;padding:10px 14px;background:#fee2e2;border-radius:8px;font-size:0.85rem;color:#991b1b;">반려 사유: ${item.note}</div>` : ''}
+                <div class="doc-footer">DOW Valve 전자결재 시스템</div>`;
+
+            // 툴바 버튼
+            document.getElementById('preview-title').textContent = (titles[item.type]||item.type) + ' 상세보기';
+            const submitBtn = document.getElementById('btn-preview-submit');
+            if (canDecide) {
+                submitBtn.style.display = '';
+                submitBtn.textContent = '승인';
+                submitBtn.onclick = () => openApproveModal(item.id, item.type, item.amount?.toLocaleString() + '원');
+                // 반려 버튼 추가
+                const toolbar = document.querySelector('.preview-toolbar-btns');
+                if (!document.getElementById('btn-detail-reject')) {
+                    const rejectBtn = document.createElement('button');
+                    rejectBtn.id = 'btn-detail-reject';
+                    rejectBtn.className = 'btn-preview-cancel';
+                    rejectBtn.style.background = '#dc2626';
+                    rejectBtn.textContent = '반려';
+                    rejectBtn.onclick = () => openRejectModal(item.id, item.type);
+                    toolbar.insertBefore(rejectBtn, submitBtn);
+                }
+            } else {
+                submitBtn.style.display = 'none';
+                const old = document.getElementById('btn-detail-reject');
+                if (old) old.remove();
+            }
+
+            document.getElementById('preview-modal').classList.add('open');
+        }
+
+        // ── 초기화 ───────────────────────────────────────────────────
+        (async function init() {
+            if (userName) {
+                document.getElementById('nav-username').textContent = userName + (isAdmin ? ' (관리자)' : '');
+                document.getElementById('btn-login-logout').textContent = '로그아웃';
+            }
+            await checkUrlParam();
+            const pending = sessionStorage.getItem('pending_approval_id');
+            if (pending && userName) {
+                sessionStorage.removeItem('pending_approval_id');
+                openDetailById(pending);
+            }
+        })();
+
         async function doLogin() {
             const rawName = document.getElementById('lm-name').value.trim();
             const pin = document.getElementById('lm-pin').value.trim();
@@ -793,6 +2037,12 @@
                 document.getElementById('btn-login-logout').textContent = '로그아웃';
                 closeLoginModal();
                 showToast(data.name + '님, 로그인됐습니다.');
+                // 이메일 링크로 진입한 경우 처리
+                const pendingId = sessionStorage.getItem('pending_approval_id');
+                if (pendingId) {
+                    sessionStorage.removeItem('pending_approval_id');
+                    openDetailById(pendingId);
+                }
             } catch (e) {
                 errEl.textContent = '오류: ' + e.message;
             } finally {

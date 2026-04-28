@@ -1,23 +1,24 @@
 require('dotenv').config();
 const express = require('express');
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs');
 const path = require('path');
 
 const app = express();
 const PORT = 3000;
 const HUB_PATH = path.resolve(__dirname, 'hub-data');
+const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-lite'];
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(__dirname));
 
-// ── Tools ────────────────────────────────────────────────────────────────────
+// ── Tools ─────────────────────────────────────────────────────────────────────
 
-const TOOLS = [
+const FUNCTION_DECLARATIONS = [
     {
         name: 'read_file',
-        description: '다우밸브 허브의 파일을 읽습니다.',
-        input_schema: {
+        description: '허브의 파일을 읽습니다.',
+        parameters: {
             type: 'object',
             properties: {
                 path: { type: 'string', description: '허브 루트 기준 상대 경로 (예: sales/pipeline.md)' }
@@ -27,8 +28,8 @@ const TOOLS = [
     },
     {
         name: 'write_file',
-        description: '다우밸브 허브의 파일을 저장하거나 업데이트합니다.',
-        input_schema: {
+        description: '허브의 파일을 저장하거나 업데이트합니다.',
+        parameters: {
             type: 'object',
             properties: {
                 path: { type: 'string', description: '허브 루트 기준 상대 경로' },
@@ -40,12 +41,11 @@ const TOOLS = [
     {
         name: 'list_files',
         description: '허브 내 디렉토리의 파일 목록을 조회합니다.',
-        input_schema: {
+        parameters: {
             type: 'object',
             properties: {
                 directory: { type: 'string', description: '허브 루트 기준 상대 경로. 비우면 루트 목록.' }
-            },
-            required: []
+            }
         }
     }
 ];
@@ -56,23 +56,23 @@ function safePath(rel) {
     return abs;
 }
 
-function execTool(name, input) {
+function execTool(name, args, userName) {
     if (name === 'read_file') {
-        const p = safePath(input.path);
-        if (!fs.existsSync(p)) return `[파일 없음: ${input.path}]`;
+        const p = safePath(args.path);
+        if (!fs.existsSync(p)) return `[파일 없음: ${args.path}]`;
         return fs.readFileSync(p, 'utf-8');
     }
     if (name === 'write_file') {
-        const p = safePath(input.path);
+        const p = safePath(args.path);
         fs.mkdirSync(path.dirname(p), { recursive: true });
-        fs.writeFileSync(p, input.content, 'utf-8');
-        return `저장 완료: ${input.path}`;
+        fs.writeFileSync(p, args.content, 'utf-8');
+        return `저장 완료: ${args.path} (로컬)`;
     }
     if (name === 'list_files') {
-        const p = input.directory ? safePath(input.directory) : HUB_PATH;
+        const p = args.directory ? safePath(args.directory) : HUB_PATH;
         if (!fs.existsSync(p)) return '[디렉토리 없음]';
         return fs.readdirSync(p, { withFileTypes: true })
-            .filter(d => !d.name.startsWith('.') && d.name !== 'node_modules' && d.name !== 'drive_structure.json')
+            .filter(d => !d.name.startsWith('.') && d.name !== 'node_modules')
             .map(d => (d.isDirectory() ? '📁 ' : '📄 ') + d.name)
             .join('\n');
     }
@@ -81,16 +81,53 @@ function execTool(name, input) {
 
 // ── System Prompt ─────────────────────────────────────────────────────────────
 
-function loadSystemPrompt() {
-    let base = `당신은 다우밸브의 업무 AI 어시스턴트입니다.
+function getWeekRange() {
+    const today = new Date();
+    const day = today.getDay();
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
+    const friday = new Date(monday);
+    friday.setDate(monday.getDate() + 4);
+    return {
+        start: monday.toISOString().slice(0, 10),
+        end: friday.toISOString().slice(0, 10)
+    };
+}
+
+function loadSystemPrompt(userName, userOrg, userRank) {
+    const today = new Date().toISOString().slice(0, 10);
+    const week = getWeekRange();
+    let base = `당신은 업무 AI 어시스턴트입니다.
 자연어 요청을 받아 허브 파일을 읽고 쓰며 업무를 처리합니다.
+
+## 현재 사용자
+- 이름: ${userName}
+- 부서: ${userOrg || '미확인'}
+- 직급: ${userRank || '미확인'}
+- 호칭: ${userName} 님
 
 ## 규칙
 - 질문에 답하기 전 반드시 관련 파일을 먼저 읽으세요
 - 파일 수정 시 기존 내용을 읽은 후 필요한 부분만 수정하세요
 - 변경한 파일과 내용을 사용자에게 명확히 알려주세요
 - 한국어로 간결하게 답변합니다
-- 날짜 기준: 2026-04-09
+- 오늘 날짜: ${today}
+- 이번 주 기간: ${week.start} ~ ${week.end} (월~금)
+
+## 부서 기본값 규칙
+- 사용자가 별도로 부서를 지정하지 않으면 항상 현재 사용자의 부서(${userOrg || '미확인'}) 기준으로 답변하세요
+- "전체", "전 부서", "모든 팀" 등의 표현이 있을 때만 전체 데이터를 조회하세요
+
+## 미결업무 파일 규칙
+- 미결업무 조회·수정 시 sales/pipeline.md(전사 구버전)가 아닌 sales/pipeline/팀명.md을 사용하세요
+- 현재 사용자 부서 기준 파일: sales/pipeline/${userOrg || '해당팀'}.md
+- 전사 현황이 필요하면 sales/pipeline/ 폴더 내 전체 팀 파일을 순서대로 읽으세요
+- 파일명 목록: 해외영업팀, 국내외관리영업팀, 2차전지영업팀, 반도체영업팀, 밸브파크팀, 엔지니어링팀, 생산기술팀
+
+## 주간 리포트 저장 규칙
+- 주간 리포트 저장 경로: sales/weekly-reports/${week.start}/팀명.md
+- 예: 이번 주 해외영업팀 리포트 → sales/weekly-reports/${week.start}/해외영업팀.md
+- 전사 통합 리포트 요청 시에만 → sales/weekly-reports/${week.start}/전사.md
 
 ## 거래처 명칭 규칙
 - 회사명이 언급되면 write 전에 반드시 companies/_index.md를 먼저 읽어 정확한 명칭과 경로를 확인하세요
@@ -100,62 +137,164 @@ function loadSystemPrompt() {
     try {
         const claudeMd = fs.readFileSync(path.join(HUB_PATH, 'CLAUDE.md'), 'utf-8');
         base += `## 회사 컨텍스트\n${claudeMd}`;
-    } catch (e) { /* CLAUDE.md 없으면 기본값으로 */ }
+    } catch (e) { /* CLAUDE.md 없으면 기본값 */ }
 
     return base;
+}
+
+function toGeminiContents(messages) {
+    return messages.map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) }]
+    }));
 }
 
 // ── API: Chat ─────────────────────────────────────────────────────────────────
 
 app.post('/api/hub-chat', async (req, res) => {
-    const { messages } = req.body;
+    const { messages, userName, userOrg, userRank } = req.body;
     if (!messages?.length) return res.status(400).json({ error: 'messages 필요' });
+    const author = userName || '직원';
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const history = [...messages];
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY 환경변수 없음 (.env 파일 확인)' });
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const systemPrompt = loadSystemPrompt(author, userOrg, userRank);
+    const contents = toGeminiContents(messages);
     const updatedFiles = [];
     const toolLog = [];
-    let iterations = 0;
 
-    try {
-        while (iterations++ < 12) {
-            const response = await client.messages.create({
-                model: 'claude-sonnet-4-6',
-                max_tokens: 4096,
-                system: loadSystemPrompt(),
-                tools: TOOLS,
-                messages: history
+    let lastError;
+    for (const modelName of MODELS) {
+        try {
+            const model = genAI.getGenerativeModel({
+                model: modelName,
+                tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
+                systemInstruction: systemPrompt
             });
 
-            if (response.stop_reason === 'end_turn') {
-                const text = response.content.find(c => c.type === 'text')?.text || '';
-                return res.json({ content: text, updatedFiles, toolLog });
-            }
+            let iterations = 0;
+            while (iterations++ < 12) {
+                const result = await model.generateContent({ contents });
+                const candidate = result.response.candidates[0];
+                const parts = candidate.content.parts;
+                const functionCalls = parts.filter(p => p.functionCall);
 
-            if (response.stop_reason === 'tool_use') {
-                history.push({ role: 'assistant', content: response.content });
-                const results = [];
-
-                for (const block of response.content) {
-                    if (block.type !== 'tool_use') continue;
-                    const filePath = block.input.path || block.input.directory || '';
-                    toolLog.push({ name: block.name, path: filePath });
-                    const result = execTool(block.name, block.input);
-                    if (block.name === 'write_file') updatedFiles.push(filePath);
-                    results.push({ type: 'tool_result', tool_use_id: block.id, content: result });
+                if (functionCalls.length === 0) {
+                    const text = parts.filter(p => p.text).map(p => p.text).join('');
+                    return res.status(200).json({ content: text, updatedFiles, toolLog });
                 }
 
-                history.push({ role: 'user', content: results });
-            } else {
-                const text = response.content.find(c => c.type === 'text')?.text || '';
-                return res.json({ content: text, updatedFiles, toolLog });
+                contents.push({ role: 'model', parts });
+                const toolResponseParts = [];
+                for (const part of functionCalls) {
+                    const { name, args } = part.functionCall;
+                    const filePath = args.path || args.directory || '';
+                    toolLog.push({ name, path: filePath });
+                    const toolResult = execTool(name, args, author);
+                    if (name === 'write_file') updatedFiles.push(filePath);
+                    toolResponseParts.push({
+                        functionResponse: { name, response: { output: toolResult } }
+                    });
+                }
+                contents.push({ role: 'user', parts: toolResponseParts });
             }
+
+            return res.status(500).json({ error: '최대 반복 횟수 초과' });
+        } catch (err) {
+            if (err.message?.includes('429') || err.message?.includes('503')) {
+                lastError = err;
+                continue;
+            }
+            console.error(err);
+            return res.status(500).json({ error: err.message });
         }
-        res.status(500).json({ error: '최대 반복 횟수 초과' });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: err.message });
     }
+
+    return res.status(500).json({ error: lastError?.message || '모든 모델 사용 불가' });
+});
+
+// ── API: STT ──────────────────────────────────────────────────────────────────
+
+app.post('/api/hub-stt', async (req, res) => {
+    const { action, audioBase64, mimeType, company, userName, content: saveContent, filePath: saveFilePath } = req.body;
+
+    if (action === 'save') {
+        if (!saveContent || !saveFilePath) return res.status(400).json({ error: 'content, filePath 필요' });
+        try {
+            const p = safePath(saveFilePath);
+            fs.mkdirSync(path.dirname(p), { recursive: true });
+            fs.writeFileSync(p, saveContent, 'utf-8');
+            return res.status(200).json({ ok: true, filePath: saveFilePath });
+        } catch (e) {
+            return res.status(500).json({ error: e.message });
+        }
+    }
+
+    if (!audioBase64 || !mimeType || !company) {
+        return res.status(400).json({ error: '오디오 파일, MIME 타입, 거래처명이 필요합니다.' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY 환경변수 없음' });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const author = userName || '직원';
+
+    const prompt = `이 녹음 파일을 분석해서 미팅 기록을 작성해줘. 아래 형식의 마크다운으로 작성해.
+
+# 미팅 기록 — ${company}
+날짜: ${today}
+작성자: ${author}
+
+## 전체 녹취록
+(음성을 최대한 정확하게 텍스트로 변환)
+
+## 미팅 요약
+- **주요 논의사항:**
+- **결정사항:**
+- **다음 액션 (담당자 / 기한):**
+`;
+
+    const body = {
+        contents: [{
+            role: 'user',
+            parts: [
+                { inline_data: { mime_type: mimeType, data: audioBase64 } },
+                { text: prompt }
+            ]
+        }]
+    };
+
+    let lastErr;
+    for (const modelName of MODELS) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const geminiRes = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (geminiRes.status === 429 || geminiRes.status === 503) {
+            lastErr = await geminiRes.text();
+            continue;
+        }
+
+        if (!geminiRes.ok) {
+            const err = await geminiRes.text();
+            return res.status(geminiRes.status).json({ error: err });
+        }
+
+        const data = await geminiRes.json();
+        const meetingContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!meetingContent) return res.status(500).json({ error: 'Gemini 응답 없음' });
+
+        const filePath = `inbox/${today}-${company}-meeting.md`;
+        return res.status(200).json({ content: meetingContent, filePath });
+    }
+
+    return res.status(429).json({ error: lastErr || '모든 모델 사용 불가' });
 });
 
 // ── API: File Tree ────────────────────────────────────────────────────────────
@@ -176,7 +315,9 @@ app.get('/api/hub-files', (req, res) => {
             }
         });
     };
-    ['sales', 'team', 'ontology', 'inbox'].forEach(d => scan(path.join(HUB_PATH, d), d));
+    ['sales', 'team', 'ontology', 'inbox', 'companies', 'operations', 'project'].forEach(d =>
+        scan(path.join(HUB_PATH, d), d)
+    );
     res.json(result);
 });
 
@@ -212,7 +353,6 @@ async function syncToGas(payload) {
     }
 }
 
-// 신청 등록
 app.post('/api/approval/submit', async (req, res) => {
     const { type, applicant, data, amount } = req.body;
     if (!type || !applicant || !data) return res.status(400).json({ error: '필수 항목 누락' });
@@ -222,7 +362,6 @@ app.post('/api/approval/submit', async (req, res) => {
     res.json({ ok: true, id: row.id });
 });
 
-// 목록 조회
 app.get('/api/approval/list', async (req, res) => {
     const { status, applicant } = req.query;
     let query = sb.from('approvals').select('*').order('created_at', { ascending: false });
@@ -233,7 +372,6 @@ app.get('/api/approval/list', async (req, res) => {
     res.json(data);
 });
 
-// 승인 / 반려
 app.post('/api/approval/decide', async (req, res) => {
     const { id, status, note, decided_by } = req.body;
     if (!id || !status || !decided_by) return res.status(400).json({ error: '필수 항목 누락' });
@@ -247,7 +385,7 @@ app.post('/api/approval/decide', async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`\n✅  DOW 인트라넷 실행 중 → http://localhost:${PORT}\n`);
-    if (!process.env.ANTHROPIC_API_KEY) {
-        console.warn('⚠️  ANTHROPIC_API_KEY 환경변수가 설정되지 않았습니다.');
+    if (!process.env.GEMINI_API_KEY) {
+        console.warn('⚠️  GEMINI_API_KEY 환경변수가 설정되지 않았습니다. (.env 파일 확인)');
     }
 });
