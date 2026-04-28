@@ -448,7 +448,8 @@
         'contacts': '👤', 'team': '👥', 'ontology': '📖',
         'project': '🗂️', 'inbox': '📥'
     };
-    const TOP_ORDER = ['sales', 'companies', 'team', 'ontology', 'project', 'inbox'];
+    const TOP_ORDER = ['sales', 'companies', 'team'];
+    const HIDDEN_DIRS = new Set(['ontology', 'project', 'inbox']); // AI 내부용·임시 폴더
 
     function renderNode(name, node, depth) {
         const label = DIR_LABELS[name] || name.replace(/_/g, ' ');
@@ -479,9 +480,11 @@
         let html = '';
         const rendered = new Set();
         TOP_ORDER.forEach(key => {
-            if (data[key]) { html += renderNode(key, data[key], 0); rendered.add(key); }
+            if (data[key] && !HIDDEN_DIRS.has(key)) { html += renderNode(key, data[key], 0); rendered.add(key); }
         });
-        Object.keys(data).forEach(key => { if (!rendered.has(key)) html += renderNode(key, data[key], 0); });
+        Object.keys(data).forEach(key => {
+            if (!rendered.has(key) && !HIDDEN_DIRS.has(key)) html += renderNode(key, data[key], 0);
+        });
         tree.innerHTML = html || '<div style="padding:12px 16px;font-size:0.78rem;color:var(--text-sub);">파일 없음</div>';
     }
 
