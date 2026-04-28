@@ -312,10 +312,10 @@ main { max-width: 860px; margin: 0 auto; padding: 80px 22px 60px; }
     <div class="card">
       <p style="font-size:0.83rem;color:var(--text-sub);margin-bottom:14px;">신청 폼을 내부 폼으로 처리할지, 구글 폼 링크로 연결할지 선택합니다.</p>
       <div class="form-type-toggle">
-        <button class="form-type-btn active" id="ftype-btn-internal" onclick="setFormType('internal')">내부 폼</button>
-        <button class="form-type-btn" id="ftype-btn-google" onclick="setFormType('google')">구글 폼</button>
+        <button class="form-type-btn" id="ftype-btn-internal" onclick="setFormType('internal')">내부 폼</button>
+        <button class="form-type-btn active" id="ftype-btn-google" onclick="setFormType('google')">구글 폼</button>
       </div>
-      <div id="gform-urls-section" style="display:none;">
+      <div id="gform-urls-section">
         <p style="font-size:0.8rem;color:var(--text-sub);margin-bottom:12px;">유형별 구글 폼 URL을 입력하세요. (비워두면 해당 유형은 구글 폼 링크 없음으로 표시)</p>
         <div class="gform-url-grid">
           <div class="gform-url-item">
@@ -402,7 +402,7 @@ let employees = [];
 let settings = {};
 let activeLineType = '비품구매';
 let approvalLines = {};
-let currentFormType = 'internal';
+let currentFormType = 'google';
 
 async function init() {
   // 재직 중 직원 + 팀 목록 로드
