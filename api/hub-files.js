@@ -4,6 +4,16 @@ const GH_BRANCH = 'main';
 
 const TOP_DIRS = ['sales', 'team', 'ontology', 'inbox', 'companies', 'project'];
 
+function insertItem(root, parts, path) {
+    let node = root;
+    for (let i = 0; i < parts.length - 1; i++) {
+        if (!node[parts[i]]) node[parts[i]] = {};
+        node = node[parts[i]];
+    }
+    if (!node._files) node._files = [];
+    node._files.push({ name: parts[parts.length - 1].replace('.md', ''), path });
+}
+
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -24,33 +34,21 @@ module.exports = async (req, res) => {
         if (!ghRes.ok) throw new Error('GitHub API 오류');
         const { tree } = await ghRes.json();
 
-        const result = {};
+        const root = {};
 
         (tree || []).forEach(item => {
             if (item.type !== 'blob') return;
             if (!item.path.startsWith('hub-data/')) return;
             if (!item.path.endsWith('.md')) return;
 
-            const rel = item.path.slice('hub-data/'.length); // e.g. "sales/pipeline/해외영업팀.md"
+            const rel = item.path.slice('hub-data/'.length);
             const parts = rel.split('/');
             if (!TOP_DIRS.includes(parts[0])) return;
 
-            // section 분류 규칙
-            let section;
-            if (parts[0] === 'sales' && parts[1] === 'weekly-reports') {
-                section = 'sales/weekly-reports'; // 날짜 폴더 무시
-            } else if (parts[0] === 'companies' && parts[1] === 'customers' && parts[2]) {
-                section = `companies/customers/${parts[2]}`; // 고객사별 통합
-            } else {
-                section = parts.length > 1 ? parts.slice(0, -1).join('/') : parts[0];
-            }
-            const name = parts[parts.length - 1].replace('.md', '');
-
-            if (!result[section]) result[section] = [];
-            result[section].push({ name, path: rel });
+            insertItem(root, parts, rel);
         });
 
-        res.status(200).json(result);
+        res.status(200).json(root);
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
