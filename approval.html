@@ -845,9 +845,6 @@
                 </div>
             </div>
 
-            <!-- 구글폼 모드 래퍼 -->
-            <div id="gform-wrapper" style="display:none;"></div>
-
             <!-- 식비 폼 -->
             <div class="ap-form" id="form-식비">
                 <div class="form-card">
@@ -1049,25 +1046,11 @@
             document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             document.querySelectorAll('.ap-form').forEach(f => f.classList.remove('visible'));
-            document.getElementById('gform-wrapper').style.display = 'none';
 
             const url = formType === 'google' ? googleFormUrls[type] : null;
             if (url) {
-                const typeLabels = { '비품구매': '비품·소모품 구매', '경조사비': '경조사비', '출장비': '출장비 신청', '식비': '식비 사용내역', '품의서': '품의서' };
-                const wrapper = document.getElementById('gform-wrapper');
-                wrapper.innerHTML = `
-                    <div class="form-card" style="text-align:center;padding:2rem;">
-                        <div style="font-size:1.4rem;margin-bottom:10px;">📋</div>
-                        <div style="font-size:1rem;font-weight:700;margin-bottom:6px;">${typeLabels[type] || type} 신청</div>
-                        <div style="font-size:0.83rem;color:var(--text-sub);margin-bottom:20px;">구글 폼으로 신청합니다</div>
-                        <a href="${url}" target="_blank" rel="noopener"
-                           style="display:inline-block;background:var(--blue);color:#fff;border-radius:10px;padding:11px 32px;font-size:0.9rem;font-weight:700;text-decoration:none;">
-                           구글 폼 열기 →
-                        </a>
-                    </div>`;
-                wrapper.style.display = 'block';
+                window.open(url, '_blank');
             } else {
-                // 구글폼 URL 없으면 내부폼으로 fallback
                 document.getElementById('form-' + type).classList.add('visible');
             }
         }
