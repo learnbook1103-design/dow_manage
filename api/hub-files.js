@@ -45,17 +45,7 @@ module.exports = async (req, res) => {
             const parts = rel.split('/');
             if (!TOP_DIRS.includes(parts[0])) return;
 
-            // weekly-reports: 날짜/팀명 → 팀명/날짜 로 트리 역전
-            if (parts[0] === 'sales' && parts[1] === 'weekly-reports' && parts.length === 4) {
-                const [, , date, teamFile] = parts;
-                const team = teamFile.replace('.md', '');
-                insertItem(root, ['sales', 'weekly-reports', team], rel);
-                // 파일명을 날짜로 표시하도록 덮어씀
-                const wr = root.sales['weekly-reports'][team];
-                wr._files[wr._files.length - 1].name = date;
-            } else {
-                insertItem(root, parts, rel);
-            }
+            insertItem(root, parts, rel);
         });
 
         res.status(200).json(root);
