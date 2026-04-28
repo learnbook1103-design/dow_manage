@@ -421,13 +421,16 @@
 
     const SECTION_LABELS = {
         'sales': '영업',
+        'sales/tasks': '팀별 과제',
         'sales/analysis': '영업 분석',
         'sales/channels': '채널',
         'companies/customers': '고객사',
+        'companies/customers/Tema_Oil_Refinery': 'Tema Oil',
+        'companies/customers/HAM-LET': 'HAM-LET',
+        'companies/customers/HPRAY': 'HPRAY',
         'companies/suppliers': '공급사',
         'team': '팀',
         'ontology': '온톨로지',
-        'sales/pipeline': '팀별 미결업무',
         'operations/발주': '발주',
         'operations/재고': '재고',
         'operations/입출고': '입출고',
@@ -437,7 +440,7 @@
 
     function renderFileTree(data) {
         const tree = document.getElementById('file-tree');
-        const order = ['sales', 'sales/pipeline', 'sales/channels', 'sales/analysis', 'companies/customers', 'companies/suppliers', 'team', 'ontology', 'operations/발주', 'operations/재고', 'operations/입출고', 'project', 'inbox'];
+        const order = ['sales/tasks', 'sales/channels', 'sales/analysis', 'companies/customers', 'companies/customers/Tema_Oil_Refinery', 'companies/customers/HAM-LET', 'companies/customers/HPRAY', 'companies/suppliers', 'team', 'ontology', 'operations/발주', 'operations/재고', 'operations/입출고', 'project', 'inbox'];
         let html = '';
 
         order.forEach(section => {

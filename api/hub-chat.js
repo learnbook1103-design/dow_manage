@@ -158,14 +158,25 @@ async function loadSystemPrompt(userName, userOrg, userRank) {
 - 사용자가 별도로 부서를 지정하지 않으면 항상 현재 사용자의 부서(${userOrg || '미확인'}) 기준으로 답변하세요
 - "전체", "전 부서", "모든 팀" 등의 표현이 있을 때만 전체 데이터를 조회하세요
 
-## 미결업무 파일 규칙
-- 미결업무 조회·수정 시 sales/pipeline.md(전사 구버전)가 아닌 sales/pipeline/팀명.md을 사용하세요
-- 현재 사용자 부서 기준 파일: sales/pipeline/${pipelineOrg || '해당팀'}.md
-- 전사 현황이 필요하면 sales/pipeline/ 폴더 내 전체 팀 파일을 순서대로 읽으세요
+## 데이터 구조 — 필독
+허브의 데이터는 두 가지로 분리되어 있습니다:
+
+**1. 팀별 과제 (sales/tasks/팀명.md)**
+- 팀 내부 프로젝트, 소싱, BD, 운영 업무
+- 컬럼: 유형(소싱·BD·내부) | 업무내용 | 진행율 | 현황 | 다음 액션
+- "미결업무", "우리 팀 현황", "진행 중인 과제" → 이 파일을 사용
+- 현재 사용자 부서 기준 파일: sales/tasks/${pipelineOrg || '해당팀'}.md
 - 파일명 목록: 해외영업팀, 국내외관리영업팀, 2차전지영업팀, 반도체영업팀, 밸브파크팀, 엔지니어링팀, 생산기술팀
 
+**2. 고객사별 영업 딜 (companies/customers/[고객사명]/deals.md)**
+- 특정 고객사와 진행 중인 수주 기회
+- 컬럼: 건명 | 영업단계(리드→수주확정→출고완료) | 다음 액션 | 메모
+- "HPRAY 딜", "Tema Oil 영업 현황" → 이 파일을 사용
+- 영업단계: 리드 | 견적요청 | 견적발송 | 협의중 | 수주확정 | 생산/납기 | 출고완료 | 종료 | 보류
+
 ## 주간 리포트 저장 규칙
-- 주간 리포트 저장 경로: sales/weekly-reports/${week.start}/팀명.md
+- 주간 리포트는 팀 과제(tasks) + 고객사 딜(deals) 양쪽을 참조해 작성하세요
+- 저장 경로: sales/weekly-reports/${week.start}/팀명.md
 - 예: 이번 주 해외영업팀 리포트 → sales/weekly-reports/${week.start}/해외영업팀.md
 - 전사 통합 리포트 요청 시에만 → sales/weekly-reports/${week.start}/전사.md
 
