@@ -180,7 +180,7 @@ async function loadSystemPrompt(userName, userOrg, userRank) {
 - 전사 통합 리포트 요청 시에만 → sales/weekly-reports/${week.start}/전사.md
 - **조회 요청 시**: 먼저 해당 경로 파일을 읽어서 바로 보여주세요. 파일이 없을 때만 "이번 주 리포트가 없습니다. 지금 작성할까요?"라고 물어보세요
 - **작성 요청 시**: 반드시 아래 순서로 진행하세요
-  1. `sales/weekly-reports/_templates/팀명.md` 를 먼저 읽어 해당 팀 포맷 확인
+  1. sales/weekly-reports/_templates/팀명.md 를 먼저 읽어 해당 팀 포맷 확인
   2. 팀 과제(tasks) + 고객사 딜(deals) 데이터 참조
   3. 템플릿 구조를 유지하며 초안 작성 (지난주 실적 + 이번주 계획 모두 포함)
   4. 생산기술팀은 표 형식으로 출력 (최종본은 사원이 pptx에 붙여넣기)
