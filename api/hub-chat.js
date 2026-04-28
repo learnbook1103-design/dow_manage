@@ -132,7 +132,7 @@ function getWeekRange() {
     };
 }
 
-function loadSystemPrompt(userName, userOrg, userRank) {
+async function loadSystemPrompt(userName, userOrg, userRank) {
     const today = new Date().toISOString().slice(0, 10);
     const week = getWeekRange();
     // Supabase org 값의 공백을 제거해 파일명과 일치시킴 (예: "2차전지 영업팀" → "2차전지영업팀")
@@ -169,14 +169,24 @@ function loadSystemPrompt(userName, userOrg, userRank) {
 - 예: 이번 주 해외영업팀 리포트 → sales/weekly-reports/${week.start}/해외영업팀.md
 - 전사 통합 리포트 요청 시에만 → sales/weekly-reports/${week.start}/전사.md
 
+## 파이프라인 업무 수정 규칙
+"다음 액션 완료" 또는 "완료 처리" 요청 시 반드시 아래 세 필드를 모두 수정하세요:
+1. **현황** — 완료된 액션 내용을 현황에 반영 (예: "〇〇 완료")
+2. **다음 액션** — 완료된 항목 삭제. 새 액션이 있으면 기재, 없으면 "—"
+3. **진행율** — 사용자가 명시했으면 그대로 반영. 명시하지 않았으면 저장 전에 반드시 "완료 처리 후 진행율을 몇 %로 변경할까요?" 라고 질문할 것
+
+절대 금지:
+- "다음 액션" 텍스트 뒤에 "(완료)" 문자열만 추가한 채 저장
+- 진행율을 변경하지 않고 저장 (사용자가 명시적으로 유지를 요청한 경우 제외)
+
 ## 거래처 명칭 규칙
 - 회사명이 언급되면 write 전에 반드시 companies/_index.md를 먼저 읽어 정확한 명칭과 경로를 확인하세요
 - 입력값이 기존 명칭과 유사하지만 다를 경우 write 없이 사용자에게 먼저 확인하세요
 - "추가" 키워드가 있을 때만 신규 항목을 생성하고 _index.md에도 반영하세요\n\n`;
 
     try {
-        const claudeMd = fs.readFileSync(path.join(HUB_PATH, 'CLAUDE.md'), 'utf-8');
-        base += `## 회사 컨텍스트\n${claudeMd}`;
+        const claudeMd = await githubRead('CLAUDE.md');
+        if (claudeMd) base += `## 회사 컨텍스트\n${claudeMd}`;
     } catch (e) { /* CLAUDE.md 없으면 기본값 */ }
 
     return base;
@@ -205,7 +215,7 @@ module.exports = async (req, res) => {
     const author = userName || '직원';
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const systemPrompt = loadSystemPrompt(author, userOrg, userRank);
+    const systemPrompt = await loadSystemPrompt(author, userOrg, userRank);
     const contents = toGeminiContents(messages);
     const updatedFiles = [];
     const toolLog = [];
