@@ -431,16 +431,13 @@
         'companies/suppliers': '공급사',
         'team': '팀',
         'ontology': '온톨로지',
-        'operations/발주': '발주',
-        'operations/재고': '재고',
-        'operations/입출고': '입출고',
         'project': '프로젝트',
         'inbox': 'Inbox'
     };
 
     function renderFileTree(data) {
         const tree = document.getElementById('file-tree');
-        const order = ['sales/tasks', 'sales/channels', 'sales/analysis', 'companies/customers', 'companies/customers/Tema_Oil_Refinery', 'companies/customers/HAM-LET', 'companies/customers/HPRAY', 'companies/suppliers', 'team', 'ontology', 'operations/발주', 'operations/재고', 'operations/입출고', 'project', 'inbox'];
+        const order = ['sales/tasks', 'sales/channels', 'sales/analysis', 'companies/customers', 'companies/customers/Tema_Oil_Refinery', 'companies/customers/HAM-LET', 'companies/customers/HPRAY', 'companies/suppliers', 'team', 'ontology', 'project', 'inbox'];
         let html = '';
 
         order.forEach(section => {

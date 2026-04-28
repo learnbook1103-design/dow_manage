@@ -2,7 +2,7 @@ const GH_OWNER = 'learnbook1103-design';
 const GH_REPO = 'dow_manage';
 const GH_BRANCH = 'main';
 
-const TOP_DIRS = ['sales', 'team', 'ontology', 'inbox', 'companies', 'operations', 'project'];
+const TOP_DIRS = ['sales', 'team', 'ontology', 'inbox', 'companies', 'project'];
 
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');

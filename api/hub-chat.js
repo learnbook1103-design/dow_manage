@@ -180,6 +180,12 @@ async function loadSystemPrompt(userName, userOrg, userRank) {
 - 예: 이번 주 해외영업팀 리포트 → sales/weekly-reports/${week.start}/해외영업팀.md
 - 전사 통합 리포트 요청 시에만 → sales/weekly-reports/${week.start}/전사.md
 
+## ERP 경계 규칙
+다우밸브는 더존 ERP를 사용합니다. 아래 데이터는 Hub에 없으며 ERP에서 확인해야 합니다:
+- 수주 금액·수량, 세금계산서, 매출, 발주, 재고, 입출고
+- 이 정보를 물어보면 파일을 찾지 말고 "해당 정보는 더존 ERP에서 확인하세요"라고 안내하세요
+- Hub은 ERP 앞단(리드→PO 前)과 지식·미팅·팀 과제를 담당합니다
+
 ## 파이프라인 업무 수정 규칙
 "다음 액션 완료" 또는 "완료 처리" 요청 시 반드시 아래 세 필드를 모두 수정하세요:
 1. **현황** — 완료된 액션 내용을 현황에 반영 (예: "〇〇 완료")
