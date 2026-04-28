@@ -35,8 +35,15 @@ module.exports = async (req, res) => {
             const parts = rel.split('/');
             if (!TOP_DIRS.includes(parts[0])) return;
 
-            // section = 파일의 부모 디렉토리 경로
-            const section = parts.length > 1 ? parts.slice(0, -1).join('/') : parts[0];
+            // section 분류 규칙
+            let section;
+            if (parts[0] === 'sales' && parts[1] === 'weekly-reports') {
+                section = 'sales/weekly-reports'; // 날짜 폴더 무시
+            } else if (parts[0] === 'companies' && parts[1] === 'customers' && parts[2]) {
+                section = `companies/customers/${parts[2]}`; // 고객사별 통합
+            } else {
+                section = parts.length > 1 ? parts.slice(0, -1).join('/') : parts[0];
+            }
             const name = parts[parts.length - 1].replace('.md', '');
 
             if (!result[section]) result[section] = [];

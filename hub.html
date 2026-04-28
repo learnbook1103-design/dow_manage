@@ -430,14 +430,10 @@
     }
 
     const SECTION_LABELS = {
-        'sales': '영업',
         'sales/tasks': '팀별 과제',
+        'sales/weekly-reports': '주간 리포트',
         'sales/analysis': '영업 분석',
         'sales/channels': '채널',
-        'companies/customers': '고객사',
-        'companies/customers/Tema_Oil_Refinery': 'Tema Oil',
-        'companies/customers/HAM-LET': 'HAM-LET',
-        'companies/customers/HPRAY': 'HPRAY',
         'companies/suppliers': '공급사',
         'team': '팀',
         'ontology': '온톨로지',
@@ -445,22 +441,38 @@
         'inbox': 'Inbox'
     };
 
+    function getSectionLabel(section) {
+        if (SECTION_LABELS[section]) return SECTION_LABELS[section];
+        // 고객사 경로: companies/customers/XXX → XXX 표시
+        const m = section.match(/^companies\/customers\/(.+)$/);
+        if (m) return m[1].replace(/_/g, ' ');
+        return section;
+    }
+
     function renderFileTree(data) {
         const tree = document.getElementById('file-tree');
-        const order = ['sales/tasks', 'sales/channels', 'sales/analysis', 'companies/customers', 'companies/customers/Tema_Oil_Refinery', 'companies/customers/HAM-LET', 'companies/customers/HPRAY', 'companies/suppliers', 'team', 'ontology', 'project', 'inbox'];
+        const order = ['sales/tasks', 'sales/weekly-reports', 'sales/channels', 'sales/analysis', 'companies/suppliers', 'team', 'ontology', 'project', 'inbox'];
         const SECTION_ICONS = {
-            'sales/tasks': '📋', 'sales/channels': '📈', 'sales/analysis': '🔍',
-            'companies/customers': '🏢', 'companies/customers/Tema_Oil_Refinery': '🏢',
-            'companies/customers/HAM-LET': '🏢', 'companies/customers/HPRAY': '🏢',
-            'companies/suppliers': '🏭', 'team': '👥', 'ontology': '📖',
-            'project': '🗂️', 'inbox': '📥'
+            'sales/tasks': '📋', 'sales/weekly-reports': '📅', 'sales/channels': '📈',
+            'sales/analysis': '🔍', 'companies/suppliers': '🏭',
+            'team': '👥', 'ontology': '📖', 'project': '🗂️', 'inbox': '📥'
+        };
+        const getSectionIcon = (section) => {
+            if (SECTION_ICONS[section]) return SECTION_ICONS[section];
+            if (section.startsWith('companies/customers/')) return '🏢';
+            return '📁';
         };
         let html = '';
 
+        // 고객사 섹션을 order 뒤에, 알파벳순으로 정렬해 삽입
+        const customerSections = Object.keys(data)
+            .filter(s => s.startsWith('companies/customers/') && !order.includes(s))
+            .sort();
+
         const buildSection = (section) => {
             if (!data[section]?.length) return;
-            const label = SECTION_LABELS[section] || section;
-            const icon = SECTION_ICONS[section] || '📁';
+            const label = getSectionLabel(section);
+            const icon = getSectionIcon(section);
             html += `<div class="tree-section">
                 <div class="tree-section-toggle" onclick="toggleSection(this)">
                     <span class="toggle-label">${icon} ${label}</span>
@@ -476,7 +488,10 @@
         };
 
         order.forEach(buildSection);
-        Object.keys(data).forEach(section => { if (!order.includes(section)) buildSection(section); });
+        customerSections.forEach(buildSection);
+        Object.keys(data).forEach(section => {
+            if (!order.includes(section) && !section.startsWith('companies/customers/')) buildSection(section);
+        });
 
         tree.innerHTML = html || '<div style="padding:12px 16px;font-size:0.78rem;color:var(--text-sub);">파일 없음</div>';
     }
