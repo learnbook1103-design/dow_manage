@@ -397,6 +397,9 @@
         document.getElementById('nav-username').textContent = `${rank} ${name}`.trim();
     })();
 
+    // ── API 인증 토큰 ─────────────────────────────────────────────────────────
+    const HUB_TOKEN = 'dH9kR2mN2026';
+
     // ── marked 설정 ───────────────────────────────────────────────────────────
     marked.setOptions({ breaks: true, gfm: true });
 
@@ -407,7 +410,7 @@
     // ── 파일 트리 로드 ─────────────────────────────────────────────────────────
     async function loadFileTree() {
         try {
-            const res = await fetch('/api/hub-files');
+            const res = await fetch('/api/hub-files', { headers: { 'X-Hub-Token': HUB_TOKEN } });
             const data = await res.json();
             renderFileTree(data);
         } catch (e) {
@@ -473,7 +476,7 @@
         document.getElementById('modal-content').textContent = '로딩 중...';
         document.getElementById('modal').classList.add('open');
         try {
-            const res = await fetch(`/api/hub-file?path=${encodeURIComponent(filePath)}`);
+            const res = await fetch(`/api/hub-file?path=${encodeURIComponent(filePath)}`, { headers: { 'X-Hub-Token': HUB_TOKEN } });
             const data = await res.json();
             document.getElementById('modal-content').innerHTML = DOMPurify.sanitize(marked.parse(data.content || '*(빈 파일)*'));
         } catch (e) {
@@ -577,7 +580,7 @@
         try {
             const res = await fetch('/api/hub-chat', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
                 body: JSON.stringify({
                     messages,
                     userName: localStorage.getItem('attendance_user_name') || '직원',
@@ -720,7 +723,7 @@
             const userName = localStorage.getItem('attendance_user_name') || '직원';
             const res = await fetch('/api/hub-stt', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
                 body: JSON.stringify({ audioBase64, mimeType: file.type, company, userName })
             });
             const data = await res.json();
@@ -758,7 +761,7 @@
         try {
             const res = await fetch('/api/hub-stt', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
                 body: JSON.stringify({ action: 'save', content, filePath, userName })
             });
             const data = await res.json();

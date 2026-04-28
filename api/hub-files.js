@@ -8,6 +8,9 @@ module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
+    const secret = process.env.HUB_API_SECRET;
+    if (secret && req.headers['x-hub-token'] !== secret) return res.status(401).json({ error: '인증 오류' });
+
     const url = `https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/git/trees/${GH_BRANCH}?recursive=1`;
 
     try {

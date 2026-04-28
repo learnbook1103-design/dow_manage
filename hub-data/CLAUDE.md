@@ -17,7 +17,7 @@
 
 | 데이터 | 스냅샷 기준일 | 원본 위치 |
 |--------|-------------|---------|
-| 팀별 미결업무 (sales/pipeline.md) | 2026-04-07 | Drive `미결업무(팀별작성).xlsx` |
+| 팀별 미결업무 (sales/pipeline/팀명.md) | 2026-04-07 | Drive `미결업무(팀별작성).xlsx` |
 | 공급사 목록 (companies/suppliers/_index.md) | 2026-04-09 | Drive `◎ 가격표 (매입-공급사별)/` |
 | 조직·인사 (team/members.md) | 2026-04-09 | Drive `근태관리_DB` employees 시트 |
 | 클레임 DB (sales/analysis/claims.md) | 2026-04-09 | Drive `클레임 DB` Google Sheet |
@@ -50,8 +50,8 @@ hub-data/
 │       └── _index.md
 │
 ├── sales/                 ← 영업 현황
-│   ├── pipeline.md        전사 미결업무 (스냅샷)
-│   ├── weekly-report.md   주간 리포트
+│   ├── pipeline/          팀별 미결업무 (팀명.md × 7)
+│   ├── weekly-reports/    주간 리포트 (YYYY-MM-DD/팀명.md)
 │   ├── channels/          채널별 현황
 │   └── analysis/          클레임 등 분석
 │

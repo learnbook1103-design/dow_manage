@@ -135,6 +135,8 @@ function getWeekRange() {
 function loadSystemPrompt(userName, userOrg, userRank) {
     const today = new Date().toISOString().slice(0, 10);
     const week = getWeekRange();
+    // Supabase org 값의 공백을 제거해 파일명과 일치시킴 (예: "2차전지 영업팀" → "2차전지영업팀")
+    const pipelineOrg = (userOrg || '').replace(/\s+/g, '');
     let base = `당신은 업무 AI 어시스턴트입니다.
 자연어 요청을 받아 허브 파일을 읽고 쓰며 업무를 처리합니다.
 
@@ -158,7 +160,7 @@ function loadSystemPrompt(userName, userOrg, userRank) {
 
 ## 미결업무 파일 규칙
 - 미결업무 조회·수정 시 sales/pipeline.md(전사 구버전)가 아닌 sales/pipeline/팀명.md을 사용하세요
-- 현재 사용자 부서 기준 파일: sales/pipeline/${userOrg || '해당팀'}.md
+- 현재 사용자 부서 기준 파일: sales/pipeline/${pipelineOrg || '해당팀'}.md
 - 전사 현황이 필요하면 sales/pipeline/ 폴더 내 전체 팀 파일을 순서대로 읽으세요
 - 파일명 목록: 해외영업팀, 국내외관리영업팀, 2차전지영업팀, 반도체영업팀, 밸브파크팀, 엔지니어링팀, 생산기술팀
 
@@ -194,6 +196,9 @@ module.exports = async (req, res) => {
 
     if (req.method === 'OPTIONS') return res.status(200).end();
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+    const secret = process.env.HUB_API_SECRET;
+    if (secret && req.headers['x-hub-token'] !== secret) return res.status(401).json({ error: '인증 오류' });
 
     const { messages, userName, userOrg, userRank } = req.body;
     if (!messages?.length) return res.status(400).json({ error: 'messages 필요' });

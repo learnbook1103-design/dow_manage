@@ -5,6 +5,9 @@ module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
+    const secret = process.env.HUB_API_SECRET;
+    if (secret && req.headers['x-hub-token'] !== secret) return res.status(401).json({ error: '인증 오류' });
+
     const relPath = req.query.path || '';
     if (!relPath || relPath.includes('..')) return res.status(400).json({ error: '잘못된 경로' });
 
