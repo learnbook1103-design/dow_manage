@@ -140,6 +140,16 @@
         .bubble hr { border: none; border-top: 1px solid var(--border); margin: 0.8rem 0; }
         .bubble blockquote { border-left: 3px solid var(--border); padding-left: 10px; color: var(--text-sub); margin: 0.4rem 0; }
 
+        /* Bubble action buttons (copy / download) */
+        .bubble-actions { display: flex; gap: 5px; margin-top: 7px; }
+        .bubble-action {
+            background: none; border: 1px solid var(--border); border-radius: 6px;
+            font-size: 0.7rem; color: var(--text-sub); padding: 3px 9px; cursor: pointer;
+            display: flex; align-items: center; gap: 3px; transition: background 0.15s;
+        }
+        .bubble-action:hover { background: var(--bg); }
+        .bubble-action.copied { color: #34c759; border-color: #34c759; }
+
         /* Tool log chips */
         .tool-log { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
         .tool-chip {
@@ -657,6 +667,49 @@
         }
 
         el.innerHTML = html;
+
+        // 복사 / 다운로드 버튼 (길이 있는 응답에만)
+        if (text && text.length > 80) {
+            const actionsEl = document.createElement('div');
+            actionsEl.className = 'bubble-actions';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'bubble-action';
+            copyBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사';
+            copyBtn.onclick = async () => {
+                try {
+                    await navigator.clipboard.writeText(text);
+                    copyBtn.classList.add('copied');
+                    copyBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg> 복사됨';
+                    setTimeout(() => {
+                        copyBtn.classList.remove('copied');
+                        copyBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사';
+                    }, 2000);
+                } catch (e) { alert('복사 실패: ' + e.message); }
+            };
+            actionsEl.appendChild(copyBtn);
+
+            // 마크다운 헤더가 있으면 다운로드 버튼도 추가
+            const heading = text.match(/^#{1,3} (.+)/m)?.[1]?.trim();
+            if (heading) {
+                const dlBtn = document.createElement('button');
+                dlBtn.className = 'bubble-action';
+                dlBtn.innerHTML = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 다운로드';
+                dlBtn.onclick = () => {
+                    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = heading.replace(/[/\\:*?"<>|]/g, '-') + '.md';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+                actionsEl.appendChild(dlBtn);
+            }
+
+            el.appendChild(actionsEl);
+        }
+
         container.appendChild(el);
         scrollBottom();
 
