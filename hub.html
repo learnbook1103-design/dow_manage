@@ -212,6 +212,15 @@
         }
         .modal-title { font-size: 0.85rem; font-weight: 500; color: var(--text-sub); }
         .modal-close { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-sub); padding: 0 4px; }
+        .modal-action-btn {
+            background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+            font-size: 0.75rem; font-weight: 500; color: var(--text-sub);
+            padding: 4px 10px; cursor: pointer; display: flex; align-items: center; gap: 4px;
+            transition: background 0.15s;
+        }
+        .modal-action-btn:hover { background: var(--border); }
+        .modal-action-btn.copied { color: #34c759; border-color: #34c759; }
+        .modal-head-actions { display: flex; align-items: center; gap: 8px; }
         .modal-body { flex: 1; overflow-y: auto; padding: 28px 32px; }
         .modal-body pre { font-family: 'Noto Sans KR', sans-serif; font-size: 0.82rem; line-height: 1.7; white-space: pre-wrap; }
         /* 파일 뷰어 마크다운 테이블 */
@@ -431,7 +440,17 @@
     <div class="modal">
         <div class="modal-head">
             <span class="modal-title" id="modal-title">—</span>
-            <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
+            <div class="modal-head-actions">
+                <button class="modal-action-btn" id="modal-copy-btn" onclick="copyFileContent()" title="마크다운 원문 복사">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    복사
+                </button>
+                <button class="modal-action-btn" id="modal-download-btn" onclick="downloadFileContent()" title=".md 파일로 저장">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    다운로드
+                </button>
+                <button class="modal-close" onclick="document.getElementById('modal').classList.remove('open')">✕</button>
+            </div>
         </div>
         <div class="modal-body">
             <div id="modal-content" style="font-size:0.85rem;line-height:1.7;"></div>
@@ -537,17 +556,53 @@
     }
 
     // ── 파일 뷰어 ──────────────────────────────────────────────────────────────
+    let currentFileRaw = '';
+    let currentFileName = '';
+
     async function openFile(filePath, name) {
+        currentFileRaw = '';
+        currentFileName = name || filePath.split('/').pop();
         document.getElementById('modal-title').textContent = filePath;
         document.getElementById('modal-content').textContent = '로딩 중...';
+        document.getElementById('modal-copy-btn').className = 'modal-action-btn';
+        document.getElementById('modal-copy-btn').textContent = '';
+        document.getElementById('modal-copy-btn').innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사';
         document.getElementById('modal').classList.add('open');
         try {
             const res = await fetch(`/api/hub-file?path=${encodeURIComponent(filePath)}`, { headers: { 'X-Hub-Token': HUB_TOKEN } });
             const data = await res.json();
-            document.getElementById('modal-content').innerHTML = DOMPurify.sanitize(marked.parse(data.content || '*(빈 파일)*'));
+            currentFileRaw = data.content || '';
+            document.getElementById('modal-content').innerHTML = DOMPurify.sanitize(marked.parse(currentFileRaw || '*(빈 파일)*'));
         } catch (e) {
             document.getElementById('modal-content').textContent = '파일 로드 실패: ' + e.message;
         }
+    }
+
+    async function copyFileContent() {
+        if (!currentFileRaw) return;
+        try {
+            await navigator.clipboard.writeText(currentFileRaw);
+            const btn = document.getElementById('modal-copy-btn');
+            btn.classList.add('copied');
+            btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="20 6 9 17 4 12"/></svg> 복사됨';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> 복사';
+            }, 2000);
+        } catch (e) {
+            alert('클립보드 복사 실패: ' + e.message);
+        }
+    }
+
+    function downloadFileContent() {
+        if (!currentFileRaw) return;
+        const blob = new Blob([currentFileRaw], { type: 'text/markdown;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = currentFileName.endsWith('.md') ? currentFileName : currentFileName + '.md';
+        a.click();
+        URL.revokeObjectURL(url);
     }
 
     function closeModal(e) {
