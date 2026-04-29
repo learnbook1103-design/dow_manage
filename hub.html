@@ -108,7 +108,7 @@
         /* Message bubbles */
         .msg { display: flex; flex-direction: column; max-width: 78%; }
         .msg.user { align-self: flex-end; align-items: flex-end; }
-        .msg.assistant { align-self: flex-start; align-items: flex-start; }
+        .msg.assistant { align-self: flex-start; align-items: flex-start; max-width: 94%; }
         .msg.system-msg { align-self: center; align-items: center; max-width: 90%; }
 
         .bubble {
@@ -119,26 +119,28 @@
         .msg.assistant .bubble {
             background: var(--surface); border: 1px solid var(--border);
             border-bottom-left-radius: 4px; color: var(--text);
+            padding: 18px 22px; line-height: 1.8; font-size: 0.87rem;
         }
         .msg.system-msg .bubble { background: #f0fdf4; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.8rem; text-align: center; }
 
         /* Markdown styles inside bubble */
-        .bubble h1, .bubble h2, .bubble h3 { font-weight: 700; margin: 0.8rem 0 0.4rem; font-size: 1em; }
+        .bubble h1, .bubble h2, .bubble h3 { font-weight: 700; margin: 1.1rem 0 0.5rem; font-size: 1em; }
+        .bubble h1:first-child, .bubble h2:first-child, .bubble h3:first-child { margin-top: 0; }
         .bubble h2 { font-size: 0.95em; }
         .bubble h3 { font-size: 0.9em; color: var(--text-sub); }
-        .bubble p { margin-bottom: 0.5rem; }
+        .bubble p { margin-bottom: 0.6rem; }
         .bubble p:last-child { margin-bottom: 0; }
-        .bubble ul, .bubble ol { padding-left: 1.2rem; margin-bottom: 0.5rem; }
-        .bubble li { margin-bottom: 0.2rem; }
-        .bubble table { border-collapse: collapse; width: 100%; font-size: 0.82em; margin: 0.6rem 0; }
-        .bubble th { background: rgba(0,0,0,0.04); font-weight: 600; padding: 6px 10px; border: 1px solid var(--border); text-align: left; }
-        .bubble td { padding: 5px 10px; border: 1px solid var(--border); }
+        .bubble ul, .bubble ol { padding-left: 1.4rem; margin-bottom: 0.6rem; }
+        .bubble li { margin-bottom: 0.35rem; }
+        .bubble table { border-collapse: collapse; width: 100%; font-size: 0.83em; margin: 0.8rem 0; }
+        .bubble th { background: rgba(0,0,0,0.04); font-weight: 600; padding: 7px 12px; border: 1px solid var(--border); text-align: left; }
+        .bubble td { padding: 6px 12px; border: 1px solid var(--border); }
         .bubble code { background: rgba(0,0,0,0.06); padding: 1px 5px; border-radius: 4px; font-size: 0.88em; font-family: monospace; }
         .bubble pre { background: #1d1d1f; color: #a1e3a1; padding: 10px 12px; border-radius: 8px; overflow-x: auto; margin: 0.5rem 0; }
         .bubble pre code { background: none; padding: 0; color: inherit; }
         .bubble strong { font-weight: 700; }
-        .bubble hr { border: none; border-top: 1px solid var(--border); margin: 0.8rem 0; }
-        .bubble blockquote { border-left: 3px solid var(--border); padding-left: 10px; color: var(--text-sub); margin: 0.4rem 0; }
+        .bubble hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+        .bubble blockquote { border-left: 3px solid var(--border); padding-left: 12px; color: var(--text-sub); margin: 0.5rem 0; }
 
         /* Bubble action buttons (copy / download) */
         .bubble-actions { display: flex; gap: 6px; margin-top: 10px; }
