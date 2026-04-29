@@ -487,7 +487,8 @@
     // ── 파일 트리 로드 ─────────────────────────────────────────────────────────
     async function loadFileTree() {
         try {
-            const res = await fetch('/api/hub-files', { headers: { 'X-Hub-Token': HUB_TOKEN } });
+            const userName = localStorage.getItem('attendance_user_name') || '';
+            const res = await fetch(`/api/hub-files?user=${encodeURIComponent(userName)}`, { headers: { 'X-Hub-Token': HUB_TOKEN } });
             const data = await res.json();
             renderFileTree(data);
         } catch (e) {
