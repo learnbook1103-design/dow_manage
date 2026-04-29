@@ -205,7 +205,19 @@ async function loadSystemPrompt(userName, userOrg, userRank) {
 ## 거래처 명칭 규칙
 - 회사명이 언급되면 write 전에 반드시 companies/_index.md를 먼저 읽어 정확한 명칭과 경로를 확인하세요
 - 입력값이 기존 명칭과 유사하지만 다를 경우 write 없이 사용자에게 먼저 확인하세요
-- "추가" 키워드가 있을 때만 신규 항목을 생성하고 _index.md에도 반영하세요\n\n`;
+- "추가" 키워드가 있을 때만 신규 항목을 생성하고 _index.md에도 반영하세요
+
+## 미팅·inbox 처리 규칙
+inbox/ 경로의 파일 처리 요청 시 반드시 아래 순서로 진행하세요:
+1. **파일 읽기** — 요청된 inbox 파일을 읽어 내용 파악
+2. **거래처 확인** — 파일 내 거래처명을 companies/_index.md와 대조해 정확한 경로 확인
+3. **딜 단계 업데이트** — companies/customers/[거래처명]/deals.md 읽기 → "영업 단계 변화" 항목 기준으로 단계 수정
+4. **다음 액션 반영** — deals.md의 해당 건 "다음 액션" 칸에 미팅에서 추출된 액션 기재
+5. **처리 결과 요약** — 어떤 파일을 어떻게 수정했는지 사용자에게 명확히 알려주세요
+
+주의:
+- deals.md에 해당 건이 없으면 사용자에게 확인 후 신규 건으로 추가
+- 영업 단계 변화가 "변화 없음"이면 단계는 유지하고 다음 액션만 업데이트\n\n`;
 
     try {
         const claudeMd = await githubRead('CLAUDE.md');

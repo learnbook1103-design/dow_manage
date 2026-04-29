@@ -309,7 +309,7 @@
             <div class="quick-category">
                 <div class="quick-category-label">기록 / 정리</div>
                 <div class="quick-btns-row">
-                    <button class="quick-btn" onclick="sendQuick('inbox 처리해줘')">📥 inbox 처리</button>
+                    <button class="quick-btn" onclick="openInboxModal()">📥 inbox 입력</button>
                     <button class="quick-btn" onclick="sendQuick('채널별 영업 현황 알려줘')">📈 채널 현황</button>
                 </div>
             </div>
@@ -377,6 +377,39 @@
                     <button class="meeting-submit" style="background:var(--text-sub);flex:1;" onclick="backToStep1()">← 다시</button>
                     <button class="meeting-submit" style="flex:2;" id="meeting-save-btn" onclick="saveMeeting()">저장</button>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- inbox 입력 모달 -->
+<div class="modal-overlay" id="inbox-modal" onclick="closeInboxModal(event)">
+    <div class="modal" style="width:min(600px,94vw);">
+        <div class="modal-head">
+            <span class="modal-title">📥 inbox 입력</span>
+            <button class="modal-close" onclick="closeInboxModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="meeting-form">
+                <div style="display:flex;gap:8px;">
+                    <div style="flex:1;">
+                        <label>출처</label>
+                        <select id="inbox-source" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:0.82rem;font-family:inherit;outline:none;background:var(--bg);">
+                            <option value="카톡">카톡</option>
+                            <option value="메일">메일</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div style="flex:2;">
+                        <label>거래처명 <span style="font-size:0.72rem;color:var(--text-sub);font-weight:400;">(선택)</span></label>
+                        <input type="text" id="inbox-company" placeholder="예: HPRAY, Tema Oil Refinery" />
+                    </div>
+                </div>
+                <div>
+                    <label>내용 붙여넣기</label>
+                    <textarea id="inbox-content" placeholder="카톡 내용, 메일 본문 등을 붙여넣으세요..." style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                </div>
+                <button class="meeting-submit" id="inbox-save-btn" onclick="saveInbox()">저장</button>
             </div>
         </div>
     </div>
@@ -660,6 +693,78 @@
         }
     });
 
+    // ── inbox 입력 모달 ───────────────────────────────────────────────────────
+    function openInboxModal() {
+        document.getElementById('inbox-source').value = '카톡';
+        document.getElementById('inbox-company').value = '';
+        document.getElementById('inbox-content').value = '';
+        document.getElementById('inbox-modal').classList.add('open');
+    }
+
+    function closeInboxModal(e) {
+        if (e && e.target !== document.getElementById('inbox-modal')) return;
+        document.getElementById('inbox-modal').classList.remove('open');
+    }
+
+    async function saveInbox() {
+        const source = document.getElementById('inbox-source').value;
+        const company = document.getElementById('inbox-company').value.trim();
+        const content = document.getElementById('inbox-content').value.trim();
+        if (!content) { alert('내용을 입력해주세요.'); return; }
+
+        const today = new Date().toISOString().slice(0, 10);
+        const author = localStorage.getItem('attendance_user_name') || '직원';
+        const slug = company || source;
+        const filePath = `inbox/${today}-${slug}.md`;
+        const formatted = `# inbox — ${source}${company ? ' / ' + company : ''}\n날짜: ${today}\n작성자: ${author}\n\n${content}`;
+
+        const btn = document.getElementById('inbox-save-btn');
+        btn.disabled = true;
+        btn.textContent = '저장 중...';
+
+        try {
+            const userName = localStorage.getItem('attendance_user_name') || '직원';
+            const res = await fetch('/api/hub-file', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
+                body: JSON.stringify({ action: 'save', content: formatted, filePath, userName })
+            });
+            const data = await res.json();
+            if (data.error) { alert('저장 오류: ' + data.error); return; }
+            document.getElementById('inbox-modal').classList.remove('open');
+
+            // 저장 즉시 AI 처리
+            const processMsg = `${filePath} 처리해줘`;
+            appendUserMsg(processMsg);
+            messages.push({ role: 'user', content: processMsg });
+            const loadingEl = appendLoading();
+            isLoading = true;
+            document.getElementById('send-btn').disabled = true;
+
+            const chatRes = await fetch('/api/hub-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
+                body: JSON.stringify({
+                    messages,
+                    userName: localStorage.getItem('attendance_user_name') || '직원',
+                    userOrg: localStorage.getItem('attendance_user_org') || '',
+                    userRank: localStorage.getItem('attendance_user_rank') || ''
+                })
+            });
+            loadingEl.remove();
+            const chatData = await chatRes.json();
+            appendAssistantMsg(chatData.content, chatData.toolLog, chatData.updatedFiles);
+            messages.push({ role: 'assistant', content: chatData.content });
+        } catch (err) {
+            alert('오류: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '저장';
+            isLoading = false;
+            document.getElementById('send-btn').disabled = false;
+        }
+    }
+
     // ── 미팅 기록 모달 ────────────────────────────────────────────────────────
     let meetingUserMsg = '';
     let meetingActiveTab = 'audio';
@@ -779,8 +884,6 @@
         btn.textContent = '저장 중...';
 
         document.getElementById('meeting-modal').classList.remove('open');
-        appendUserMsg(meetingUserMsg);
-        const loadingEl = appendLoading();
 
         try {
             const res = await fetch('/api/hub-stt', {
@@ -789,19 +892,37 @@
                 body: JSON.stringify({ action: 'save', content, filePath, userName })
             });
             const data = await res.json();
+            if (data.error) { appendAssistantMsg(`저장 오류: ${data.error}`, [], []); return; }
 
+            // 저장 즉시 AI 처리
+            const processMsg = `${filePath} 처리해줘`;
+            appendUserMsg(processMsg);
+            messages.push({ role: 'user', content: processMsg });
+            const loadingEl = appendLoading();
+            isLoading = true;
+            document.getElementById('send-btn').disabled = true;
+
+            const chatRes = await fetch('/api/hub-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
+                body: JSON.stringify({
+                    messages,
+                    userName: localStorage.getItem('attendance_user_name') || '직원',
+                    userOrg: localStorage.getItem('attendance_user_org') || '',
+                    userRank: localStorage.getItem('attendance_user_rank') || ''
+                })
+            });
             loadingEl.remove();
-            if (data.error) {
-                appendAssistantMsg(`저장 오류: ${data.error}`, [], []);
-            } else {
-                appendAssistantMsg(content, [{ name: 'write_file', path: filePath }], [filePath]);
-            }
+            const chatData = await chatRes.json();
+            appendAssistantMsg(chatData.content, chatData.toolLog, chatData.updatedFiles);
+            messages.push({ role: 'assistant', content: chatData.content });
         } catch (err) {
-            loadingEl.remove();
             appendAssistantMsg(`오류: ${err.message}`, [], []);
         } finally {
             btn.disabled = false;
             btn.textContent = '저장';
+            isLoading = false;
+            document.getElementById('send-btn').disabled = false;
         }
     }
 
