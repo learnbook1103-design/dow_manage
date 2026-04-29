@@ -406,18 +406,20 @@
                 </div>
                 <button class="meeting-submit" onclick="submitInboxStep1()">다음 →</button>
             </div>
-            <!-- Step 2: 확인 -->
+            <!-- Step 2: AI 분석 결과 확인 -->
             <div id="inbox-step2" style="display:none;" class="meeting-form">
-                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;font-size:0.8rem;color:#065f46;line-height:1.6;">
-                    AI가 거래처와 딜을 자동으로 파악해서 처리합니다. 내용을 확인 후 저장하세요.
+                <div id="inbox-analysis-loading" style="display:none;text-align:center;padding:32px;color:var(--text-sub);font-size:0.85rem;">
+                    <div style="font-size:1.4rem;margin-bottom:8px;">🤖</div>
+                    AI가 내용을 분석 중입니다...
                 </div>
-                <div>
-                    <label>내용 확인 및 수정</label>
-                    <textarea id="inbox-content-edit" style="width:100%;min-height:240px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                <div id="inbox-analysis-result" style="display:none;">
+                    <div style="font-size:0.75rem;color:var(--text-sub);margin-bottom:6px;font-weight:600;letter-spacing:0.05em;">AI 분석 결과 — 확인 후 실행하세요</div>
+                    <div id="inbox-analysis-text" style="background:#f8f9fa;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:0.82rem;line-height:1.75;white-space:pre-wrap;max-height:280px;overflow-y:auto;"></div>
                 </div>
+                <div id="inbox-analysis-error" style="display:none;background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:12px;font-size:0.82rem;color:#be123c;"></div>
                 <div style="display:flex;gap:8px;">
                     <button class="meeting-submit" style="background:var(--text-sub);flex:1;" onclick="backToInboxStep1()">← 다시</button>
-                    <button class="meeting-submit" style="flex:2;" id="inbox-save-btn" onclick="saveInbox()">저장 후 AI 처리</button>
+                    <button class="meeting-submit" style="flex:2;" id="inbox-save-btn" onclick="saveInbox()" disabled>저장 후 실행</button>
                 </div>
             </div>
         </div>
@@ -703,12 +705,17 @@
     });
 
     // ── inbox 입력 모달 ───────────────────────────────────────────────────────
+    let inboxRawContent = '';
+
     function openInboxModal() {
         document.getElementById('inbox-source').value = '카톡';
         document.getElementById('inbox-content').value = '';
-        document.getElementById('inbox-content-edit').value = '';
+        inboxRawContent = '';
         document.getElementById('inbox-step1').style.display = 'flex';
         document.getElementById('inbox-step2').style.display = 'none';
+        document.getElementById('inbox-analysis-loading').style.display = 'none';
+        document.getElementById('inbox-analysis-result').style.display = 'none';
+        document.getElementById('inbox-analysis-error').style.display = 'none';
         document.getElementById('inbox-modal-title').textContent = '📥 inbox 입력';
         document.getElementById('inbox-modal').classList.add('open');
     }
@@ -718,13 +725,53 @@
         document.getElementById('inbox-modal').classList.remove('open');
     }
 
-    function submitInboxStep1() {
+    async function submitInboxStep1() {
         const content = document.getElementById('inbox-content').value.trim();
         if (!content) { alert('내용을 입력해주세요.'); return; }
-        document.getElementById('inbox-content-edit').value = content;
+        inboxRawContent = content;
+
         document.getElementById('inbox-step1').style.display = 'none';
         document.getElementById('inbox-step2').style.display = 'flex';
-        document.getElementById('inbox-modal-title').textContent = '📥 내용 확인';
+        document.getElementById('inbox-modal-title').textContent = '📥 AI 분석 중...';
+        document.getElementById('inbox-analysis-loading').style.display = 'block';
+        document.getElementById('inbox-analysis-result').style.display = 'none';
+        document.getElementById('inbox-analysis-error').style.display = 'none';
+        document.getElementById('inbox-save-btn').disabled = true;
+
+        try {
+            const analyzeMsg = `다음 inbox 내용을 분석해줘. 파일 수정은 하지 말고, 아래 항목만 파악해서 알려줘:
+1. 거래처명 (companies/_index.md 대조)
+2. 관련 딜 건명 (deals.md 기준)
+3. 영업 단계 변화 여부
+4. 다음 액션
+
+--- inbox 내용 ---
+${inboxRawContent}`;
+
+            const res = await fetch('/api/hub-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
+                body: JSON.stringify({
+                    messages: [{ role: 'user', content: analyzeMsg }],
+                    userName: localStorage.getItem('attendance_user_name') || '직원',
+                    userOrg: localStorage.getItem('attendance_user_org') || '',
+                    userRank: localStorage.getItem('attendance_user_rank') || ''
+                })
+            });
+            const data = await res.json();
+            if (data.error) throw new Error(data.error);
+
+            document.getElementById('inbox-analysis-text').textContent = data.content;
+            document.getElementById('inbox-analysis-result').style.display = 'block';
+            document.getElementById('inbox-save-btn').disabled = false;
+            document.getElementById('inbox-modal-title').textContent = '📥 AI 분석 결과';
+        } catch (err) {
+            document.getElementById('inbox-analysis-error').textContent = '분석 오류: ' + err.message;
+            document.getElementById('inbox-analysis-error').style.display = 'block';
+            document.getElementById('inbox-modal-title').textContent = '📥 분석 실패';
+        } finally {
+            document.getElementById('inbox-analysis-loading').style.display = 'none';
+        }
     }
 
     function backToInboxStep1() {
@@ -735,7 +782,7 @@
 
     async function saveInbox() {
         const source = document.getElementById('inbox-source').value;
-        const content = document.getElementById('inbox-content-edit').value.trim();
+        const content = inboxRawContent;
         if (!content) { alert('내용을 입력해주세요.'); return; }
 
         const today = new Date().toISOString().slice(0, 10);
