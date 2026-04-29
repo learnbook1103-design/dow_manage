@@ -334,7 +334,7 @@
         </div>
 
         <div id="quick-toggle-tab" onclick="toggleQuickPrompts()">
-            <span id="quick-toggle-arrow">∧</span>
+            <span id="quick-toggle-arrow">∨</span>
             <span id="quick-toggle-label">빠른 메뉴</span>
         </div>
 
@@ -723,13 +723,13 @@
     function toggleQuickPrompts() {
         const el = document.getElementById('quick-prompts');
         const hidden = el.classList.toggle('hidden');
-        document.getElementById('quick-toggle-arrow').textContent = hidden ? '∨' : '∧';
+        document.getElementById('quick-toggle-arrow').textContent = hidden ? '∧' : '∨';
         document.getElementById('quick-toggle-label').textContent = hidden ? '빠른 메뉴 열기' : '빠른 메뉴';
     }
 
     function hideQuickPrompts() {
         document.getElementById('quick-prompts').classList.add('hidden');
-        document.getElementById('quick-toggle-arrow').textContent = '∨';
+        document.getElementById('quick-toggle-arrow').textContent = '∧';
         document.getElementById('quick-toggle-label').textContent = '빠른 메뉴 열기';
     }
 
