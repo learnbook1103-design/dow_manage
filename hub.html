@@ -103,13 +103,15 @@
             max-height: 0; padding-top: 0; padding-bottom: 0;
             border-top-color: transparent; opacity: 0; pointer-events: none;
         }
-        #quick-toggle-btn {
-            background: none; border: 1px solid var(--border); border-radius: 8px;
-            padding: 4px 10px; font-size: 0.72rem; color: var(--text-sub);
-            cursor: pointer; flex-shrink: 0; transition: background 0.15s;
-            display: flex; align-items: center; gap: 4px;
+        #quick-toggle-tab {
+            display: flex; align-items: center; justify-content: center;
+            gap: 5px; padding: 5px 0; border-top: 1px solid var(--border);
+            background: var(--surface); flex-shrink: 0; cursor: pointer;
+            font-size: 0.7rem; color: var(--text-sub); font-weight: 500;
+            letter-spacing: 0.03em; user-select: none;
+            transition: background 0.15s;
         }
-        #quick-toggle-btn:hover { background: var(--bg); }
+        #quick-toggle-tab:hover { background: var(--bg); }
         .quick-category { display: flex; flex-direction: column; gap: 6px; }
         .quick-category-label {
             font-size: 0.66rem; font-weight: 700; color: var(--text-sub);
@@ -331,6 +333,11 @@
             </div>
         </div>
 
+        <div id="quick-toggle-tab" onclick="toggleQuickPrompts()">
+            <span id="quick-toggle-arrow">∧</span>
+            <span id="quick-toggle-label">빠른 메뉴</span>
+        </div>
+
         <div class="quick-prompts" id="quick-prompts">
             <div class="quick-category">
                 <div class="quick-category-label">업무 현황</div>
@@ -357,9 +364,6 @@
         </div>
 
         <div class="input-area">
-            <button id="quick-toggle-btn" onclick="toggleQuickPrompts()" title="빠른 메뉴">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-            </button>
             <div style="flex:1;">
                 <textarea id="chat-input" placeholder="예: &quot;E-002 선적 완료됐어&quot; / &quot;이번 주 파이프라인 현황 알려줘&quot;" rows="1"></textarea>
             </div>
@@ -717,11 +721,16 @@
 
     // ── 퀵 버튼 토글 ──────────────────────────────────────────────────────────
     function toggleQuickPrompts() {
-        document.getElementById('quick-prompts').classList.toggle('hidden');
+        const el = document.getElementById('quick-prompts');
+        const hidden = el.classList.toggle('hidden');
+        document.getElementById('quick-toggle-arrow').textContent = hidden ? '∨' : '∧';
+        document.getElementById('quick-toggle-label').textContent = hidden ? '빠른 메뉴 열기' : '빠른 메뉴';
     }
 
     function hideQuickPrompts() {
         document.getElementById('quick-prompts').classList.add('hidden');
+        document.getElementById('quick-toggle-arrow').textContent = '∨';
+        document.getElementById('quick-toggle-label').textContent = '빠른 메뉴 열기';
     }
 
     // ── 메시지 전송 ────────────────────────────────────────────────────────────
