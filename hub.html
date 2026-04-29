@@ -372,19 +372,29 @@
                     <button class="meeting-submit" onclick="submitDirectInput()">다음 →</button>
                 </div>
             </div>
-            <!-- Step 2: 검토 및 수정 -->
+            <!-- Step 2: AI 분석 + 검토 -->
             <div id="meeting-step2" style="display:none;" class="meeting-form">
+                <div>
+                    <label>미팅 내용 확인 및 수정</label>
+                    <textarea id="meeting-content-edit" style="width:100%;min-height:160px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                </div>
                 <div>
                     <label>저장 경로</label>
                     <input type="text" id="meeting-filepath" />
                 </div>
-                <div>
-                    <label>내용 확인 및 수정</label>
-                    <textarea id="meeting-content-edit" style="width:100%;min-height:280px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                <!-- AI 분석 영역 -->
+                <div id="meeting-analysis-loading" style="display:none;text-align:center;padding:20px;color:var(--text-sub);font-size:0.85rem;">
+                    <div style="font-size:1.2rem;margin-bottom:6px;">🤖</div>
+                    <div>미팅 내용 분석 중...</div>
                 </div>
+                <div id="meeting-analysis-result" style="display:none;background:var(--bg);border-radius:12px;padding:16px;">
+                    <div style="font-size:0.75rem;font-weight:600;color:var(--blue);margin-bottom:8px;">AI 분석 결과</div>
+                    <div id="meeting-analysis-text" style="font-size:0.82rem;line-height:1.7;white-space:pre-wrap;color:var(--text);"></div>
+                </div>
+                <div id="meeting-analysis-error" style="display:none;color:#ff3b30;font-size:0.82rem;padding:10px;background:#fff5f5;border-radius:10px;"></div>
                 <div style="display:flex;gap:8px;">
                     <button class="meeting-submit" style="background:var(--text-sub);flex:1;" onclick="backToStep1()">← 다시</button>
-                    <button class="meeting-submit" style="flex:2;" id="meeting-save-btn" onclick="saveMeeting()">저장</button>
+                    <button class="meeting-submit" style="flex:2;" id="meeting-save-btn" onclick="saveMeeting()" disabled>저장</button>
                 </div>
             </div>
         </div>
@@ -901,6 +911,13 @@ ${inboxRawContent}`;
     let meetingUserMsg = '';
     let meetingActiveTab = 'audio';
 
+    function resetMeetingStep2() {
+        document.getElementById('meeting-analysis-loading').style.display = 'none';
+        document.getElementById('meeting-analysis-result').style.display = 'none';
+        document.getElementById('meeting-analysis-error').style.display = 'none';
+        document.getElementById('meeting-save-btn').disabled = true;
+    }
+
     function openMeetingModal() {
         document.getElementById('meeting-company').value = '';
         document.getElementById('meeting-audio').value = '';
@@ -927,6 +944,58 @@ ${inboxRawContent}`;
         document.getElementById('tab-text-btn').classList.toggle('active', tab === 'text');
     }
 
+    async function showMeetingStep2(content, filePath) {
+        document.getElementById('meeting-content-edit').value = content;
+        document.getElementById('meeting-filepath').value = filePath;
+        document.getElementById('meeting-step1').style.display = 'none';
+        document.getElementById('meeting-step2').style.display = 'flex';
+        document.getElementById('meeting-modal-title').textContent = '📝 AI 분석 중...';
+        resetMeetingStep2();
+        document.getElementById('meeting-analysis-loading').style.display = 'block';
+
+        const analyzeMsg = `다음 미팅 기록을 분석해줘. 파일 수정은 절대 하지 말고, 분석 결과만 아래 형식으로 알려줘:
+**거래처**: (companies/_index.md 대조해서 정확한 명칭)
+**관련 딜**: (deals.md에서 해당 건명 확인)
+**현재 단계**: (deals.md 기준 현재 영업 단계)
+**변경 제안**: (전진이면 → 새 단계, 동일이면 "변화 없음", 역행이면 "⚠️ 역행 감지 — [현재단계] 유지")
+**다음 액션**: (미팅에서 도출된 액션)
+영업 단계 순서: 리드 → 견적요청 → 견적발송 → 협의중 → 수주확정 → 생산/납기 → 출고완료 → 종료
+역행은 절대 제안하지 않는다.
+--- 미팅 내용 ---
+${content}`;
+
+        try {
+            const res = await fetch('/api/hub-chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
+                body: JSON.stringify({
+                    messages: [{ role: 'user', content: analyzeMsg }],
+                    userName: localStorage.getItem('attendance_user_name') || '직원',
+                    userOrg: localStorage.getItem('attendance_user_org') || '',
+                    userRank: localStorage.getItem('attendance_user_rank') || ''
+                })
+            });
+            const data = await res.json();
+            document.getElementById('meeting-analysis-loading').style.display = 'none';
+            if (data.error) {
+                document.getElementById('meeting-analysis-error').style.display = 'block';
+                document.getElementById('meeting-analysis-error').textContent = `분석 오류: ${data.error}`;
+                document.getElementById('meeting-modal-title').textContent = '📝 내용 확인 및 수정';
+            } else {
+                document.getElementById('meeting-analysis-text').textContent = data.content;
+                document.getElementById('meeting-analysis-result').style.display = 'block';
+                document.getElementById('meeting-modal-title').textContent = '📝 분석 완료 — 저장 확인';
+            }
+        } catch (e) {
+            document.getElementById('meeting-analysis-loading').style.display = 'none';
+            document.getElementById('meeting-analysis-error').style.display = 'block';
+            document.getElementById('meeting-analysis-error').textContent = `분석 실패: ${e.message}`;
+            document.getElementById('meeting-modal-title').textContent = '📝 내용 확인 및 수정';
+        } finally {
+            document.getElementById('meeting-save-btn').disabled = false;
+        }
+    }
+
     function submitDirectInput() {
         const company = document.getElementById('meeting-company').value.trim();
         const text = document.getElementById('meeting-direct-input').value.trim();
@@ -938,17 +1007,14 @@ ${inboxRawContent}`;
         const formatted = `# 미팅 기록 — ${company}\n날짜: ${today}\n작성자: ${author}\n\n${text}`;
 
         meetingUserMsg = `미팅 기록 — ${company} (직접 입력)`;
-        document.getElementById('meeting-content-edit').value = formatted;
-        document.getElementById('meeting-filepath').value = `inbox/${today}-${company}-meeting.md`;
-        document.getElementById('meeting-step1').style.display = 'none';
-        document.getElementById('meeting-step2').style.display = 'flex';
-        document.getElementById('meeting-modal-title').textContent = '📝 내용 확인 및 수정';
+        showMeetingStep2(formatted, `inbox/${today}-${company}-meeting.md`);
     }
 
     function backToStep1() {
         document.getElementById('meeting-step1').style.display = 'flex';
         document.getElementById('meeting-step2').style.display = 'none';
         document.getElementById('meeting-modal-title').textContent = '📝 미팅 기록';
+        resetMeetingStep2();
     }
 
     function onAudioSelected(input) {
@@ -992,11 +1058,7 @@ ${inboxRawContent}`;
             if (data.error) {
                 alert(`변환 오류: ${data.error}`);
             } else {
-                document.getElementById('meeting-content-edit').value = data.content;
-                document.getElementById('meeting-filepath').value = data.filePath;
-                document.getElementById('meeting-step1').style.display = 'none';
-                document.getElementById('meeting-step2').style.display = 'flex';
-                document.getElementById('meeting-modal-title').textContent = '📝 내용 확인 및 수정';
+                showMeetingStep2(data.content, data.filePath);
             }
         } catch (err) {
             alert(`오류: ${err.message}`);
