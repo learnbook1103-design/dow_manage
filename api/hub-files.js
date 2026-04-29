@@ -36,6 +36,8 @@ module.exports = async (req, res) => {
 
         const root = {};
 
+        const HIDDEN_FILES = ['README.md', '_template.md'];
+
         (tree || []).forEach(item => {
             if (item.type !== 'blob') return;
             if (!item.path.startsWith('hub-data/')) return;
@@ -44,6 +46,7 @@ module.exports = async (req, res) => {
             const rel = item.path.slice('hub-data/'.length);
             const parts = rel.split('/');
             if (!TOP_DIRS.includes(parts[0])) return;
+            if (HIDDEN_FILES.includes(parts[parts.length - 1])) return;
 
             insertItem(root, parts, rel);
         });
