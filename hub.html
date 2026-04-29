@@ -724,7 +724,7 @@
 
         try {
             const userName = localStorage.getItem('attendance_user_name') || '직원';
-            const res = await fetch('/api/hub-file', {
+            const res = await fetch('/api/hub-stt', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
                 body: JSON.stringify({ action: 'save', content: formatted, filePath, userName })
