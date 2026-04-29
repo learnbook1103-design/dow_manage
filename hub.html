@@ -739,11 +739,16 @@
         document.getElementById('inbox-save-btn').disabled = true;
 
         try {
-            const analyzeMsg = `다음 inbox 내용을 분석해줘. 파일 수정은 하지 말고, 아래 항목만 파악해서 알려줘:
-1. 거래처명 (companies/_index.md 대조)
-2. 관련 딜 건명 (deals.md 기준)
-3. 영업 단계 변화 여부
-4. 다음 액션
+            const analyzeMsg = `다음 inbox 내용을 분석해줘. 파일 수정은 절대 하지 말고, 분석 결과만 아래 형식으로 알려줘:
+
+**거래처**: (companies/_index.md 대조해서 정확한 명칭)
+**관련 딜**: (deals.md에서 해당 건명 확인)
+**현재 단계**: (deals.md 기준 현재 영업 단계)
+**변경 제안**: (전진이면 → 새 단계, 동일이면 "변화 없음", 역행이면 "⚠️ 역행 감지 — [현재단계] 유지")
+**다음 액션**: (inbox에서 추출한 액션)
+
+영업 단계 순서: 리드 → 견적요청 → 견적발송 → 협의중 → 수주확정 → 생산/납기 → 출고완료 → 종료
+역행(이전 단계로 이동)은 절대 제안하지 않는다.
 
 --- inbox 내용 ---
 ${inboxRawContent}`;
