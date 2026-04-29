@@ -141,14 +141,16 @@
         .bubble blockquote { border-left: 3px solid var(--border); padding-left: 10px; color: var(--text-sub); margin: 0.4rem 0; }
 
         /* Bubble action buttons (copy / download) */
-        .bubble-actions { display: flex; gap: 5px; margin-top: 7px; }
+        .bubble-actions { display: flex; gap: 6px; margin-top: 10px; }
         .bubble-action {
-            background: none; border: 1px solid var(--border); border-radius: 6px;
-            font-size: 0.7rem; color: var(--text-sub); padding: 3px 9px; cursor: pointer;
-            display: flex; align-items: center; gap: 3px; transition: background 0.15s;
+            background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+            font-size: 0.76rem; font-weight: 500; color: var(--text-sub);
+            padding: 5px 12px; cursor: pointer;
+            display: flex; align-items: center; gap: 4px;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
         }
-        .bubble-action:hover { background: var(--bg); }
-        .bubble-action.copied { color: #34c759; border-color: #34c759; }
+        .bubble-action:hover { background: var(--border); color: var(--text); }
+        .bubble-action.copied { color: #34c759; border-color: #34c759; background: #f0fdf4; }
 
         /* Tool log chips */
         .tool-log { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
@@ -322,14 +324,13 @@
                 <div class="quick-category-label">거래처</div>
                 <div class="quick-btns-row">
                     <button class="quick-btn" onclick="sendQuick('거래처 목록 보여줘')">🏢 거래처 조회</button>
-                    <button class="quick-btn" onclick="openMeetingModal()">📝 미팅 기록</button>
+                    <button class="quick-btn" onclick="sendQuick('채널별 영업 현황 알려줘')">📈 채널 현황</button>
                 </div>
             </div>
             <div class="quick-category">
                 <div class="quick-category-label">기록 / 정리</div>
                 <div class="quick-btns-row">
-                    <button class="quick-btn" onclick="openInboxModal()">📥 inbox 입력</button>
-                    <button class="quick-btn" onclick="sendQuick('채널별 영업 현황 알려줘')">📈 채널 현황</button>
+                    <button class="quick-btn" onclick="openWorklogModal()">📝 업무 기록</button>
                 </div>
             </div>
         </div>
@@ -343,112 +344,62 @@
     </div>
 </div>
 
-<!-- 미팅 기록 모달 -->
-<div class="modal-overlay" id="meeting-modal" onclick="closeMeetingModal(event)">
+<!-- 업무 기록 모달 -->
+<div class="modal-overlay" id="worklog-modal" onclick="closeWorklogModal(event)">
     <div class="modal" style="width:min(680px,94vw);">
         <div class="modal-head">
-            <span class="modal-title" id="meeting-modal-title">📝 미팅 기록</span>
-            <button class="modal-close" onclick="closeMeetingModal()">✕</button>
+            <span class="modal-title" id="worklog-modal-title">📝 업무 기록</span>
+            <button class="modal-close" onclick="closeWorklogModal()">✕</button>
         </div>
         <div class="modal-body">
             <!-- Step 1: 입력 -->
-            <div id="meeting-step1" class="meeting-form">
-                <div>
-                    <label>거래처명</label>
-                    <input type="text" id="meeting-company" placeholder="예: HPRAY, Tema Oil Refinery" />
-                </div>
-                <!-- 탭 -->
+            <div id="worklog-step1" class="meeting-form">
                 <div class="meeting-tabs">
-                    <button class="meeting-tab active" id="tab-audio-btn" onclick="switchMeetingTab('audio')">🎙 오디오 변환</button>
-                    <button class="meeting-tab" id="tab-text-btn" onclick="switchMeetingTab('text')">📋 직접 입력</button>
+                    <button class="meeting-tab active" id="worklog-tab-audio-btn" onclick="switchWorklogTab('audio')">🎙 오디오 변환</button>
+                    <button class="meeting-tab" id="worklog-tab-text-btn" onclick="switchWorklogTab('text')">📋 텍스트 입력</button>
                 </div>
                 <!-- 오디오 탭 -->
-                <div id="tab-audio" style="display:flex;flex-direction:column;gap:12px;">
+                <div id="worklog-tab-audio" style="display:flex;flex-direction:column;gap:12px;">
                     <div>
                         <label>녹음 파일 <span style="font-size:0.72rem;color:var(--text-sub);font-weight:400;">(5분 이하 권장)</span></label>
-                        <label class="meeting-file-label" id="meeting-file-label" for="meeting-audio">
+                        <label class="meeting-file-label" id="worklog-file-label" for="worklog-audio">
                             🎙 파일 선택 (mp3, m4a, wav 등)
                         </label>
-                        <input type="file" id="meeting-audio" accept="audio/*" onchange="onAudioSelected(this)" />
+                        <input type="file" id="worklog-audio" accept="audio/*" onchange="onWorklogAudioSelected(this)" />
                     </div>
-                    <button class="meeting-submit" id="meeting-transcribe-btn" onclick="transcribeMeeting()">변환</button>
+                    <button class="meeting-submit" id="worklog-transcribe-btn" onclick="transcribeWorklog()">변환</button>
                 </div>
-                <!-- 직접 입력 탭 -->
-                <div id="tab-text" style="display:none;flex-direction:column;gap:12px;">
+                <!-- 텍스트 입력 탭 -->
+                <div id="worklog-tab-text" style="display:none;flex-direction:column;gap:12px;">
                     <div>
-                        <label>내용 붙여넣기 <span style="font-size:0.72rem;color:var(--text-sub);font-weight:400;">클로바노트 전사 결과 또는 직접 작성</span></label>
-                        <textarea id="meeting-direct-input" placeholder="클로바노트에서 복사한 내용을 붙여넣으세요..." style="width:100%;min-height:200px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                        <label>내용 붙여넣기 <span style="font-size:0.72rem;color:var(--text-sub);font-weight:400;">미팅 메모, 카톡, 메일 등</span></label>
+                        <textarea id="worklog-text-input" placeholder="미팅 내용, 카톡, 메일 본문 등을 붙여넣으세요..." style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
                     </div>
-                    <button class="meeting-submit" onclick="submitDirectInput()">다음 →</button>
+                    <button class="meeting-submit" onclick="submitWorklogText()">다음 →</button>
                 </div>
             </div>
             <!-- Step 2: AI 분석 + 검토 -->
-            <div id="meeting-step2" style="display:none;" class="meeting-form">
+            <div id="worklog-step2" style="display:none;" class="meeting-form">
                 <div>
-                    <label>미팅 내용 확인 및 수정</label>
-                    <textarea id="meeting-content-edit" style="width:100%;min-height:160px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                    <label>내용 확인 및 수정</label>
+                    <textarea id="worklog-content-edit" style="width:100%;min-height:160px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
                 </div>
                 <div>
                     <label>저장 경로</label>
-                    <input type="text" id="meeting-filepath" />
+                    <input type="text" id="worklog-filepath" />
                 </div>
-                <!-- AI 분석 영역 -->
-                <div id="meeting-analysis-loading" style="display:none;text-align:center;padding:20px;color:var(--text-sub);font-size:0.85rem;">
+                <div id="worklog-analysis-loading" style="display:none;text-align:center;padding:20px;color:var(--text-sub);font-size:0.85rem;">
                     <div style="font-size:1.2rem;margin-bottom:6px;">🤖</div>
-                    <div>미팅 내용 분석 중...</div>
+                    <div>내용 분석 중...</div>
                 </div>
-                <div id="meeting-analysis-result" style="display:none;background:var(--bg);border-radius:12px;padding:16px;">
-                    <div style="font-size:0.75rem;font-weight:600;color:var(--blue);margin-bottom:8px;">AI 분석 결과</div>
-                    <div id="meeting-analysis-text" style="font-size:0.82rem;line-height:1.7;white-space:pre-wrap;color:var(--text);"></div>
+                <div id="worklog-analysis-result" style="display:none;background:var(--bg);border-radius:12px;padding:16px;">
+                    <div style="font-size:0.75rem;font-weight:600;color:var(--blue);margin-bottom:8px;">AI 분석 결과 — 확인 후 저장하세요</div>
+                    <div id="worklog-analysis-text" style="font-size:0.82rem;line-height:1.7;white-space:pre-wrap;color:var(--text);"></div>
                 </div>
-                <div id="meeting-analysis-error" style="display:none;color:#ff3b30;font-size:0.82rem;padding:10px;background:#fff5f5;border-radius:10px;"></div>
+                <div id="worklog-analysis-error" style="display:none;color:#ff3b30;font-size:0.82rem;padding:10px;background:#fff5f5;border-radius:10px;"></div>
                 <div style="display:flex;gap:8px;">
-                    <button class="meeting-submit" style="background:var(--text-sub);flex:1;" onclick="backToStep1()">← 다시</button>
-                    <button class="meeting-submit" style="flex:2;" id="meeting-save-btn" onclick="saveMeeting()" disabled>저장</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- inbox 입력 모달 -->
-<div class="modal-overlay" id="inbox-modal" onclick="closeInboxModal(event)">
-    <div class="modal" style="width:min(600px,94vw);">
-        <div class="modal-head">
-            <span class="modal-title" id="inbox-modal-title">📥 inbox 입력</span>
-            <button class="modal-close" onclick="closeInboxModal()">✕</button>
-        </div>
-        <div class="modal-body">
-            <!-- Step 1: 입력 -->
-            <div id="inbox-step1" class="meeting-form">
-                <div>
-                    <label>출처</label>
-                    <select id="inbox-source" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:0.82rem;font-family:inherit;outline:none;background:var(--bg);">
-                        <option value="카톡">카톡</option>
-                        <option value="메일">메일</option>
-                        <option value="기타">기타</option>
-                    </select>
-                </div>
-                <div>
-                    <label>내용 붙여넣기</label>
-                    <textarea id="inbox-content" placeholder="카톡 내용, 메일 본문 등을 붙여넣으세요..." style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
-                </div>
-                <button class="meeting-submit" onclick="submitInboxStep1()">다음 →</button>
-            </div>
-            <!-- Step 2: AI 분석 결과 확인 -->
-            <div id="inbox-step2" style="display:none;" class="meeting-form">
-                <div id="inbox-analysis-loading" style="display:none;text-align:center;padding:32px;color:var(--text-sub);font-size:0.85rem;">
-                    <div style="font-size:1.4rem;margin-bottom:8px;">🤖</div>
-                    AI가 내용을 분석 중입니다...
-                </div>
-                <div id="inbox-analysis-result" style="display:none;">
-                    <div style="font-size:0.75rem;color:var(--text-sub);margin-bottom:6px;font-weight:600;letter-spacing:0.05em;">AI 분석 결과 — 확인 후 실행하세요</div>
-                    <div id="inbox-analysis-text" style="background:#f8f9fa;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:0.82rem;line-height:1.75;white-space:pre-wrap;max-height:280px;overflow-y:auto;"></div>
-                </div>
-                <div id="inbox-analysis-error" style="display:none;background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;padding:12px;font-size:0.82rem;color:#be123c;"></div>
-                <div style="display:flex;gap:8px;">
-                    <button class="meeting-submit" style="background:var(--text-sub);flex:1;" onclick="backToInboxStep1()">← 다시</button>
-                    <button class="meeting-submit" style="flex:2;" id="inbox-save-btn" onclick="saveInbox()" disabled>저장 후 실행</button>
+                    <button class="meeting-submit" style="background:var(--text-sub);flex:1;" onclick="backToWorklogStep1()">← 다시</button>
+                    <button class="meeting-submit" style="flex:2;" id="worklog-save-btn" onclick="saveWorklog()" disabled>저장 후 실행</button>
                 </div>
             </div>
         </div>
@@ -822,199 +773,77 @@
         }
     });
 
-    // ── inbox 입력 모달 ───────────────────────────────────────────────────────
-    let inboxRawContent = '';
+    // ── 업무 기록 모달 ────────────────────────────────────────────────────────
+    let worklogActiveTab = 'audio';
+    let worklogRawContent = '';
 
-    function openInboxModal() {
-        document.getElementById('inbox-source').value = '카톡';
-        document.getElementById('inbox-content').value = '';
-        inboxRawContent = '';
-        document.getElementById('inbox-step1').style.display = 'flex';
-        document.getElementById('inbox-step2').style.display = 'none';
-        document.getElementById('inbox-analysis-loading').style.display = 'none';
-        document.getElementById('inbox-analysis-result').style.display = 'none';
-        document.getElementById('inbox-analysis-error').style.display = 'none';
-        document.getElementById('inbox-modal-title').textContent = '📥 inbox 입력';
-        document.getElementById('inbox-modal').classList.add('open');
+    function openWorklogModal() {
+        worklogRawContent = '';
+        document.getElementById('worklog-audio').value = '';
+        document.getElementById('worklog-text-input').value = '';
+        document.getElementById('worklog-file-label').textContent = '🎙 파일 선택 (mp3, m4a, wav 등)';
+        document.getElementById('worklog-file-label').classList.remove('selected');
+        document.getElementById('worklog-step1').style.display = 'flex';
+        document.getElementById('worklog-step2').style.display = 'none';
+        document.getElementById('worklog-modal-title').textContent = '📝 업무 기록';
+        switchWorklogTab('audio');
+        document.getElementById('worklog-modal').classList.add('open');
     }
 
-    function closeInboxModal(e) {
-        if (e && e.target !== document.getElementById('inbox-modal')) return;
-        document.getElementById('inbox-modal').classList.remove('open');
+    function closeWorklogModal(e) {
+        if (e && e.target !== document.getElementById('worklog-modal')) return;
+        document.getElementById('worklog-modal').classList.remove('open');
     }
 
-    async function submitInboxStep1() {
-        const content = document.getElementById('inbox-content').value.trim();
-        if (!content) { alert('내용을 입력해주세요.'); return; }
-        inboxRawContent = content;
+    function switchWorklogTab(tab) {
+        worklogActiveTab = tab;
+        document.getElementById('worklog-tab-audio').style.display = tab === 'audio' ? 'flex' : 'none';
+        document.getElementById('worklog-tab-text').style.display = tab === 'text' ? 'flex' : 'none';
+        document.getElementById('worklog-tab-audio-btn').classList.toggle('active', tab === 'audio');
+        document.getElementById('worklog-tab-text-btn').classList.toggle('active', tab === 'text');
+    }
 
-        document.getElementById('inbox-step1').style.display = 'none';
-        document.getElementById('inbox-step2').style.display = 'flex';
-        document.getElementById('inbox-modal-title').textContent = '📥 AI 분석 중...';
-        document.getElementById('inbox-analysis-loading').style.display = 'block';
-        document.getElementById('inbox-analysis-result').style.display = 'none';
-        document.getElementById('inbox-analysis-error').style.display = 'none';
-        document.getElementById('inbox-save-btn').disabled = true;
-
-        try {
-            const analyzeMsg = `다음 inbox 내용을 분석해줘. 파일 수정은 절대 하지 말고, 분석 결과만 아래 형식으로 알려줘:
-
-**거래처**: (companies/_index.md 대조해서 정확한 명칭)
-**관련 딜**: (deals.md에서 해당 건명 확인)
-**현재 단계**: (deals.md 기준 현재 영업 단계)
-**변경 제안**: (전진이면 → 새 단계, 동일이면 "변화 없음", 역행이면 "⚠️ 역행 감지 — [현재단계] 유지")
-**다음 액션**: (inbox에서 추출한 액션)
-
-영업 단계 순서: 리드 → 견적요청 → 견적발송 → 협의중 → 수주확정 → 생산/납기 → 출고완료 → 종료
-역행(이전 단계로 이동)은 절대 제안하지 않는다.
-
---- inbox 내용 ---
-${inboxRawContent}`;
-
-            const res = await fetch('/api/hub-chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
-                body: JSON.stringify({
-                    messages: [{ role: 'user', content: analyzeMsg }],
-                    userName: localStorage.getItem('attendance_user_name') || '직원',
-                    userOrg: localStorage.getItem('attendance_user_org') || '',
-                    userRank: localStorage.getItem('attendance_user_rank') || ''
-                })
-            });
-            const data = await res.json();
-            if (data.error) throw new Error(data.error);
-
-            document.getElementById('inbox-analysis-text').textContent = data.content;
-            document.getElementById('inbox-analysis-result').style.display = 'block';
-            document.getElementById('inbox-save-btn').disabled = false;
-            document.getElementById('inbox-modal-title').textContent = '📥 AI 분석 결과';
-        } catch (err) {
-            document.getElementById('inbox-analysis-error').textContent = '분석 오류: ' + err.message;
-            document.getElementById('inbox-analysis-error').style.display = 'block';
-            document.getElementById('inbox-modal-title').textContent = '📥 분석 실패';
-        } finally {
-            document.getElementById('inbox-analysis-loading').style.display = 'none';
+    function onWorklogAudioSelected(input) {
+        const label = document.getElementById('worklog-file-label');
+        if (input.files[0]) {
+            label.textContent = `🎙 ${input.files[0].name}`;
+            label.classList.add('selected');
         }
     }
 
-    function backToInboxStep1() {
-        document.getElementById('inbox-step1').style.display = 'flex';
-        document.getElementById('inbox-step2').style.display = 'none';
-        document.getElementById('inbox-modal-title').textContent = '📥 inbox 입력';
+    function resetWorklogStep2() {
+        document.getElementById('worklog-analysis-loading').style.display = 'none';
+        document.getElementById('worklog-analysis-result').style.display = 'none';
+        document.getElementById('worklog-analysis-error').style.display = 'none';
+        document.getElementById('worklog-save-btn').disabled = true;
     }
 
-    async function saveInbox() {
-        const source = document.getElementById('inbox-source').value;
-        const content = inboxRawContent;
-        if (!content) { alert('내용을 입력해주세요.'); return; }
-
-        const today = new Date().toISOString().slice(0, 10);
-        const author = localStorage.getItem('attendance_user_name') || '직원';
-        const filePath = `inbox/${today}-${source}-${Date.now()}.md`;
-        const formatted = `# inbox — ${source}\n날짜: ${today}\n작성자: ${author}\n\n${content}`;
-
-        const btn = document.getElementById('inbox-save-btn');
-        btn.disabled = true;
-        btn.textContent = '저장 중...';
-
-        try {
-            const userName = localStorage.getItem('attendance_user_name') || '직원';
-            const res = await fetch('/api/hub-stt', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
-                body: JSON.stringify({ action: 'save', content: formatted, filePath, userName })
-            });
-            const data = await res.json();
-            if (data.error) { alert('저장 오류: ' + data.error); return; }
-            document.getElementById('inbox-modal').classList.remove('open');
-
-            // 저장 즉시 AI 처리
-            const processMsg = `${filePath} 처리해줘`;
-            appendUserMsg(processMsg);
-            messages.push({ role: 'user', content: processMsg });
-            const loadingEl = appendLoading();
-            isLoading = true;
-            document.getElementById('send-btn').disabled = true;
-
-            const chatRes = await fetch('/api/hub-chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
-                body: JSON.stringify({
-                    messages,
-                    userName: localStorage.getItem('attendance_user_name') || '직원',
-                    userOrg: localStorage.getItem('attendance_user_org') || '',
-                    userRank: localStorage.getItem('attendance_user_rank') || ''
-                })
-            });
-            loadingEl.remove();
-            const chatData = await chatRes.json();
-            appendAssistantMsg(chatData.content, chatData.toolLog, chatData.updatedFiles);
-            messages.push({ role: 'assistant', content: chatData.content });
-        } catch (err) {
-            alert('오류: ' + err.message);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '저장';
-            isLoading = false;
-            document.getElementById('send-btn').disabled = false;
-        }
+    function backToWorklogStep1() {
+        document.getElementById('worklog-step1').style.display = 'flex';
+        document.getElementById('worklog-step2').style.display = 'none';
+        document.getElementById('worklog-modal-title').textContent = '📝 업무 기록';
+        resetWorklogStep2();
     }
 
-    // ── 미팅 기록 모달 ────────────────────────────────────────────────────────
-    let meetingUserMsg = '';
-    let meetingActiveTab = 'audio';
+    async function showWorklogStep2(content, filePath) {
+        worklogRawContent = content;
+        document.getElementById('worklog-content-edit').value = content;
+        document.getElementById('worklog-filepath').value = filePath;
+        document.getElementById('worklog-step1').style.display = 'none';
+        document.getElementById('worklog-step2').style.display = 'flex';
+        document.getElementById('worklog-modal-title').textContent = '📝 AI 분석 중...';
+        resetWorklogStep2();
+        document.getElementById('worklog-analysis-loading').style.display = 'block';
 
-    function resetMeetingStep2() {
-        document.getElementById('meeting-analysis-loading').style.display = 'none';
-        document.getElementById('meeting-analysis-result').style.display = 'none';
-        document.getElementById('meeting-analysis-error').style.display = 'none';
-        document.getElementById('meeting-save-btn').disabled = true;
-    }
-
-    function openMeetingModal() {
-        document.getElementById('meeting-company').value = '';
-        document.getElementById('meeting-audio').value = '';
-        document.getElementById('meeting-direct-input').value = '';
-        document.getElementById('meeting-file-label').textContent = '🎙 파일 선택 (mp3, m4a, wav 등)';
-        document.getElementById('meeting-file-label').classList.remove('selected');
-        document.getElementById('meeting-step1').style.display = 'flex';
-        document.getElementById('meeting-step2').style.display = 'none';
-        document.getElementById('meeting-modal-title').textContent = '📝 미팅 기록';
-        switchMeetingTab('audio');
-        document.getElementById('meeting-modal').classList.add('open');
-    }
-
-    function closeMeetingModal(e) {
-        if (e && e.target !== document.getElementById('meeting-modal')) return;
-        document.getElementById('meeting-modal').classList.remove('open');
-    }
-
-    function switchMeetingTab(tab) {
-        meetingActiveTab = tab;
-        document.getElementById('tab-audio').style.display = tab === 'audio' ? 'flex' : 'none';
-        document.getElementById('tab-text').style.display = tab === 'text' ? 'flex' : 'none';
-        document.getElementById('tab-audio-btn').classList.toggle('active', tab === 'audio');
-        document.getElementById('tab-text-btn').classList.toggle('active', tab === 'text');
-    }
-
-    async function showMeetingStep2(content, filePath) {
-        document.getElementById('meeting-content-edit').value = content;
-        document.getElementById('meeting-filepath').value = filePath;
-        document.getElementById('meeting-step1').style.display = 'none';
-        document.getElementById('meeting-step2').style.display = 'flex';
-        document.getElementById('meeting-modal-title').textContent = '📝 AI 분석 중...';
-        resetMeetingStep2();
-        document.getElementById('meeting-analysis-loading').style.display = 'block';
-
-        const analyzeMsg = `다음 미팅 기록을 분석해줘. 파일 수정은 절대 하지 말고, 분석 결과만 아래 형식으로 알려줘:
-**거래처**: (companies/_index.md 대조해서 정확한 명칭)
-**관련 딜**: (deals.md에서 해당 건명 확인)
-**현재 단계**: (deals.md 기준 현재 영업 단계)
+        const analyzeMsg = `다음 업무 기록을 분석해줘. 파일 수정은 절대 하지 말고, 분석 결과만 아래 형식으로 알려줘:
+**거래처**: (companies/_index.md 대조해서 정확한 명칭, 해당 없으면 "-")
+**관련 딜**: (deals.md에서 해당 건명 확인, 없으면 "-")
+**현재 단계**: (deals.md 기준 현재 영업 단계, 없으면 "-")
 **변경 제안**: (전진이면 → 새 단계, 동일이면 "변화 없음", 역행이면 "⚠️ 역행 감지 — [현재단계] 유지")
-**다음 액션**: (미팅에서 도출된 액션)
+**다음 액션**: (기록에서 도출된 액션)
 영업 단계 순서: 리드 → 견적요청 → 견적발송 → 협의중 → 수주확정 → 생산/납기 → 출고완료 → 종료
 역행은 절대 제안하지 않는다.
---- 미팅 내용 ---
+--- 업무 기록 ---
 ${content}`;
 
         try {
@@ -1029,68 +858,43 @@ ${content}`;
                 })
             });
             const data = await res.json();
-            document.getElementById('meeting-analysis-loading').style.display = 'none';
+            document.getElementById('worklog-analysis-loading').style.display = 'none';
             if (data.error) {
-                document.getElementById('meeting-analysis-error').style.display = 'block';
-                document.getElementById('meeting-analysis-error').textContent = `분석 오류: ${data.error}`;
-                document.getElementById('meeting-modal-title').textContent = '📝 내용 확인 및 수정';
+                document.getElementById('worklog-analysis-error').style.display = 'block';
+                document.getElementById('worklog-analysis-error').textContent = `분석 오류: ${data.error}`;
+                document.getElementById('worklog-modal-title').textContent = '📝 내용 확인';
             } else {
-                document.getElementById('meeting-analysis-text').textContent = data.content;
-                document.getElementById('meeting-analysis-result').style.display = 'block';
-                document.getElementById('meeting-modal-title').textContent = '📝 분석 완료 — 저장 확인';
+                document.getElementById('worklog-analysis-text').textContent = data.content;
+                document.getElementById('worklog-analysis-result').style.display = 'block';
+                document.getElementById('worklog-modal-title').textContent = '📝 분석 완료 — 저장 확인';
             }
         } catch (e) {
-            document.getElementById('meeting-analysis-loading').style.display = 'none';
-            document.getElementById('meeting-analysis-error').style.display = 'block';
-            document.getElementById('meeting-analysis-error').textContent = `분석 실패: ${e.message}`;
-            document.getElementById('meeting-modal-title').textContent = '📝 내용 확인 및 수정';
+            document.getElementById('worklog-analysis-loading').style.display = 'none';
+            document.getElementById('worklog-analysis-error').style.display = 'block';
+            document.getElementById('worklog-analysis-error').textContent = `분석 실패: ${e.message}`;
+            document.getElementById('worklog-modal-title').textContent = '📝 내용 확인';
         } finally {
-            document.getElementById('meeting-save-btn').disabled = false;
+            document.getElementById('worklog-save-btn').disabled = false;
         }
     }
 
-    function submitDirectInput() {
-        const company = document.getElementById('meeting-company').value.trim();
-        const text = document.getElementById('meeting-direct-input').value.trim();
-        if (!company) { alert('거래처명을 입력해주세요.'); return; }
+    function submitWorklogText() {
+        const text = document.getElementById('worklog-text-input').value.trim();
         if (!text) { alert('내용을 입력해주세요.'); return; }
-
         const today = new Date().toISOString().slice(0, 10);
         const author = localStorage.getItem('attendance_user_name') || '직원';
-        const formatted = `# 미팅 기록 — ${company}\n날짜: ${today}\n작성자: ${author}\n\n${text}`;
-
-        meetingUserMsg = `미팅 기록 — ${company} (직접 입력)`;
-        showMeetingStep2(formatted, `inbox/${today}-${company}-meeting.md`);
+        const formatted = `# 업무 기록\n날짜: ${today}\n작성자: ${author}\n\n${text}`;
+        showWorklogStep2(formatted, `inbox/${today}-${Date.now()}.md`);
     }
 
-    function backToStep1() {
-        document.getElementById('meeting-step1').style.display = 'flex';
-        document.getElementById('meeting-step2').style.display = 'none';
-        document.getElementById('meeting-modal-title').textContent = '📝 미팅 기록';
-        resetMeetingStep2();
-    }
-
-    function onAudioSelected(input) {
-        const label = document.getElementById('meeting-file-label');
-        if (input.files[0]) {
-            label.textContent = `🎙 ${input.files[0].name}`;
-            label.classList.add('selected');
-        }
-    }
-
-    async function transcribeMeeting() {
-        const company = document.getElementById('meeting-company').value.trim();
-        const fileInput = document.getElementById('meeting-audio');
+    async function transcribeWorklog() {
+        const fileInput = document.getElementById('worklog-audio');
         const file = fileInput.files[0];
-
-        if (!company) { alert('거래처명을 입력해주세요.'); return; }
         if (!file) { alert('녹음 파일을 선택해주세요.'); return; }
 
-        const btn = document.getElementById('meeting-transcribe-btn');
+        const btn = document.getElementById('worklog-transcribe-btn');
         btn.disabled = true;
         btn.textContent = '변환 중...';
-
-        meetingUserMsg = `미팅 기록 — ${company} (${file.name})`;
 
         try {
             const audioBase64 = await new Promise((resolve, reject) => {
@@ -1099,20 +903,16 @@ ${content}`;
                 reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
-
             const userName = localStorage.getItem('attendance_user_name') || '직원';
             const res = await fetch('/api/hub-stt', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Hub-Token': HUB_TOKEN },
-                body: JSON.stringify({ audioBase64, mimeType: file.type, company, userName })
+                body: JSON.stringify({ audioBase64, mimeType: file.type, company: '', userName })
             });
             const data = await res.json();
-
-            if (data.error) {
-                alert(`변환 오류: ${data.error}`);
-            } else {
-                showMeetingStep2(data.content, data.filePath);
-            }
+            if (data.error) { alert(`변환 오류: ${data.error}`); return; }
+            const today = new Date().toISOString().slice(0, 10);
+            showWorklogStep2(data.content, data.filePath || `inbox/${today}-${Date.now()}.md`);
         } catch (err) {
             alert(`오류: ${err.message}`);
         } finally {
@@ -1121,16 +921,15 @@ ${content}`;
         }
     }
 
-    async function saveMeeting() {
-        const content = document.getElementById('meeting-content-edit').value.trim();
-        const filePath = document.getElementById('meeting-filepath').value.trim();
+    async function saveWorklog() {
+        const content = document.getElementById('worklog-content-edit').value.trim();
+        const filePath = document.getElementById('worklog-filepath').value.trim();
         const userName = localStorage.getItem('attendance_user_name') || '직원';
 
-        const btn = document.getElementById('meeting-save-btn');
+        const btn = document.getElementById('worklog-save-btn');
         btn.disabled = true;
         btn.textContent = '저장 중...';
-
-        document.getElementById('meeting-modal').classList.remove('open');
+        document.getElementById('worklog-modal').classList.remove('open');
 
         try {
             const res = await fetch('/api/hub-stt', {
@@ -1141,7 +940,6 @@ ${content}`;
             const data = await res.json();
             if (data.error) { appendAssistantMsg(`저장 오류: ${data.error}`, [], []); return; }
 
-            // 저장 즉시 AI 처리
             const processMsg = `${filePath} 처리해줘`;
             appendUserMsg(processMsg);
             messages.push({ role: 'user', content: processMsg });
@@ -1167,7 +965,7 @@ ${content}`;
             appendAssistantMsg(`오류: ${err.message}`, [], []);
         } finally {
             btn.disabled = false;
-            btn.textContent = '저장';
+            btn.textContent = '저장 후 실행';
             isLoading = false;
             document.getElementById('send-btn').disabled = false;
         }
