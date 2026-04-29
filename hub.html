@@ -386,30 +386,39 @@
 <div class="modal-overlay" id="inbox-modal" onclick="closeInboxModal(event)">
     <div class="modal" style="width:min(600px,94vw);">
         <div class="modal-head">
-            <span class="modal-title">📥 inbox 입력</span>
+            <span class="modal-title" id="inbox-modal-title">📥 inbox 입력</span>
             <button class="modal-close" onclick="closeInboxModal()">✕</button>
         </div>
         <div class="modal-body">
-            <div class="meeting-form">
-                <div style="display:flex;gap:8px;">
-                    <div style="flex:1;">
-                        <label>출처</label>
-                        <select id="inbox-source" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:0.82rem;font-family:inherit;outline:none;background:var(--bg);">
-                            <option value="카톡">카톡</option>
-                            <option value="메일">메일</option>
-                            <option value="기타">기타</option>
-                        </select>
-                    </div>
-                    <div style="flex:2;">
-                        <label>거래처명 <span style="font-size:0.72rem;color:var(--text-sub);font-weight:400;">(선택)</span></label>
-                        <input type="text" id="inbox-company" placeholder="예: HPRAY, Tema Oil Refinery" />
-                    </div>
+            <!-- Step 1: 입력 -->
+            <div id="inbox-step1" class="meeting-form">
+                <div>
+                    <label>출처</label>
+                    <select id="inbox-source" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:9px 12px;font-size:0.82rem;font-family:inherit;outline:none;background:var(--bg);">
+                        <option value="카톡">카톡</option>
+                        <option value="메일">메일</option>
+                        <option value="기타">기타</option>
+                    </select>
                 </div>
                 <div>
                     <label>내용 붙여넣기</label>
                     <textarea id="inbox-content" placeholder="카톡 내용, 메일 본문 등을 붙여넣으세요..." style="width:100%;min-height:220px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
                 </div>
-                <button class="meeting-submit" id="inbox-save-btn" onclick="saveInbox()">저장</button>
+                <button class="meeting-submit" onclick="submitInboxStep1()">다음 →</button>
+            </div>
+            <!-- Step 2: 확인 -->
+            <div id="inbox-step2" style="display:none;" class="meeting-form">
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px;font-size:0.8rem;color:#065f46;line-height:1.6;">
+                    AI가 거래처와 딜을 자동으로 파악해서 처리합니다. 내용을 확인 후 저장하세요.
+                </div>
+                <div>
+                    <label>내용 확인 및 수정</label>
+                    <textarea id="inbox-content-edit" style="width:100%;min-height:240px;border:1px solid var(--border);border-radius:10px;padding:12px;font-size:0.82rem;font-family:inherit;line-height:1.7;resize:vertical;box-sizing:border-box;outline:none;"></textarea>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="meeting-submit" style="background:var(--text-sub);flex:1;" onclick="backToInboxStep1()">← 다시</button>
+                    <button class="meeting-submit" style="flex:2;" id="inbox-save-btn" onclick="saveInbox()">저장 후 AI 처리</button>
+                </div>
             </div>
         </div>
     </div>
@@ -696,8 +705,11 @@
     // ── inbox 입력 모달 ───────────────────────────────────────────────────────
     function openInboxModal() {
         document.getElementById('inbox-source').value = '카톡';
-        document.getElementById('inbox-company').value = '';
         document.getElementById('inbox-content').value = '';
+        document.getElementById('inbox-content-edit').value = '';
+        document.getElementById('inbox-step1').style.display = 'flex';
+        document.getElementById('inbox-step2').style.display = 'none';
+        document.getElementById('inbox-modal-title').textContent = '📥 inbox 입력';
         document.getElementById('inbox-modal').classList.add('open');
     }
 
@@ -706,17 +718,30 @@
         document.getElementById('inbox-modal').classList.remove('open');
     }
 
+    function submitInboxStep1() {
+        const content = document.getElementById('inbox-content').value.trim();
+        if (!content) { alert('내용을 입력해주세요.'); return; }
+        document.getElementById('inbox-content-edit').value = content;
+        document.getElementById('inbox-step1').style.display = 'none';
+        document.getElementById('inbox-step2').style.display = 'flex';
+        document.getElementById('inbox-modal-title').textContent = '📥 내용 확인';
+    }
+
+    function backToInboxStep1() {
+        document.getElementById('inbox-step1').style.display = 'flex';
+        document.getElementById('inbox-step2').style.display = 'none';
+        document.getElementById('inbox-modal-title').textContent = '📥 inbox 입력';
+    }
+
     async function saveInbox() {
         const source = document.getElementById('inbox-source').value;
-        const company = document.getElementById('inbox-company').value.trim();
-        const content = document.getElementById('inbox-content').value.trim();
+        const content = document.getElementById('inbox-content-edit').value.trim();
         if (!content) { alert('내용을 입력해주세요.'); return; }
 
         const today = new Date().toISOString().slice(0, 10);
         const author = localStorage.getItem('attendance_user_name') || '직원';
-        const slug = company || source;
-        const filePath = `inbox/${today}-${slug}.md`;
-        const formatted = `# inbox — ${source}${company ? ' / ' + company : ''}\n날짜: ${today}\n작성자: ${author}\n\n${content}`;
+        const filePath = `inbox/${today}-${source}-${Date.now()}.md`;
+        const formatted = `# inbox — ${source}\n날짜: ${today}\n작성자: ${author}\n\n${content}`;
 
         const btn = document.getElementById('inbox-save-btn');
         btn.disabled = true;
