@@ -1216,11 +1216,13 @@
             if (name === '한옥연') name = '한옥련';
             btn.disabled = true; btn.textContent = '확인 중...';
             try {
-                const { data, error } = await _sb.from('employees').select('name, pin, is_admin').eq('name', name).eq('pin', pin).maybeSingle();
+                const { data, error } = await _sb.from('employees').select('name, pin, is_admin, org, rank').eq('name', name).eq('pin', pin).maybeSingle();
                 if (error) throw new Error(error.message);
                 if (!data) { errEl.textContent = '이름 또는 PIN이 올바르지 않습니다.'; return; }
                 localStorage.setItem('attendance_user_name', data.name);
                 localStorage.setItem('attendance_user_pin', data.pin);
+                localStorage.setItem('attendance_user_org', data.org || '');
+                localStorage.setItem('attendance_user_rank', data.rank || '');
                 localStorage.setItem('attendance_login_date', new Date().toISOString().slice(0, 10));
                 sessionStorage.setItem('attendance_user_is_admin', String(data.is_admin));
                 const isAdm = data.is_admin;
