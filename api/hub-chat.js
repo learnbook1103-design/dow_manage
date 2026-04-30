@@ -264,8 +264,11 @@ module.exports = async (req, res) => {
     if (!messages?.length) return res.status(400).json({ error: 'messages 필요' });
     const author = userName || '직원';
 
+    if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'GEMINI_API_KEY 환경변수 없음' });
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const systemPrompt = await loadSystemPrompt(author, userOrg, userRank);
+    let systemPrompt;
+    try { systemPrompt = await loadSystemPrompt(author, userOrg, userRank); }
+    catch (e) { return res.status(500).json({ error: '시스템 프롬프트 로딩 실패: ' + e.message }); }
     const contents = toGeminiContents(messages);
     const updatedFiles = [];
     const toolLog = [];
