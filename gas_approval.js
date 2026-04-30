@@ -79,6 +79,12 @@ function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
+
+    if (action === 'notify') {
+      sendMail(body.to, body.subject, body.html, 'DOW Valve 업무 허브');
+      return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
+    }
+
     const sheet = getOrCreateSheet();
 
     if (action === 'submit') {
