@@ -345,6 +345,7 @@
                     <button class="quick-btn" onclick="sendQuick('내 업무 현황 보여줘')">👤 내 업무 현황</button>
                     <button class="quick-btn" onclick="sendQuick('내 이번 주 할 일 정리해줘')">✅ 이번 주 할 일</button>
                     <button class="quick-btn" onclick="sendQuick('내 미완료 업무 뭐야?')">🔴 미완료 업무</button>
+                    <button class="quick-btn" onclick="sendQuick('내 업무 중 기한 초과하거나 주의가 필요한 건 알려줘')">⚠️ 내 주의 건</button>
                     <button class="quick-btn" onclick="sendQuick('내 업무 파일 보여줘')">📄 내 업무 파일</button>
                 </div>
             </div>
@@ -354,21 +355,23 @@
                     <button class="quick-btn" onclick="sendQuick('우리 팀 미결업무 현황 요약해줘')">📋 팀 과제 현황</button>
                     <button class="quick-btn" onclick="sendQuick('이번 주 우리 팀 주간 리포트 보여줘')">📊 주간 리포트</button>
                     <button class="quick-btn" onclick="sendQuick('OKR 현황과 기한 초과 건 알려줘')">🎯 OKR 현황</button>
-                    <button class="quick-btn" onclick="sendQuick('이번 주 주의해야 할 건 뭐야?')">⚠️ 주의 건 확인</button>
+                    <button class="quick-btn" onclick="sendQuick('우리 팀 과제 주의 건 알려줘')">⚠️ 팀 주의 건</button>
                 </div>
             </div>
-            <div class="quick-category">
-                <div class="quick-category-label">거래처</div>
-                <div class="quick-btns-row">
-                    <button class="quick-btn" onclick="sendQuick('거래처 목록 보여줘')">🏢 거래처 조회</button>
-                    <button class="quick-btn" onclick="sendQuick('채널별 영업 현황 알려줘')">📈 채널 현황</button>
+            <div style="display:flex; gap:16px;">
+                <div class="quick-category" style="flex:1;">
+                    <div class="quick-category-label">거래처</div>
+                    <div class="quick-btns-row">
+                        <button class="quick-btn" onclick="sendQuick('거래처 목록 보여줘')">🏢 거래처 조회</button>
+                        <button class="quick-btn" onclick="sendQuick('채널별 영업 현황 알려줘')">📈 채널 현황</button>
+                    </div>
                 </div>
-            </div>
-            <div class="quick-category">
-                <div class="quick-category-label">기록 / 정리</div>
-                <div class="quick-btns-row">
-                    <button class="quick-btn" onclick="openWorklogModal()">📝 업무 기록</button>
-                    <button class="quick-btn" onclick="sendQuick('이번 주 팀 주간 리포트 작성해줘')">📅 주간 리포트 작성</button>
+                <div class="quick-category" style="flex:1;">
+                    <div class="quick-category-label">기록 / 정리</div>
+                    <div class="quick-btns-row">
+                        <button class="quick-btn" onclick="openWorklogModal()">📝 업무 기록</button>
+                        <button class="quick-btn" onclick="sendQuick('이번 주 팀 주간 리포트 작성해줘')">📅 주간 리포트 작성</button>
+                    </div>
                 </div>
             </div>
         </div>
