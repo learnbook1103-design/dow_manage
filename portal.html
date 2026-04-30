@@ -676,7 +676,7 @@
 
         <!-- 모듈 카드 -->
         <div class="module-grid">
-            <div class="module-card" onclick="location.href='supplement.html'">
+            <div class="module-card" onclick="navigateTo('supplement.html')">
                 <span class="module-status status-live">운영 중</span>
                 <div class="module-icon" style="background:#d1fae5;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="1.8">
@@ -691,7 +691,7 @@
                 <p class="module-desc">출퇴근 현황 확인 및 보완 사유 등록</p>
             </div>
 
-            <div class="module-card" onclick="location.href='admin.html'">
+            <div class="module-card" onclick="navigateTo('admin.html')">
                 <span class="module-status status-live">운영 중</span>
                 <div class="module-icon" style="background:#dbeafe;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1e40af" stroke-width="1.8">
@@ -718,7 +718,7 @@
                 <p class="module-desc">ERP 데이터 → 일계표 자동 생성</p>
             </div>
 
-            <div class="module-card" onclick="location.href='hub.html'" style="border: 1.5px solid #a7f3d0;">
+            <div class="module-card" onclick="navigateTo('hub.html')" style="border: 1.5px solid #a7f3d0;">
                 <span class="module-status status-test">테스트</span>
                 <div class="module-icon" style="background:#ecfdf5;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="1.8">
@@ -730,7 +730,7 @@
                 <p class="module-desc">자연어로 파이프라인 조회·업데이트, 리포트 생성</p>
             </div>
 
-            <div class="module-card" onclick="location.href='approval.html'">
+            <div class="module-card" onclick="navigateTo('approval.html')">
                 <span class="module-status status-test">테스트</span>
                 <div class="module-icon" style="background:#ede9fe;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#5b21b6" stroke-width="1.8">
@@ -745,7 +745,7 @@
                 <p class="module-desc">비품구매 · 경조사비 · 출장비 · 식비 신청 및 결재</p>
             </div>
 
-            <div class="module-card" onclick="location.href='pipeline.html'">
+            <div class="module-card" onclick="navigateTo('pipeline.html')">
                 <span class="module-status status-test">테스트</span>
                 <div class="module-icon" style="background:#f0fdf4;">
                     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="1.8">
@@ -1176,6 +1176,20 @@
                 openLoginModal();
             }
         }
+        let _pendingNav = null;
+
+        function navigateTo(url) {
+            const name = localStorage.getItem('attendance_user_name') || '';
+            const loginDate = localStorage.getItem('attendance_login_date');
+            const today = new Date().toISOString().slice(0, 10);
+            if (name && loginDate === today) {
+                location.href = url;
+            } else {
+                _pendingNav = url;
+                openLoginModal();
+            }
+        }
+
         function openLoginModal() {
             document.getElementById('lm-name').value = '';
             document.getElementById('lm-pin').value = '';
@@ -1207,12 +1221,14 @@
                 if (!data) { errEl.textContent = '이름 또는 PIN이 올바르지 않습니다.'; return; }
                 localStorage.setItem('attendance_user_name', data.name);
                 localStorage.setItem('attendance_user_pin', data.pin);
+                localStorage.setItem('attendance_login_date', new Date().toISOString().slice(0, 10));
                 sessionStorage.setItem('attendance_user_is_admin', String(data.is_admin));
                 const isAdm = data.is_admin;
                 document.getElementById('nav-username').textContent = data.name + (isAdm ? ' (관리자)' : '');
                 document.getElementById('btn-login-logout').textContent = '로그아웃';
                 closeLoginModal();
                 showToast('✅ ' + data.name + '님, 로그인됐습니다.');
+                if (_pendingNav) { const dest = _pendingNav; _pendingNav = null; location.href = dest; }
             } catch (e) {
                 errEl.textContent = '오류: ' + e.message;
             } finally {
