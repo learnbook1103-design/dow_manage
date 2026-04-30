@@ -340,7 +340,16 @@
 
         <div class="quick-prompts" id="quick-prompts">
             <div class="quick-category">
-                <div class="quick-category-label">업무 현황</div>
+                <div class="quick-category-label">개인 업무</div>
+                <div class="quick-btns-row">
+                    <button class="quick-btn" onclick="sendQuick('내 업무 현황 보여줘')">👤 내 업무 현황</button>
+                    <button class="quick-btn" onclick="sendQuick('내 이번 주 할 일 정리해줘')">✅ 이번 주 할 일</button>
+                    <button class="quick-btn" onclick="sendQuick('내 미완료 업무 뭐야?')">🔴 미완료 업무</button>
+                    <button class="quick-btn" onclick="sendQuick('내 업무 파일 보여줘')">📄 내 업무 파일</button>
+                </div>
+            </div>
+            <div class="quick-category">
+                <div class="quick-category-label">팀 업무 현황</div>
                 <div class="quick-btns-row">
                     <button class="quick-btn" onclick="sendQuick('우리 팀 미결업무 현황 요약해줘')">📋 팀 과제 현황</button>
                     <button class="quick-btn" onclick="sendQuick('이번 주 우리 팀 주간 리포트 보여줘')">📊 주간 리포트</button>
