@@ -36,7 +36,7 @@ module.exports = async (req, res) => {
 
         const root = {};
 
-        const HIDDEN_FILES = ['README.md', '_template.md'];
+        const HIDDEN_FILES = ['README.md', '_template.md', '_index.md'];
         const currentUser = req.query.user || '';
 
         (tree || []).forEach(item => {
