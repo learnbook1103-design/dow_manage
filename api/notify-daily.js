@@ -151,7 +151,7 @@ function buildEmailHtml(name, org, teamData, personalContent, isMonday, erpData,
     const emptyHtml = !teamData.warnings.length && !teamData.tasks.length && !personalContent && !erpData
         ? `<p style="color:#6b7280;font-size:0.88rem;">오늘 특별한 업무 항목이 없습니다.</p>` : '';
 
-    return `<div style="font-family:'Apple SD Gothic Neo',Pretendard,sans-serif;max-width:520px;margin:0 auto;">
+    return `<meta charset="UTF-8"><div style="font-family:'Apple SD Gothic Neo',Pretendard,sans-serif;max-width:520px;margin:0 auto;">
         <div style="background:#0071e3;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;">
             <div style="font-size:1.05rem;font-weight:700;">📋 ${title}</div>
             <div style="font-size:0.83rem;opacity:0.85;margin-top:4px;">${dateStr} · ${org}</div>
