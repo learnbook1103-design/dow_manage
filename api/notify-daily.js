@@ -118,7 +118,7 @@ function buildErpSection(erpData) {
         </div>`;
 }
 
-function buildEmailHtml(name, org, teamData, personalContent, isMonday, erpData) {
+function buildEmailHtml(name, org, teamData, personalContent, isMonday, erpData, loginName) {
     const nowKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
     const dateStr = nowKST.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
     const title = isMonday ? '이번 주 업무 브리핑' : '오늘의 업무 브리핑';
@@ -164,7 +164,7 @@ function buildEmailHtml(name, org, teamData, personalContent, isMonday, erpData)
             ${personalHtml}
             ${emptyHtml}
             <div style="margin-top:24px;padding-top:16px;border-top:1px solid #f3f4f6;">
-                <a href="${HUB_URL}/hub.html" style="display:inline-block;background:#0071e3;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-size:0.88rem;font-weight:700;">업무 허브에서 확인하기 →</a>
+                <a href="${HUB_URL}/hub.html?autologin=${encodeURIComponent(loginName || name)}" style="display:inline-block;background:#0071e3;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-size:0.88rem;font-weight:700;">업무 허브에서 확인하기 →</a>
             </div>
             <p style="margin:12px 0 0;font-size:0.76rem;color:#9ca3af;">DOW Valve 업무 허브 자동 발송 메일</p>
         </div>
@@ -209,7 +209,7 @@ module.exports = async (req, res) => {
                 fetchErpData()
             ]);
             const teamData = await extractTeamTasks(teamContent, isMonday, TEST_ORG);
-            const html = buildEmailHtml(TEST_NAME, TEST_ORG, teamData, personalContent, isMonday, erpData);
+            const html = buildEmailHtml(TEST_NAME, TEST_ORG, teamData, personalContent, isMonday, erpData, TEST_NAME);
             const dateLabel = nowKST.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
             const subject = `[테스트] ${isMonday ? '이번 주 업무' : '오늘의 업무'} ${dateLabel} · ${TEST_NAME}님`;
 

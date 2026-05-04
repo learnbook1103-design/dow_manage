@@ -472,7 +472,31 @@
 
 <script>
     // ── 접근 제한 + 세션 만료 ──────────────────────────────────────────────────
-    (function () {
+    (async function () {
+        const params = new URLSearchParams(location.search);
+        const autologinName = params.get('autologin');
+
+        if (autologinName) {
+            const SB_URL = 'https://grxslikvzxafmxuepusy.supabase.co';
+            const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc';
+            try {
+                const res = await fetch(`${SB_URL}/rest/v1/employees?select=name,org,rank&name=eq.${encodeURIComponent(autologinName)}&limit=1`, {
+                    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+                });
+                const rows = await res.json();
+                if (rows.length) {
+                    const emp = rows[0];
+                    const today = new Date().toISOString().slice(0, 10);
+                    localStorage.setItem('attendance_user_name', emp.name);
+                    localStorage.setItem('attendance_user_org', emp.org || '');
+                    localStorage.setItem('attendance_user_rank', emp.rank || '');
+                    localStorage.setItem('attendance_login_date', today);
+                    params.delete('autologin');
+                    history.replaceState(null, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+                }
+            } catch {}
+        }
+
         const name = localStorage.getItem('attendance_user_name');
         const loginDate = localStorage.getItem('attendance_login_date');
         const today = new Date().toISOString().slice(0, 10);
