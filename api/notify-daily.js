@@ -1,13 +1,30 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const SUPABASE_URL = 'https://grxslikvzxafmxuepusy.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc';
 
 const GH_OWNER = 'learnbook1103-design';
 const GH_REPO = 'dow_manage';
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbw9ilToZxa0TbUJcOSisgYXVL-g-S5jy8eptzaHLcgAu53GmYdtZ5AXsxmoKxphBLTomA/exec';
 const HUB_URL = 'https://dow-manage.vercel.app';
+
+// ERP_URL: 로컬 테스트 시 http://localhost, 프로덕션 시 실제 ERP 도메인
+// ERP_NOTIFY_KEY: ERP .env의 NOTIFY_API_KEY 값
+async function fetchErpData() {
+    const erpUrl = process.env.ERP_URL;
+    const erpKey = process.env.ERP_NOTIFY_KEY;
+    if (!erpUrl || !erpKey) return null;
+
+    try {
+        const res = await fetch(`${erpUrl}/api/notify-data`, {
+            headers: { 'X-Notify-Key': erpKey, Accept: 'application/json' },
+            signal: AbortSignal.timeout(8000)
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}
 
 function ghHeaders() {
     return {
@@ -25,15 +42,6 @@ async function readHubFile(path) {
     return Buffer.from(json.content, 'base64').toString('utf-8');
 }
 
-async function getEmployees() {
-    const res = await fetch(
-        `${SUPABASE_URL}/rest/v1/employees?select=name,email,org&email=not.is.null`,
-        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
-    );
-    if (!res.ok) return [];
-    const rows = await res.json();
-    return rows.filter(e => e.email && e.email.trim() && e.org && e.org.trim());
-}
 
 async function extractTeamTasks(teamContent, isMonday, org) {
     if (!teamContent) return { warnings: [], tasks: [] };
@@ -67,7 +75,50 @@ JSON 외 다른 텍스트 없이 응답하세요.`;
     }
 }
 
-function buildEmailHtml(name, org, teamData, personalContent, isMonday) {
+function buildErpSection(erpData) {
+    if (!erpData) return '';
+
+    const deliveries = (erpData.upcoming_deliveries || []).slice(0, 5);
+    const receivables = erpData.receivables || {};
+    const overdue = (erpData.overdue_invoices || []).slice(0, 3);
+
+    const deliveryRows = deliveries.map(d => {
+        const amt = d.total_amount ? `${Number(d.total_amount).toLocaleString()}원` : '';
+        return `<li style="margin-bottom:5px;font-size:0.87rem;color:#374151;">
+            <strong>${d.company_name || ''}</strong> · ${d.doc_title || ''} · 납기 <strong style="color:#dc2626;">${d.delivery_deadline}</strong>${amt ? ` · ${amt}` : ''}
+        </li>`;
+    }).join('');
+
+    const overdueRows = overdue.map(o => {
+        const remain = Number(o.total_amount || 0) - Number(o.paid_amount || 0);
+        return `<li style="margin-bottom:5px;font-size:0.87rem;color:#374151;">
+            <strong>${o.company_name || ''}</strong> · ${o.doc_title || ''} · 미수금 <strong style="color:#dc2626;">${remain.toLocaleString()}원</strong>
+        </li>`;
+    }).join('');
+
+    return `
+        <div style="margin-bottom:20px;padding:14px;background:#fff7ed;border-radius:8px;border-left:3px solid #ea580c;">
+            <div style="font-weight:700;font-size:0.88rem;color:#ea580c;margin-bottom:10px;">🏭 ERP 현황</div>
+            ${deliveries.length ? `
+                <div style="margin-bottom:10px;">
+                    <div style="font-size:0.82rem;font-weight:600;color:#9a3412;margin-bottom:6px;">납기 임박 (7일 이내)</div>
+                    <ul style="margin:0;padding-left:18px;">${deliveryRows}</ul>
+                </div>` : ''}
+            ${receivables.count ? `
+                <div style="margin-bottom:${overdue.length ? '10px' : '0'};">
+                    <div style="font-size:0.82rem;font-weight:600;color:#9a3412;margin-bottom:4px;">미수금 현황</div>
+                    <div style="font-size:0.87rem;color:#374151;">총 <strong>${receivables.count}건</strong> · <strong style="color:#dc2626;">${Number(receivables.outstanding).toLocaleString()}원</strong></div>
+                </div>` : ''}
+            ${overdue.length ? `
+                <div>
+                    <div style="font-size:0.82rem;font-weight:600;color:#9a3412;margin-bottom:6px;">연체 계산서</div>
+                    <ul style="margin:0;padding-left:18px;">${overdueRows}</ul>
+                </div>` : ''}
+            ${!deliveries.length && !receivables.count ? `<div style="font-size:0.87rem;color:#9a3412;">납기 임박 건 없음</div>` : ''}
+        </div>`;
+}
+
+function buildEmailHtml(name, org, teamData, personalContent, isMonday, erpData) {
     const nowKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
     const dateStr = nowKST.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
     const title = isMonday ? '이번 주 업무 브리핑' : '오늘의 업무 브리핑';
@@ -95,7 +146,9 @@ function buildEmailHtml(name, org, teamData, personalContent, isMonday) {
             <pre style="margin:0;font-family:inherit;font-size:0.84rem;color:#374151;white-space:pre-wrap;">${personalContent.slice(0, 800)}</pre>
         </div>` : '';
 
-    const emptyHtml = !teamData.warnings.length && !teamData.tasks.length && !personalContent
+    const erpHtml = buildErpSection(erpData);
+
+    const emptyHtml = !teamData.warnings.length && !teamData.tasks.length && !personalContent && !erpData
         ? `<p style="color:#6b7280;font-size:0.88rem;">오늘 특별한 업무 항목이 없습니다.</p>` : '';
 
     return `<div style="font-family:'Apple SD Gothic Neo',Pretendard,sans-serif;max-width:520px;margin:0 auto;">
@@ -107,6 +160,7 @@ function buildEmailHtml(name, org, teamData, personalContent, isMonday) {
             <p style="margin:0 0 20px;font-size:0.93rem;">안녕하세요, <strong>${name}</strong>님.</p>
             ${warningsHtml}
             ${tasksHtml}
+            ${erpHtml}
             ${personalHtml}
             ${emptyHtml}
             <div style="margin-top:24px;padding-top:16px;border-top:1px solid #f3f4f6;">
@@ -147,51 +201,29 @@ module.exports = async (req, res) => {
         const day = nowKST.getDay();
         const isMonday = day === 1;
 
-        // 테스트 모드: 정상민 메일로만 발송
-        if (isTest) {
-            const teamContent = await readHubFile(`sales/tasks/${TEST_ORG}.md`);
+        // 테스트/미리보기 모드: 정상민 기준으로 데이터 생성
+        if (isTest || req.query.preview === 'true') {
+            const [teamContent, personalContent, erpData] = await Promise.all([
+                readHubFile(`sales/tasks/${TEST_ORG}.md`),
+                readHubFile(`sales/tasks/personal/${TEST_NAME}.md`),
+                fetchErpData()
+            ]);
             const teamData = await extractTeamTasks(teamContent, isMonday, TEST_ORG);
-            const personalContent = await readHubFile(`sales/tasks/personal/${TEST_NAME}.md`);
-            const html = buildEmailHtml(TEST_NAME, TEST_ORG, teamData, personalContent, isMonday);
+            const html = buildEmailHtml(TEST_NAME, TEST_ORG, teamData, personalContent, isMonday, erpData);
             const dateLabel = nowKST.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
             const subject = `[테스트] ${isMonday ? '이번 주 업무' : '오늘의 업무'} ${dateLabel} · ${TEST_NAME}님`;
+
+            // 미리보기 모드: 메일 발송 없이 HTML 그대로 반환
+            if (req.query.preview === 'true') {
+                res.setHeader('Content-Type', 'text/html; charset=utf-8');
+                return res.status(200).send(html);
+            }
+
             await sendViaGAS(TEST_EMAIL, subject, html);
-            return res.status(200).json({ ok: true, sent: 1, mode: 'test', to: TEST_EMAIL });
+            return res.status(200).json({ ok: true, sent: 1, mode: 'test', to: TEST_EMAIL, erpConnected: !!erpData });
         }
 
-        const employees = await getEmployees();
-        if (!employees.length) return res.status(200).json({ ok: true, sent: 0, reason: '이메일 있는 직원 없음' });
-
-        // 팀별 파일 + AI 추출 병렬 처리
-        const uniqueOrgs = [...new Set(employees.map(e => e.org))];
-        const teamDataMap = {};
-
-        await Promise.all(uniqueOrgs.map(async org => {
-            const content = await readHubFile(`sales/tasks/${org}.md`);
-            teamDataMap[org] = await extractTeamTasks(content, isMonday, org);
-        }));
-
-        // 개인 파일 병렬 조회
-        const personalMap = {};
-        await Promise.all(employees.map(async emp => {
-            personalMap[emp.name] = await readHubFile(`sales/tasks/personal/${emp.name}.md`);
-        }));
-
-        // 이메일 발송
-        const dateLabel = nowKST.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
-        const subjectPrefix = isMonday ? `[이번 주 업무] ${dateLabel}` : `[오늘의 업무] ${dateLabel}`;
-
-        let sent = 0;
-        await Promise.all(employees.map(async emp => {
-            const teamData = teamDataMap[emp.org] || { warnings: [], tasks: [] };
-            const personalContent = personalMap[emp.name];
-            const html = buildEmailHtml(emp.name, emp.org, teamData, personalContent, isMonday);
-            const subject = `${subjectPrefix} · ${emp.name}님`;
-            const ok = await sendViaGAS(emp.email, subject, html);
-            if (ok) sent++;
-        }));
-
-        res.status(200).json({ ok: true, sent, total: employees.length });
+        res.status(200).json({ ok: false, reason: '전체 발송 미지원 — ?test=true 또는 ?preview=true 사용' });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }

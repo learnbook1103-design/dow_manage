@@ -80,6 +80,7 @@ function doPost(e) {
     const body = JSON.parse(e.postData.contents);
     const action = body.action;
 
+    // 일일 브리핑 메일 중계 (api/notify-daily.js → GAS → Gmail)
     if (action === 'notify') {
       sendMail(body.to, body.subject, body.html, 'DOW Valve 업무 허브');
       return ContentService.createTextOutput(JSON.stringify({ok:true})).setMimeType(ContentService.MimeType.JSON);
