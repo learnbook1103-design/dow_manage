@@ -134,7 +134,7 @@ function buildEmailHtml(name, org, teamData, personalContent, isMonday, erpData,
 
     const tasksHtml = teamData.tasks.length ? `
         <div style="margin-bottom:20px;">
-            <div style="font-weight:700;font-size:0.88rem;color:#0071e3;margin-bottom:8px;">📌 ${taskLabel}</div>
+            <div style="font-weight:700;font-size:0.88rem;color:#0071e3;margin-bottom:8px;">&#128204; ${taskLabel}</div>
             <ul style="margin:0;padding-left:18px;">
                 ${teamData.tasks.map(t => `<li style="margin-bottom:5px;font-size:0.87rem;color:#374151;">${t}</li>`).join('')}
             </ul>
@@ -142,7 +142,7 @@ function buildEmailHtml(name, org, teamData, personalContent, isMonday, erpData,
 
     const personalHtml = personalContent ? `
         <div style="margin-bottom:20px;padding:14px;background:#f8faff;border-radius:8px;border-left:3px solid #0071e3;">
-            <div style="font-weight:700;font-size:0.88rem;color:#1d4ed8;margin-bottom:6px;">👤 내 업무</div>
+            <div style="font-weight:700;font-size:0.88rem;color:#1d4ed8;margin-bottom:6px;">&#128100; 내 업무</div>
             <pre style="margin:0;font-family:inherit;font-size:0.84rem;color:#374151;white-space:pre-wrap;">${personalContent.slice(0, 800)}</pre>
         </div>` : '';
 
@@ -153,7 +153,7 @@ function buildEmailHtml(name, org, teamData, personalContent, isMonday, erpData,
 
     return `<meta charset="UTF-8"><div style="font-family:'Apple SD Gothic Neo',Pretendard,sans-serif;max-width:520px;margin:0 auto;">
         <div style="background:#0071e3;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;">
-            <div style="font-size:1.05rem;font-weight:700;">📋 ${title}</div>
+            <div style="font-size:1.05rem;font-weight:700;">&#128203; ${title}</div>
             <div style="font-size:0.83rem;opacity:0.85;margin-top:4px;">${dateStr} · ${org}</div>
         </div>
         <div style="background:#fff;border:1px solid #e5e7eb;border-top:none;padding:24px;border-radius:0 0 12px 12px;">
