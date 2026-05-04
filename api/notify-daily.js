@@ -182,7 +182,7 @@ async function sendViaGAS(to, subject, html) {
 
 const TEST_EMAIL = 'dowvalve.jeong@gmail.com';
 const TEST_NAME = '정상민';
-const TEST_ORG = '2차전지영업팀';
+const TEST_ORG = '국내외관리영업팀';
 
 module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
