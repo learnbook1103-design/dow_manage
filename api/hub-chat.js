@@ -164,7 +164,7 @@ async function loadSystemPrompt(userName, userOrg, userRank) {
 **1. 개인 업무 (sales/tasks/팀명/이름.md) ← 기본값**
 - 사용자가 직접 관리하는 본인의 업무 목록
 - "내 업무", "오늘 뭐 해야 해", "내 현황", "할 일" 등 → **항상 이 파일부터** 읽으세요
-- 파일 경로: sales/tasks/${userOrg || '해당팀'}/${userName}.md
+- 파일 경로: sales/tasks/${pipelineOrg || '해당팀'}/${userName}.md
 - 파일이 없으면 사용자에게 "개인 업무 파일이 없습니다. 만들까요?" 라고 먼저 물어보세요
 - ERP 연동 시 member_idx 기준으로 자동 매핑 예정
 
