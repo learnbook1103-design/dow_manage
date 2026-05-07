@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
         const root = {};
 
         const HIDDEN_FILES = ['README.md', '_template.md', '_index.md', 'members.md'];
-        const currentUser = req.query.user || '';
+        const HIDDEN_DIRS = ['_templates'];
 
         (tree || []).forEach(item => {
             if (item.type !== 'blob') return;
@@ -48,11 +48,7 @@ module.exports = async (req, res) => {
             const parts = rel.split('/');
             if (!TOP_DIRS.includes(parts[0])) return;
             if (HIDDEN_FILES.includes(parts[parts.length - 1])) return;
-
-            // personal/ 폴더: 로그인한 사용자 본인 파일만 노출
-            if (parts[0] === 'sales' && parts[1] === 'tasks' && parts[2] === 'personal') {
-                if (!currentUser || parts[parts.length - 1] !== `${currentUser}.md`) return;
-            }
+            if (parts.some(p => HIDDEN_DIRS.includes(p))) return;
 
             insertItem(root, parts, rel);
         });
