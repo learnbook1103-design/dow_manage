@@ -2,7 +2,7 @@ const GH_OWNER = 'learnbook1103-design';
 const GH_REPO = 'dow_manage';
 const GH_BRANCH = 'main';
 
-const TOP_DIRS = ['sales', 'team', 'ontology', 'inbox', 'companies', 'project'];
+const TOP_DIRS = ['sales', 'internal', 'ontology', 'inbox', 'companies', 'project'];
 
 function insertItem(root, parts, path) {
     let node = root;
