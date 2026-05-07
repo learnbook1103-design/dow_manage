@@ -3,19 +3,28 @@ const SHEET_NAME = '결재_마스터';
 const INTRANET_URL = 'https://dow-manage.vercel.app'; // 배포 후 URL 확인 필요
 
 function getOrCreateSheet() {
-  const folder = DriveApp.getFolderById(FOLDER_ID);
-  const files = folder.getFilesByName(SHEET_NAME);
-  let ss;
-  if (files.hasNext()) {
-    ss = SpreadsheetApp.open(files.next());
-  } else {
-    ss = SpreadsheetApp.create(SHEET_NAME);
-    DriveApp.getFileById(ss.getId()).moveTo(folder);
-    const sheet = ss.getActiveSheet();
-    sheet.appendRow(['ID','유형','신청자','금액','상태','상세내용','메모','신청일시','결재자1','결재일시1','결재자2','결재일시2','결재자3','결재일시3','결재자4','결재일시4','결재자5','결재일시5']);
-    sheet.setFrozenRows(1);
+  // DriveApp.getFilesByName()은 공유드라이브를 검색하지 못해 매번 새 파일을 생성하는 버그가 있음
+  // → Script Properties에 파일 ID를 저장해 직접 열도록 수정
+  const props = PropertiesService.getScriptProperties();
+  const ssId = props.getProperty('MASTER_SHEET_ID');
+
+  if (ssId) {
+    try {
+      return SpreadsheetApp.openById(ssId).getActiveSheet();
+    } catch(e) {
+      // 파일이 삭제된 경우 재생성
+      props.deleteProperty('MASTER_SHEET_ID');
+    }
   }
-  return ss.getActiveSheet();
+
+  const folder = DriveApp.getFolderById(FOLDER_ID);
+  const ss = SpreadsheetApp.create(SHEET_NAME);
+  DriveApp.getFileById(ss.getId()).moveTo(folder);
+  const sheet = ss.getActiveSheet();
+  sheet.appendRow(['ID','유형','신청자','금액','상태','상세내용','메모','신청일시','결재자1','결재일시1','결재자2','결재일시2','결재자3','결재일시3','결재자4','결재일시4','결재자5','결재일시5']);
+  sheet.setFrozenRows(1);
+  props.setProperty('MASTER_SHEET_ID', ss.getId());
+  return sheet;
 }
 
 function sendMail(to, subject, body, senderName, senderEmail) {
