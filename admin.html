@@ -310,6 +310,12 @@
                                 <input type="radio" name="report-mode" value="simple" style="display:none;"> 양식 2
                             </label>
                         </div>
+                        <label id="simple-leave-column-option"
+                            style="display:flex; align-items:center; gap:0.4rem; padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:6px; background:#fff; color:#374151; font-size:0.8rem; font-weight:500; cursor:pointer;">
+                            <input type="checkbox" id="simple-leave-column-toggle" checked
+                                style="width:14px; height:14px; margin:0; accent-color:#1e40af;">
+                            양식 2 잔여 연차 표시
+                        </label>
                         <button id="print-btn" class="primary-btn"
                             style="flex: 1; background-color: #0d5e94; font-size: 0.9rem;">
                             보고서 인쇄 및 PDF 저장
@@ -607,6 +613,7 @@
             const fetchEmployeesBtn = document.getElementById('fetch-employees-btn');
             const syncEmployeesBtn = document.getElementById('sync-employees-btn');
             const printBtn = document.getElementById('print-btn');
+            const simpleLeaveColumnToggle = document.getElementById('simple-leave-column-toggle');
 
             // 검증(Verification) 기능 요소
             const verifyBtn = document.getElementById('verify-data-btn');
@@ -2614,6 +2621,7 @@
                 reportContainer.innerHTML = '';
                 const reportDate = reportDateInput.value;
                 const isSimpleMode = document.querySelector('input[name="report-mode"]:checked')?.value === 'simple';
+                const showSimpleLeaveColumn = isSimpleMode && simpleLeaveColumnToggle?.checked !== false;
                 const weekdaysMap = ["일", "월", "화", "수", "목", "금", "토"];
                 const skipCheckKeywords = ['출장', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '교육', '훈련', '파견', '현장', '반차', '오전반차', '오후반차', '예비군'];
 
@@ -2708,7 +2716,7 @@
                         const d = new Date(dt);
                         theadHtml += `<th class="th-dategroup">${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}<br>(${weekdaysMap[d.getDay()]})</th>`;
                     });
-                    if (isSimpleMode) theadHtml += `<th style="min-width:28px; text-align:center;">잔여<br>연차</th>`;
+                    if (showSimpleLeaveColumn) theadHtml += `<th style="min-width:28px; text-align:center;">잔여<br>연차</th>`;
                     theadHtml += `</tr></thead>`;
 
                     let tbodyHtml = `<tbody>`;
@@ -2803,7 +2811,7 @@
 
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
                         });
-                        if (isSimpleMode) tbodyHtml += `<td rowspan="3" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"></td>`;
+                        if (showSimpleLeaveColumn) tbodyHtml += `<td rowspan="3" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"></td>`;
                         tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
@@ -3623,6 +3631,14 @@
                     }
                 });
             });
+
+            if (simpleLeaveColumnToggle) {
+                simpleLeaveColumnToggle.addEventListener('change', () => {
+                    if (!reportContainer.classList.contains('hidden')) {
+                        updateAndProcessData();
+                    }
+                });
+            }
 
             // 공통 이벤트
             reportDateInput.addEventListener('change', (e) => {
