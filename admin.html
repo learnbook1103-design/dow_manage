@@ -2804,7 +2804,7 @@
                             if (isOutRange) cls = 'not-employed';
                             else if (!isSimpleMode && val === '연차') cls = 'leave-annual';
                             else if (!isSimpleMode && val === '반차') cls = 'leave-half';
-                            else if (isTardy && !isConfirmedIn) cls = 'tardy-yellow';
+                            else if (!isSimpleMode && isTardy && !isConfirmedIn) cls = 'tardy-yellow';
                             else if (!isSimpleMode && hasRec && isConfirmedIn) cls = 'confirmed-cell';
                             else if (isSimpleMode && !isOutRange && (empInfo.org || '').includes('밸브파크') && earliestInMapPark[dt]?.name === name) cls = 'earliest-in-cell-park';
                             else if (isSimpleMode && !isOutRange && !(empInfo.org || '').includes('밸브파크') && earliestInMap[dt]?.name === name) cls = 'earliest-in-cell';
