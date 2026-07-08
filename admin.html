@@ -3871,6 +3871,11 @@
                                                         '병가', '공가', '경조', '대체', '포상'];
                                                     if (standards.includes(t)) return t;
 
+                                                    const normalInKeyword = /정상\s*출근|제시간|정시출근/.test(t);
+                                                    const normalOutKeyword = /정상\s*퇴근|정시퇴근/.test(t);
+                                                    if (normalInKeyword) return '정상출근';
+                                                    if (normalOutKeyword) return '정상퇴근';
+
                                                     // 2. 시간 패턴 추출 (PM06:00 / 오후6시 / 18:00 / 18시 / 6:00PM 등)
                                                     const timeMatch = t.match(
                                                         /(?:PM|AM|오전|오후)?\s*(\d{1,2})[:\s시](\d{0,2})(?:분)?(?:\s*(?:PM|AM|퇴근|출근))?/i
@@ -3893,7 +3898,7 @@
                                                             const shift = empInfo?.shift || '0800-1700';
                                                             const expOutStr = shift.split(/[-~]/)[1]?.replace(/[^0-9]/g, '') || '1700';
                                                             const expOutHour = parseInt(expOutStr.substring(0, 2));
-                                                            return hour >= expOutHour ? '정상퇴근' : `조기퇴근 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 퇴근)`;
+                                                            return hour >= expOutHour ? t : `조기퇴근 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 퇴근)`;
                                                         }
                                                         // 출근 맥락
                                                         if (isInContext || hour < 11) {
@@ -3904,7 +3909,7 @@
                                                             const expInMin = parseInt(expInStr.substring(2, 4) || '0');
                                                             const expInTotalSeconds = (expInHour * 3600) + (expInMin * 60) + 59;
                                                             const actualTotalSeconds = (hour * 3600) + (parseInt(timeMatch[2] || '0', 10) * 60) + parseInt(timeMatch[3] || '0', 10);
-                                                            return actualTotalSeconds <= expInTotalSeconds ? '정상출근' : `지각 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 출근)`;
+                                                            return actualTotalSeconds <= expInTotalSeconds ? t : `지각 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 출근)`;
                                                         }
                                                     }
 
