@@ -1231,13 +1231,27 @@
                     return;
                 }
                 const { recordsMap, names, uniqueDates } = currentMatrix;
+                const isActualAttendanceTime = (value) => {
+                    const text = String(value || '').trim();
+                    return /^\d{1,2}:\d{2}/.test(text);
+                };
+                const isLeaveReasonText = (value) => {
+                    const text = String(value || '');
+                    return text.includes("반차") || text.includes("연차");
+                };
                 const newRecords = [];
                 names.forEach(name => {
                     const userRecs = recordsMap[name] || {};
                     uniqueDates.forEach(date => {
                         const rec = userRecs[date] || {};
                         const corrKey = `${name}_${date}`;
-                        const corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
+                        let corrData = manualCorrections[corrKey] || { in: false, out: false, leave: false };
+                        let managerReason = manualReasons[corrKey] || "";
+                        const hasActualPunch = isActualAttendanceTime(rec.inTime) || isActualAttendanceTime(rec.outTime);
+                        if (ignorePeriod && hasActualPunch && isLeaveReasonText(managerReason)) {
+                            corrData = { in: false, out: false, leave: false };
+                            managerReason = "";
+                        }
                         newRecords.push({
                             manager_key: corrKey, name, date,
                             shift: rec.shiftStart || null,
@@ -1246,7 +1260,7 @@
                             status_in: !!corrData.in,
                             status_out: !!corrData.out,
                             status_leave: !!corrData.leave,
-                            manager_reason: manualReasons[corrKey] || "",
+                            manager_reason: managerReason,
                             employee_explanation: employeeExplanations[corrKey] || "",
                             reason: rec.reason || "",
                             early_punch_mode: manualEarlyPunches[corrKey] || "",
@@ -1279,15 +1293,17 @@
                     const ex = existingMap[r.manager_key];
                     if (!ex) return r;
                     if (overwriteAttendanceValues) {
+                        const hasActualPunch = isActualAttendanceTime(r.in_time) || isActualAttendanceTime(r.out_time);
+                        const dropExistingLeaveReason = hasActualPunch && isLeaveReasonText(ex.manager_reason);
                         return {
                             ...r,
                             shift: r.shift || ex.shift || null,
-                            manager_reason: r.manager_reason || ex.manager_reason || "",
+                            manager_reason: r.manager_reason || (dropExistingLeaveReason ? "" : ex.manager_reason) || "",
                             employee_explanation: r.employee_explanation || ex.employee_explanation || "",
                             early_punch_mode: r.early_punch_mode || ex.early_punch_mode || "",
-                            status_in: r.status_in || ex.status_in,
-                            status_out: r.status_out || ex.status_out,
-                            status_leave: r.status_leave || ex.status_leave,
+                            status_in: dropExistingLeaveReason ? r.status_in : (r.status_in || ex.status_in),
+                            status_out: dropExistingLeaveReason ? r.status_out : (r.status_out || ex.status_out),
+                            status_leave: dropExistingLeaveReason ? r.status_leave : (r.status_leave || ex.status_leave),
                         };
                     }
                     return {
@@ -2133,7 +2149,7 @@
 
                 // [NEW] 로그 형태의 데이터 처리 (발생시각, 이름 기반)
                 if (headers.includes('발생시각') && !headers.includes('출근')) {
-                    const results = [];
+                    const grouped = {};
                     rawData.forEach(row => {
                         const name = normalizeName(row['이름']);
                         const parsedDateTime = parseAttendanceDateTime(row['발생시각']);
@@ -2144,31 +2160,38 @@
 
                         const { date, time } = parsedDateTime;
                         if (date && time) {
-                            let inTimeParam = "";
-                            let outTimeParam = "";
+                            const key = `${name}_${date}`;
+                            if (!grouped[key]) grouped[key] = { date, name, shift, ins: [], outs: [], access: [] };
+                            if (shift && !grouped[key].shift) grouped[key].shift = shift;
 
                             if (status.includes('퇴근')) {
-                                outTimeParam = time;
+                                grouped[key].outs.push(time);
                             } else if (status.includes('출근')) {
-                                inTimeParam = time;
+                                grouped[key].ins.push(time);
                             } else if (status.includes('출입') || status.includes('입')) {
-                                inTimeParam = time;
+                                grouped[key].access.push(time);
                             } else if (status.includes('퇴')) {
-                                outTimeParam = time;
+                                grouped[key].outs.push(time);
                             } else {
-                                inTimeParam = time;
+                                grouped[key].access.push(time);
                             }
-
-                            results.push({
-                                '날짜': date,
-                                '이름': name,
-                                '출근': inTimeParam,
-                                '퇴근': outTimeParam,
-                                '근무조': shift
-                            });
                         }
                     });
-                    return results;
+                    return Object.values(grouped).map(group => {
+                        const accessTimes = group.access.sort();
+                        const inTimes = group.ins.sort();
+                        const outTimes = group.outs.sort();
+                        const fallbackIn = inTimes[0] || accessTimes[0] || "";
+                        const fallbackOut = outTimes[outTimes.length - 1] || (accessTimes.length >= 2 ? accessTimes[accessTimes.length - 1] : "");
+
+                        return {
+                            '날짜': group.date,
+                            '이름': group.name,
+                            '출근': fallbackIn,
+                            '퇴근': fallbackOut,
+                            '근무조': group.shift
+                        };
+                    });
                 }
 
                 // 기존 행 기반 데이터 처리 (Matrix Style)
