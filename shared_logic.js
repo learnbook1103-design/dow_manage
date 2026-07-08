@@ -69,15 +69,20 @@ function isWeekendDateString(dateStr) {
     return dayOfWeek === 0 || dayOfWeek === 6;
 }
 
+function formatLocalDateValue(date) {
+    if (!date || typeof date.getFullYear !== 'function' || isNaN(date)) return "";
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 function normalizeAttendanceDateValue(value) {
     if (value instanceof Date && !isNaN(value)) {
-        return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+        return formatLocalDateValue(value);
     }
 
     if (typeof value === 'number' && Number.isFinite(value)) {
         if (value < 30000 || value > 80000) return "";
         const jsDate = new Date(Math.round((value - 25569) * 86400 * 1000));
-        return isNaN(jsDate) ? "" : jsDate.toISOString().split('T')[0];
+        return formatLocalDateValue(jsDate);
     }
 
     const text = String(value || '').trim();
@@ -121,6 +126,7 @@ function calculateAnomalies(combinedData, config) {
         employeeConfigList = [],
         manualEarlyPunches = {},
         manualReasons = {},
+        preemptiveSupplements = {},
         currentLeaveData = [],
         currentUniqueDates = new Set(),
         skipMissingEmployeeExpansion = false,
@@ -129,6 +135,13 @@ function calculateAnomalies(combinedData, config) {
     const anomalies = [];
     const manualNames = employeeConfigList.map(e => e.name.trim()).filter(n => n.length > 0);
     const ceoNames = new Set(employeeConfigList.filter(e => e.org === "대표이사").map(e => normalizeName(e.name)));
+    const mergeReason = (base, extra) => {
+        const cleanExtra = String(extra || '').replace(/^\[사전\]\s*/, '').trim();
+        if (!cleanExtra) return base || "";
+        if (String(base || '').includes(cleanExtra)) return base || "";
+        return base ? `${base}, ${cleanExtra}` : cleanExtra;
+    };
+    const getStoredReason = (key) => mergeReason(manualReasons[key] || "", preemptiveSupplements[key] || "");
 
     // 이름과 날짜별로 데이터 통합 (중복 제거)
     const groupedMap = {};
@@ -166,7 +179,7 @@ function calculateAnomalies(combinedData, config) {
                 shift: defaultShift,
                 originalDate: originalDateStr,
                 hasEarly: false,
-                reason: manualReasons[manualKey] || "" // [추가] 수동 사유 연동
+                reason: getStoredReason(manualKey) // [추가] 수동/사전 사유 연동
             };
         }
         if (isEarly) groupedMap[manualKey].hasEarly = true;
@@ -174,7 +187,7 @@ function calculateAnomalies(combinedData, config) {
         // [추가] 행 자체에 사유가 있다면 합침
         const rowReason = row["비고"] || row["reason"] || "";
         if (rowReason && !groupedMap[manualKey].reason.includes(rowReason)) {
-            groupedMap[manualKey].reason = (groupedMap[manualKey].reason ? groupedMap[manualKey].reason + ", " : "") + rowReason;
+            groupedMap[manualKey].reason = mergeReason(groupedMap[manualKey].reason, rowReason);
         }
 
 
@@ -205,7 +218,7 @@ function calculateAnomalies(combinedData, config) {
                 const newIn = expand(inVal);
                 const newOut = expand(outVal);
 
-                const shiftedDateStr = jsDatePrev.toISOString().split('T')[0];
+                const shiftedDateStr = formatLocalDateValue(jsDatePrev);
                 const prevKey = `${nameVal}_${shiftedDateStr}`;
                 if (!groupedMap[prevKey]) {
                     groupedMap[prevKey] = { date: shiftedDateStr, name: nameVal, in: newIn, out: newOut, minOut: newOut, shift: shiftStr, originalDate: originalDateStr, hasEarly: false };
@@ -242,7 +255,7 @@ function calculateAnomalies(combinedData, config) {
 
             let curDay = new Date(startDt);
             while (curDay <= endDt) {
-                const fDate = curDay.toISOString().split('T')[0];
+                const fDate = formatLocalDateValue(curDay);
                 if (typeof currentUniqueDates !== 'undefined' && currentUniqueDates && currentUniqueDates.has(fDate)) {
                     const manualKey = `${nameVal}_${fDate}`;
                     if (!groupedMap[manualKey]) {
@@ -252,11 +265,40 @@ function calculateAnomalies(combinedData, config) {
                             in: "", out: "", minOut: "",
                             shift: "0800-1700",
                             originalDate: fDate,
-                            hasEarly: false
+                            hasEarly: false,
+                            reason: getStoredReason(manualKey)
                         };
                     }
                 }
                 curDay.setDate(curDay.getDate() + 1);
+            }
+        });
+    }
+
+    // [추가] 사전 보완 등록만 있고 출퇴근 원자료가 없는 날짜도 검증 계산에 포함
+    if (preemptiveSupplements && Object.keys(preemptiveSupplements).length > 0) {
+        Object.entries(preemptiveSupplements).forEach(([key, reason]) => {
+            const splitAt = key.lastIndexOf('_');
+            if (splitAt <= 0) return;
+            const nameVal = normalizeName(key.slice(0, splitAt));
+            const fDate = normalizeAttendanceDateValue(key.slice(splitAt + 1));
+            if (!nameVal || !fDate || ceoNames.has(nameVal)) return;
+            if (currentUniqueDates && currentUniqueDates.size > 0 && !currentUniqueDates.has(fDate)) return;
+            const manualKey = `${nameVal}_${fDate}`;
+
+            if (!groupedMap[manualKey]) {
+                const empInfo = employeeConfigList.find(e => normalizeName(e.name) === nameVal);
+                groupedMap[manualKey] = {
+                    date: fDate,
+                    name: nameVal,
+                    in: "", out: "", minOut: "",
+                    shift: (empInfo && empInfo.shift) ? empInfo.shift : "0800-1700",
+                    originalDate: fDate,
+                    hasEarly: false,
+                    reason: getStoredReason(manualKey) || reason
+                };
+            } else {
+                groupedMap[manualKey].reason = mergeReason(groupedMap[manualKey].reason, reason);
             }
         });
     }
@@ -283,7 +325,7 @@ function calculateAnomalies(combinedData, config) {
                         shift: "0800-1700",
                         originalDate: fDate,
                         hasEarly: false,
-                        reason: manualReasons[manualKey] || ""
+                        reason: getStoredReason(manualKey)
                     };
                 }
             });
@@ -335,6 +377,8 @@ function calculateAnomalies(combinedData, config) {
         // [수정] 수동 사유(클라우드 복구분) 및 행 사유 결합
         const manualReason = group.reason || "";
         const combinedReason = manualReason;
+        const hasPreemptiveReason = !!preemptiveSupplements[`${nameVal}_${dateVal}`];
+        const shouldIgnoreStoredReasons = ignoreManualReasonsForDetection && !hasPreemptiveReason;
 
         const vacationKeywords = ['연차', '휴가', '경조', '공가', '병가', '청원', '대체', '포상', '반차', '오전반차', '오후반차'];
         const adjustmentKeywords = ['출장', '외근', '교육', '훈련', '파견', '현장', '외출', '조퇴', '생일자', '생일'];
@@ -429,7 +473,7 @@ function calculateAnomalies(combinedData, config) {
 
         if (!isAMHalf && !isPMHalf) {
             // 일반 근무 — isResolved면 전체 건너뜀
-            if (!isResolved || ignoreManualReasonsForDetection) {
+            if (!isResolved || shouldIgnoreStoredReasons) {
                 // [수정] 데이터 존재 여부를 더 엄격히 체크하여 '기록 없음' 오판 방지
                 const hasInRecord = isValidTime(inVal) || isLeaveMarker(inVal);
                 const hasOutRecord = isValidTime(outVal) || isLeaveMarker(outVal);
@@ -465,7 +509,7 @@ function calculateAnomalies(combinedData, config) {
             }
         } else if (isAMHalf) {
             // 오전 반차 (오전 휴가 → 오후 출근)
-            if (!isResolved || ignoreManualReasonsForDetection) {
+            if (!isResolved || shouldIgnoreStoredReasons) {
                 if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
                     // 퇴근 기록도 없으면 이상 — 단, 출근 기록 자체가 없을 때는 제외
                     // (오전 반차인데 출근 기록도 없으면 아예 안 온 것이므로 이상 아님)
@@ -486,7 +530,7 @@ function calculateAnomalies(combinedData, config) {
             }
         } else if (isPMHalf) {
             // 오후 반차 (오전 근무 → 오후 휴가)
-            if (!isResolved || ignoreManualReasonsForDetection) {
+            if (!isResolved || shouldIgnoreStoredReasons) {
                 // 출근 체크
                 if (!isValidTime(inVal) && !isLeaveMarker(inVal)) {
                     inAnom = true;
@@ -532,7 +576,7 @@ function calculateAnomalies(combinedData, config) {
 
                 let curDay = new Date(startDate);
                 while (curDay <= endDate) {
-                    const fDate = curDay.toISOString().split('T')[0];
+                    const fDate = formatLocalDateValue(curDay);
                     if (currentUniqueDates.has(fDate)) {
                         anomalies.push({
                             date: fDate,

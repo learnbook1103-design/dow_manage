@@ -589,7 +589,7 @@
 
                     document.getElementById('report-period-start').value = start;
                     document.getElementById('report-period-end').value = end;
-                    document.getElementById('report-date-input').value = now.toISOString().split('T')[0];
+                    document.getElementById('report-date-input').value = formatLocalDateValue(now);
 
                     await fetchAllFromCloud(true); // 해당 기간 데이터 로드
                     await cleanupOldSupplements();    // 30일 지난 processed 데이터 정리
@@ -1108,7 +1108,7 @@
                                         if (!val) return "";
                                         if (typeof val === 'number') {
                                             const jsDate = new Date(Math.round((val - 25569) * 86400 * 1000));
-                                            return jsDate.toISOString().split('T')[0];
+                                            return formatLocalDateValue(jsDate);
                                         }
                                         const str = String(val).trim().replace(/\./g, '-').replace(/\//g, '-');
                                         const match = str.match(/\d{4}-\d{2}-\d{2}/);
@@ -1181,7 +1181,7 @@
 
             // 날짜 설정
             const today = new Date();
-            reportDateInput.value = today.toISOString().split('T')[0];
+            reportDateInput.value = formatLocalDateValue(today);
 
             if (highlightAnomalyBtn) {
                 highlightAnomalyBtn.addEventListener('click', () => {
@@ -1203,7 +1203,7 @@
                 try {
                     const cutoff = new Date();
                     cutoff.setDate(cutoff.getDate() - 30);
-                    const cutoffStr = cutoff.toISOString().split('T')[0];
+                    const cutoffStr = formatLocalDateValue(cutoff);
 
                     const { data: deleted, error } = await supabase
                         .from('attendance_supplements')
@@ -1308,6 +1308,8 @@
                         const nextInTime = mergePunchValue(r.in_time, ex.in_time, 'in');
                         const nextOutTime = mergePunchValue(r.out_time, ex.out_time, 'out');
                         const hasMergedActualPunch = isActualAttendanceTime(nextInTime) || isActualAttendanceTime(nextOutTime);
+                        const hasIncomingInTime = isActualAttendanceTime(r.in_time);
+                        const hasIncomingOutTime = isActualAttendanceTime(r.out_time);
                         const dropExistingLeaveReason = hasMergedActualPunch && isLeaveReasonText(ex.manager_reason);
                         return {
                             ...r,
@@ -1317,9 +1319,9 @@
                             manager_reason: r.manager_reason || (dropExistingLeaveReason ? "" : ex.manager_reason) || "",
                             employee_explanation: r.employee_explanation || ex.employee_explanation || "",
                             early_punch_mode: r.early_punch_mode || ex.early_punch_mode || "",
-                            status_in: dropExistingLeaveReason ? r.status_in : (r.status_in || ex.status_in),
-                            status_out: dropExistingLeaveReason ? r.status_out : (r.status_out || ex.status_out),
-                            status_leave: dropExistingLeaveReason ? r.status_leave : (r.status_leave || ex.status_leave),
+                            status_in: dropExistingLeaveReason || hasIncomingInTime ? r.status_in : (r.status_in || ex.status_in),
+                            status_out: dropExistingLeaveReason || hasIncomingOutTime ? r.status_out : (r.status_out || ex.status_out),
+                            status_leave: dropExistingLeaveReason || hasMergedActualPunch ? r.status_leave : (r.status_leave || ex.status_leave),
                         };
                     }
                     return {
@@ -1467,7 +1469,10 @@
 
                             // 삭제 대상: 서버에는 있는데 현재 통합 데이터 분석 결과에는 없는 항목 (즉, 서버나 엑셀에 기록이 있어서 해소된 항목)
                             const toDeleteKeys = existingAnoms
-                                .filter(r => resolvedAnomalyKeys.has(r.manager_key) || !currentAnomalyKeys.has(r.manager_key))
+                                .filter(r => {
+                                    const isAutoManaged = !r.status || r.status === 'auto';
+                                    return isAutoManaged && (resolvedAnomalyKeys.has(r.manager_key) || !currentAnomalyKeys.has(r.manager_key));
+                                })
                                 .map(r => r.manager_key);
 
                             console.log(`[DEEP CLEANUP] 삭제 예정: ${toDeleteKeys.length}건 (해결됨 ${resolvedAnomalyKeys.size}건 포함)`);
@@ -1543,6 +1548,20 @@
                     const { data, error } = await supabase.from('attendance_records').select('*').gte('date', start).lte('date', end);
                     if (error) throw error;
 
+                    const clearCachedRange = (obj) => {
+                        Object.keys(obj || {}).forEach(key => {
+                            const splitAt = key.lastIndexOf('_');
+                            if (splitAt <= 0) return;
+                            const datePart = key.slice(splitAt + 1);
+                            if (datePart >= start && datePart <= end) delete obj[key];
+                        });
+                    };
+                    clearCachedRange(manualCorrections);
+                    clearCachedRange(manualReasons);
+                    clearCachedRange(employeeExplanations);
+                    clearCachedRange(manualEarlyPunches);
+                    clearCachedRange(preemptiveSupplements);
+
                     if (data && data.length > 0) {
                         data.forEach(row => {
                             const key = row.manager_key;
@@ -1581,6 +1600,11 @@
                         localStorage.setItem('preemptiveSupplements', JSON.stringify(preemptiveSupplements));
                         localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
                     }
+                    localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                    localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                    localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                    localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
+                    localStorage.setItem('preemptiveSupplements', JSON.stringify(preemptiveSupplements));
 
                     updateAndProcessData();
 
@@ -1670,7 +1694,7 @@
                             rank: emp.rank || ex.rank || null,
                             email: emp.email || ex.email || null,
                             join_date: emp.joinDate || ex.join_date || null,
-                            leave_date: emp.leave_date || ex.leave_date || null,
+                            leave_date: emp.leaveDate || ex.leave_date || null,
                             is_leader: emp.isLeader !== undefined ? emp.isLeader : ex.is_leader,
                             shift: emp.shift || ex.shift || null,
                             pin: emp.pin && emp.pin !== '0000' ? emp.pin : (ex.pin || '0000'),
@@ -1796,7 +1820,7 @@
                     const found = rows.find(r => normalizeName(r.이름) === name && r.날짜 === date);
                     if (found) {
                         rec = {
-                            shiftStart: found.근무조?.split('-')[0]?.trim() || "",
+                            shiftStart: found.근무조 ? expandShift(found.근무조) : "",
                             inTime: found.출근 || "",
                             outTime: found.퇴근 || "",
                             reason: found.비고 || ""
@@ -1816,7 +1840,7 @@
                         status_in: typeof corrData.in === 'boolean' ? corrData.in : (ex ? ex.status_in : false),
                         status_out: typeof corrData.out === 'boolean' ? corrData.out : (ex ? ex.status_out : false),
                         status_leave: typeof corrData.leave === 'boolean' ? corrData.leave : (ex ? ex.status_leave : false),
-                        manager_reason: (manualReasons && key in manualReasons) ? manualReasons[key] : (ex ? "" : ""),
+                        manager_reason: (manualReasons && key in manualReasons) ? manualReasons[key] : (ex ? ex.manager_reason : ""),
                         employee_explanation: employeeExplanations[key] || (ex ? ex.employee_explanation : ""),
                         reason: rec.reason || (ex ? ex.reason : ""),
                         early_punch_mode: manualEarlyPunches[key] || (ex ? ex.early_punch_mode : ""),
@@ -2526,7 +2550,7 @@
 
                     if (!jsDate || isNaN(jsDate)) return row;
 
-                    const fDate = jsDate.toISOString().split('T')[0];
+                    const fDate = formatLocalDateValue(jsDate);
                     const name = normalizeName(row["이름"]);
                     const key = `${name}_${fDate}`;
                     const mode = manualEarlyPunches[key] || "";
@@ -2540,7 +2564,7 @@
                             const prevDate = new Date(jsDate);
                             prevDate.setDate(prevDate.getDate() - 1);
                             const newRow = Object.assign({}, row);
-                            newRow["날짜"] = prevDate.toISOString().split('T')[0];
+                            newRow["날짜"] = formatLocalDateValue(prevDate);
 
                             // [추가] 01:00 -> 25:00 형태로 변환 (24시간 합산 처리)
                             const expandTime = (t) => {
@@ -2574,7 +2598,7 @@
                     else if (row["날짜"]) jsDate = new Date(String(row["날짜"]).split(' ')[0]);
 
                     if (jsDate && !isNaN(jsDate)) {
-                        const fDate = jsDate.toISOString().split('T')[0];
+                        const fDate = formatLocalDateValue(jsDate);
                         // 주말 또는 공휴일 제외
                         if (jsDate.getDay() !== 0 && jsDate.getDay() !== 6 && !isHoliday(fDate)) {
                             const name = normalizeName(row["이름"]);
@@ -2604,8 +2628,8 @@
                                 const mergedOut = (outTime && (!existing.outTime || outTime > existing.outTime)) ? outTime : existing.outTime;
 
                                 let shiftStart = existing.shiftStart;
-                                if (shiftStr.includes('-')) {
-                                    shiftStart = shiftStr.split('-')[0].trim();
+                                if (shiftStr) {
+                                    shiftStart = expandShift(shiftStr);
                                 }
 
                                 // [추가] 클라우드에서 복구된 사유가 있으면 적용
@@ -2631,7 +2655,7 @@
 
                         let curDay = new Date(startDate);
                         while (curDay <= endDate) {
-                            const fDate = curDay.toISOString().split('T')[0];
+                            const fDate = formatLocalDateValue(curDay);
 
                             const corrKey = `${name}_${fDate}`;
                             let corrData = manualCorrections[corrKey];
@@ -2692,6 +2716,32 @@
                     });
                 }
 
+                // [NEW] 사전 보완 등록만 있는 건도 매트릭스에 반영
+                Object.entries(preemptiveSupplements || {}).forEach(([key, reasonVal]) => {
+                    const splitAt = key.lastIndexOf('_');
+                    if (splitAt <= 0 || !reasonVal) return;
+                    const name = normalizeName(key.slice(0, splitAt));
+                    const fDate = normalizeAttendanceDateValue(key.slice(splitAt + 1));
+                    if (!name || !fDate) return;
+
+                    if (!recordsMap[name]) recordsMap[name] = {};
+                    if (!recordsMap[name][fDate]) {
+                        const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
+                        recordsMap[name][fDate] = {
+                            inTime: "",
+                            outTime: "",
+                            shiftStart: empInfo && empInfo.shift ? expandShift(empInfo.shift) : ""
+                        };
+                    }
+                    uniqueDates.add(fDate);
+
+                    const rec = recordsMap[name][fDate];
+                    const cleanReason = String(reasonVal).replace(/^\[사전\]\s*/, '').trim();
+                    if (cleanReason && !(rec.reason || "").includes(cleanReason)) {
+                        rec.reason = rec.reason ? `${rec.reason}, ${cleanReason}` : cleanReason;
+                    }
+                });
+
                 // [NEW] 수동으로 입력한 조치 사유 반영 (관리자 조치 내역)
                 Object.entries(manualReasons).forEach(([key, curResVal]) => {
                     const [name, fDate] = key.split('_');
@@ -2702,8 +2752,8 @@
                             // [수정] 수동 사유 생성 시에도 해당 사원의 기본 근무조 정보 보존
                             const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
                             let shiftStart = "";
-                            if (empInfo && empInfo.shift && empInfo.shift.includes("-")) {
-                                shiftStart = empInfo.shift.split("-")[0].replace(/[^0-9]/g, '');
+                            if (empInfo && empInfo.shift) {
+                                shiftStart = expandShift(empInfo.shift);
                             }
                             recordsMap[name][fDate] = { inTime: "", outTime: "", shiftStart: shiftStart };
                             uniqueDates.add(fDate);
@@ -2826,7 +2876,7 @@
                     let cur = new Date(startBound);
                     const last = new Date(endBound);
                     while (cur <= last) {
-                        const fDate = cur.toISOString().split('T')[0];
+                        const fDate = formatLocalDateValue(cur);
                         if (cur.getDay() !== 0 && cur.getDay() !== 6 && !isHoliday(fDate)) {
                             uniqueDates.add(fDate);
                         }
@@ -3336,7 +3386,7 @@
                         return;
                     }
 
-                    const reportDate = reportDateInput.value || new Date().toISOString().split('T')[0];
+                    const reportDate = reportDateInput.value || formatLocalDateValue(new Date());
 
                     // 보고서에 표시된 데이터만 추출 (보정 정보 포함)
                     const snapshot = {};
@@ -4444,7 +4494,7 @@
                         const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
                         periodEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
                         reportKey = `${periodStart}_${periodEnd}`;
-                        const reportDate = reportDateInput.value || new Date().toISOString().split('T')[0];
+                        const reportDate = reportDateInput.value || formatLocalDateValue(new Date());
                         const matrix = updateAndProcessData(true);
                         if (matrix) {
                             const { names, recordsMap } = matrix;
@@ -4495,7 +4545,7 @@
                         const { jsPDF } = window.jspdf;
                         const pages = document.querySelectorAll('.report-page');
                         // periodStart/periodEnd 보장: allDates 없어도 현재 날짜로 fallback
-                        const pStart = periodStart || new Date().toISOString().split('T')[0];
+                        const pStart = periodStart || formatLocalDateValue(new Date());
                         const pEnd = periodEnd || pStart;
                         if (pages.length > 0 && jsPDF && window.html2canvas) {
                             const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
