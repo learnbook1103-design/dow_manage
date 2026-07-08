@@ -1223,7 +1223,7 @@
             }
 
 
-            async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false, filesToUpload = []) {
+            async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false, filesToUpload = [], uploadSource = 'auto') {
                 if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
                 const currentMatrix = prebuiltMatrix || updateAndProcessData(true, ignorePeriod);
                 if (!currentMatrix) {
@@ -1294,9 +1294,18 @@
                     if (!ex) return r;
                     if (overwriteAttendanceValues) {
                         const hasActualPunch = isActualAttendanceTime(r.in_time) || isActualAttendanceTime(r.out_time);
+                        const protectExistingPunches = uploadSource === 'leave';
+                        const nextInTime = protectExistingPunches && isActualAttendanceTime(ex.in_time) && !isActualAttendanceTime(r.in_time)
+                            ? ex.in_time
+                            : r.in_time;
+                        const nextOutTime = protectExistingPunches && isActualAttendanceTime(ex.out_time) && !isActualAttendanceTime(r.out_time)
+                            ? ex.out_time
+                            : r.out_time;
                         const dropExistingLeaveReason = hasActualPunch && isLeaveReasonText(ex.manager_reason);
                         return {
                             ...r,
+                            in_time: nextInTime,
+                            out_time: nextOutTime,
                             shift: r.shift || ex.shift || null,
                             manager_reason: r.manager_reason || (dropExistingLeaveReason ? "" : ex.manager_reason) || "",
                             employee_explanation: r.employee_explanation || ex.employee_explanation || "",
@@ -2101,7 +2110,7 @@
                                 });
                                 return { name: f.name, base64: b64, mimeType: f.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
                             }));
-                            try { await syncAllToCloud(true, null, true, driveFiles); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
+                            try { await syncAllToCloud(true, null, true, driveFiles, 'attendance'); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
                         }
                     };
                     reader.readAsArrayBuffer(file);
@@ -2478,7 +2487,7 @@
                                 });
                                 return { name: f.name, base64: b64, mimeType: f.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
                             }));
-                            try { await syncAllToCloud(true, null, true, driveFiles); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
+                            try { await syncAllToCloud(true, null, true, driveFiles, 'leave'); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
                 }
             }
 
@@ -2594,14 +2603,13 @@
                 if (currentLeaveData && currentLeaveData.length > 0) {
                     currentLeaveData.forEach(lv => {
                         const name = normalizeName(lv.name);
-                        const startNum = lv.start;
-                        const endNum = lv.end || startNum;
+                        const startStr = normalizeAttendanceDateValue(lv.start);
+                        const endStr = normalizeAttendanceDateValue(lv.end || lv.start);
 
-                        if (!name || isNaN(startNum)) return;
+                        if (!name || !startStr || !endStr) return;
 
-                        const getJsDate = (num) => new Date(Math.round((num - 25569) * 86400 * 1000));
-                        const startDate = getJsDate(startNum);
-                        const endDate = getJsDate(endNum);
+                        const startDate = new Date(`${startStr}T00:00:00`);
+                        const endDate = new Date(`${endStr}T00:00:00`);
 
                         let curDay = new Date(startDate);
                         while (curDay <= endDate) {

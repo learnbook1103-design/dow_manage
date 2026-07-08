@@ -525,9 +525,11 @@ function calculateAnomalies(combinedData, config) {
     if (currentLeaveData) {
         currentLeaveData.forEach(lv => {
             if (lv.status && lv.status.includes("승인대기")) {
-                const getJsDate = (num) => (typeof num === 'number') ? new Date(Math.round((num - 25569) * 86400 * 1000)) : new Date(String(num).replace(/\./g, '-'));
-                const startDate = getJsDate(lv.start);
-                const endDate = getJsDate(lv.end);
+                const startStr = normalizeAttendanceDateValue(lv.start);
+                const endStr = normalizeAttendanceDateValue(lv.end || lv.start);
+                if (!startStr || !endStr) return;
+                const startDate = new Date(`${startStr}T00:00:00`);
+                const endDate = new Date(`${endStr}T00:00:00`);
 
                 let curDay = new Date(startDate);
                 while (curDay <= endDate) {
