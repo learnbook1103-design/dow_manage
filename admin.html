@@ -2840,16 +2840,20 @@
                         const rec = recordsMap[name][fDate];
                         const reason = rec.reason || "";
 
-                        const parseM = (t) => {
+                        const parseSeconds = (t) => {
                             if (!t) return null;
-                            const c = t.replace(':', '').trim();
-                            if (c.length >= 4) return parseInt(c.substring(0, 2)) * 60 + parseInt(c.substring(2, 4));
-                            return null;
+                            const parts = String(t).match(/\d{1,2}/g);
+                            if (!parts || parts.length < 2) return null;
+                            const h = parseInt(parts[0], 10);
+                            const m = parseInt(parts[1], 10);
+                            const s = parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+                            if ([h, m, s].some(Number.isNaN)) return null;
+                            return h * 3600 + m * 60 + s;
                         };
 
                         // [추가] 지각 자동 사유 기입 (사유가 비어있는 지각건 대상, 사용자 요청)
-                        const inMin = parseM(rec.inTime);
-                        if (inMin !== null) {
+                        const inSeconds = parseSeconds(rec.inTime);
+                        if (inSeconds !== null) {
                             // [개선] 엑셀 기록 -> 사원 설정 -> 기본값(0800) 순으로 기준 시각 도출
                             let shiftStartStr = rec.shiftStart || "";
                             if (!shiftStartStr) {
@@ -2860,8 +2864,8 @@
                             shiftStartStr = shiftStartStr.split(/[-~]/)[0].replace(/[^0-9]/g, '');
                             if (!shiftStartStr) shiftStartStr = "0800";
 
-                            const sMin = parseInt(shiftStartStr.substring(0, 2)) * 60 + parseInt(shiftStartStr.substring(2, 4));
-                            if (inMin > sMin) {
+                            const sSeconds = (parseInt(shiftStartStr.substring(0, 2), 10) * 3600) + (parseInt(shiftStartStr.substring(2, 4), 10) * 60) + 59;
+                            if (inSeconds > sSeconds) {
                                 // 사유가 아예 없거나 기존에 달린 지각만 있는 경우에만 "지각" 자동 기입
                                 if (!reason.trim() || reason.trim() === "지각") rec.reason = "지각";
                             } else {
@@ -3202,11 +3206,17 @@
 
                                 const punchStr = val.replace(':', '').trim();
                                 if (punchStr.length >= 4) {
-                                    const pMin = parseInt(punchStr.substring(0, 2)) * 60 + parseInt(punchStr.substring(2, 4));
-                                    const sMin = parseInt(shiftStartStr.substring(0, 2)) * 60 + parseInt(shiftStartStr.substring(2, 4));
-                                    if (pMin > sMin) {
+                                    const pParts = String(val).match(/\d{1,2}/g);
+                                    const pHour = pParts && pParts.length >= 2 ? parseInt(pParts[0], 10) : null;
+                                    const pMinute = pParts && pParts.length >= 2 ? parseInt(pParts[1], 10) : null;
+                                    const pSecond = pParts && pParts.length >= 3 ? parseInt(pParts[2], 10) : 0;
+                                    const pSeconds = (pHour === null || pMinute === null || Number.isNaN(pHour) || Number.isNaN(pMinute) || Number.isNaN(pSecond))
+                                        ? null
+                                        : (pHour * 3600 + pMinute * 60 + pSecond);
+                                    const sSeconds = (parseInt(shiftStartStr.substring(0, 2), 10) * 3600) + (parseInt(shiftStartStr.substring(2, 4), 10) * 60) + 59;
+                                    if (pSeconds !== null && pSeconds > sSeconds) {
                                         isTardy = true;
-                                        tardyMin = pMin - sMin; // 지각 시간(분) 계산
+                                        tardyMin = Math.ceil((pSeconds - sSeconds) / 60); // 지각 시간(분) 계산
                                     }
                                 }
                             }
@@ -3892,9 +3902,9 @@
                                                             const expInStr = shift.split(/[-~]/)[0]?.replace(/[^0-9]/g, '') || '0800';
                                                             const expInHour = parseInt(expInStr.substring(0, 2));
                                                             const expInMin = parseInt(expInStr.substring(2, 4) || '0');
-                                                            const expInTotal = expInHour * 60 + expInMin;
-                                                            const actualTotal = hour * 60 + parseInt(timeMatch[2] || '0');
-                                                            return actualTotal <= expInTotal + 5 ? '정상출근' : `지각 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 출근)`;
+                                                            const expInTotalSeconds = (expInHour * 3600) + (expInMin * 60) + 59;
+                                                            const actualTotalSeconds = (hour * 3600) + (parseInt(timeMatch[2] || '0', 10) * 60) + parseInt(timeMatch[3] || '0', 10);
+                                                            return actualTotalSeconds <= expInTotalSeconds ? '정상출근' : `지각 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 출근)`;
                                                         }
                                                     }
 
