@@ -3893,7 +3893,7 @@
                                                             const shift = empInfo?.shift || '0800-1700';
                                                             const expOutStr = shift.split(/[-~]/)[1]?.replace(/[^0-9]/g, '') || '1700';
                                                             const expOutHour = parseInt(expOutStr.substring(0, 2));
-                                                            return hour >= expOutHour ? t : `조기퇴근 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 퇴근)`;
+                                                            return hour >= expOutHour ? '정상퇴근' : `조기퇴근 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 퇴근)`;
                                                         }
                                                         // 출근 맥락
                                                         if (isInContext || hour < 11) {
@@ -3904,7 +3904,7 @@
                                                             const expInMin = parseInt(expInStr.substring(2, 4) || '0');
                                                             const expInTotalSeconds = (expInHour * 3600) + (expInMin * 60) + 59;
                                                             const actualTotalSeconds = (hour * 3600) + (parseInt(timeMatch[2] || '0', 10) * 60) + parseInt(timeMatch[3] || '0', 10);
-                                                            return actualTotalSeconds <= expInTotalSeconds ? t : `지각 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 출근)`;
+                                                            return actualTotalSeconds <= expInTotalSeconds ? '정상출근' : `지각 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 출근)`;
                                                         }
                                                     }
 
@@ -3922,6 +3922,8 @@
                                                     }
 
                                                     const keywordMap = [
+                                                        [/정상\s*출근|제시간|정시출근/, '정상출근'],
+                                                        [/정상\s*퇴근|정시퇴근/, '정상퇴근'],
                                                         [/지각|늦게|늦음|늦은/, '지각'],
                                                         [/조기|일찍|일찍\s*퇴근/, '조기퇴근'],
                                                         [/연차|휴가/, '연차'],
