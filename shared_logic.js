@@ -61,6 +61,37 @@ function expandShift(shiftStr) {
     return s;
 }
 
+function isWeekendDateString(dateStr) {
+    if (!dateStr) return false;
+    const [year, month, day] = String(dateStr).split('-').map(Number);
+    if (!year || !month || !day) return false;
+    const dayOfWeek = new Date(year, month - 1, day).getDay();
+    return dayOfWeek === 0 || dayOfWeek === 6;
+}
+
+function normalizeAttendanceDateValue(value) {
+    if (value instanceof Date && !isNaN(value)) {
+        return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        if (value < 30000 || value > 80000) return "";
+        const jsDate = new Date(Math.round((value - 25569) * 86400 * 1000));
+        return isNaN(jsDate) ? "" : jsDate.toISOString().split('T')[0];
+    }
+
+    const text = String(value || '').trim();
+    const match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:\s|$)/);
+    if (!match) return "";
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (!year || month < 1 || month > 12 || day < 1 || day > 31) return "";
+
+    return `${match[1]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 
 function calculateAnomalies(combinedData, config) {
     const {
@@ -80,15 +111,14 @@ function calculateAnomalies(combinedData, config) {
     combinedData.forEach(row => {
         let dateValInput = row["날짜"];
         const nameVal = normalizeName(row["이름"]);
+        const originalDateStr = normalizeAttendanceDateValue(dateValInput);
+
+        if (!originalDateStr || !nameVal) return;
 
         // [추가] 대표이사 제외
         if (ceoNames.has(nameVal)) return;
 
-        let jsDateOrig = null;
-        if (typeof dateValInput === 'number') jsDateOrig = new Date(Math.round((dateValInput - 25569) * 86400 * 1000));
-        else if (dateValInput) jsDateOrig = new Date(String(dateValInput).split(' ')[0]);
-
-        const originalDateStr = (jsDateOrig && !isNaN(jsDateOrig)) ? jsDateOrig.toISOString().split('T')[0] : String(dateValInput).split(' ')[0];
+        const jsDateOrig = new Date(`${originalDateStr}T00:00:00`);
         const manualKey = `${nameVal}_${originalDateStr}`;
 
         let inValRaw = cleanTime(row["출근"]);
@@ -180,9 +210,11 @@ function calculateAnomalies(combinedData, config) {
     if (typeof currentLeaveData !== 'undefined' && currentLeaveData && currentLeaveData.length > 0) {
         currentLeaveData.forEach(lv => {
             const nameVal = normalizeName(lv.name);
-            const getJsDate = (num) => (typeof num === 'number') ? new Date(Math.round((num - 25569) * 86400 * 1000)) : new Date(String(num).replace(/\./g, '-'));
-            const startDt = getJsDate(lv.start);
-            const endDt = getJsDate(lv.end || lv.start);
+            const startStr = normalizeAttendanceDateValue(lv.start);
+            const endStr = normalizeAttendanceDateValue(lv.end || lv.start);
+            if (!nameVal || !startStr || !endStr) return;
+            const startDt = new Date(`${startStr}T00:00:00`);
+            const endDt = new Date(`${endStr}T00:00:00`);
 
             let curDay = new Date(startDt);
             while (curDay <= endDt) {
@@ -207,7 +239,9 @@ function calculateAnomalies(combinedData, config) {
 
     // [추가] 기간 내 모든 지정된 요약 사원에 대해 모든 유효 날짜(평일 등) 검증 대상에 강제 포함 (기록이 하나도 없는 날짜도 포착)
     if (employeeConfigList && employeeConfigList.length > 0 && typeof currentUniqueDates !== 'undefined' && currentUniqueDates && currentUniqueDates.size > 0) {
-        currentUniqueDates.forEach(fDate => {
+        currentUniqueDates.forEach(rawDate => {
+            const fDate = normalizeAttendanceDateValue(rawDate);
+            if (!fDate) return;
             employeeConfigList.forEach(emp => {
                 const nameVal = normalizeName(emp.name);
                 if (!nameVal || ceoNames.has(nameVal)) return;
@@ -242,6 +276,9 @@ function calculateAnomalies(combinedData, config) {
         const inVal = group.in;
         const outVal = group.out;
         const shiftStr = group.shift;
+
+        if (!normalizeAttendanceDateValue(dateVal)) return;
+        if (isWeekendDateString(dateVal)) return;
 
         // 표에 나타나지 않은 날짜(기록/휴가 둘 다 없는 날짜)는 검증에서 제외
         // [수정] currentUniqueDates가 비어있어도 클라우드 데이터가 있다면 검사가 가능하도록 함
@@ -298,9 +335,9 @@ function calculateAnomalies(combinedData, config) {
         if (currentLeaveData && currentLeaveData.length > 0) {
             currentLeaveData.forEach(lv => {
                 if (normalizeName(lv.name) === nameVal) {
-                    const getJsDate = (num) => new Date(Math.round((num - 25569) * 86400 * 1000)).toISOString().split('T')[0];
-                    const start = getJsDate(lv.start);
-                    const end = getJsDate(lv.end || lv.start);
+                    const start = normalizeAttendanceDateValue(lv.start);
+                    const end = normalizeAttendanceDateValue(lv.end || lv.start);
+                    if (!start || !end) return;
 
                     if (dateVal >= start && dateVal <= end) {
                         const type = lv.type || "";

@@ -1359,13 +1359,25 @@
 
                     const allMergedData = Array.from(mergedDataMap.values());
 
-                    // [수정] 전수 조사 시에는 syncUniqueDates를 병합된 전체 날짜로부터 생성
+                    const toValidDateSet = (values) => {
+                        const result = new Set();
+                        values.forEach(value => {
+                            const normalized = normalizeAttendanceDateValue(value);
+                            if (normalized) result.add(normalized);
+                        });
+                        return result;
+                    };
+
+                    // [수정] 전수 조사 시에도 실제 날짜값만 검증 대상으로 사용
                     const syncUniqueDates = ignorePeriod
-                        ? new Set(allMergedData.map(d => d['날짜']))
-                        : new Set(Array.isArray(uniqueDates) ? uniqueDates : Array.from(uniqueDates || []));
+                        ? toValidDateSet(allMergedData.map(d => d['날짜']))
+                        : toValidDateSet(Array.isArray(uniqueDates) ? uniqueDates : Array.from(uniqueDates || []));
 
                     if (syncUniqueDates.size === 0 && allMergedData.length > 0) {
-                        allMergedData.forEach(d => syncUniqueDates.add(d['날짜']));
+                        allMergedData.forEach(d => {
+                            const normalized = normalizeAttendanceDateValue(d['날짜']);
+                            if (normalized) syncUniqueDates.add(normalized);
+                        });
                     }
 
                     const anomalies = calculateAnomalies(allMergedData, {
