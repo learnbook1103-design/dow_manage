@@ -1274,9 +1274,22 @@
                         .in('manager_key', chunk);
                     if (chunkData) chunkData.forEach(row => { existingMap[row.manager_key] = row; });
                 }
+                const overwriteAttendanceValues = !!ignorePeriod;
                 const toUpsert = newRecords.map(r => {
                     const ex = existingMap[r.manager_key];
                     if (!ex) return r;
+                    if (overwriteAttendanceValues) {
+                        return {
+                            ...r,
+                            shift: r.shift || ex.shift || null,
+                            manager_reason: r.manager_reason || ex.manager_reason || "",
+                            employee_explanation: r.employee_explanation || ex.employee_explanation || "",
+                            early_punch_mode: r.early_punch_mode || ex.early_punch_mode || "",
+                            status_in: r.status_in || ex.status_in,
+                            status_out: r.status_out || ex.status_out,
+                            status_leave: r.status_leave || ex.status_leave,
+                        };
+                    }
                     return {
                         ...r,
                         shift: r.shift || ex.shift || null,
@@ -2815,7 +2828,9 @@
                     })
                     .map(e => e.name.trim());
 
-                const finalNames = manualNames.length > 0 ? manualNames : Object.keys(recordsMap).sort();
+                const finalNames = ignorePeriod
+                    ? Object.keys(recordsMap).sort()
+                    : (manualNames.length > 0 ? manualNames : Object.keys(recordsMap).sort());
 
                 const chunks = [];
                 sortedDates.forEach(dt => {
