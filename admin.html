@@ -2279,8 +2279,8 @@
                         const accessTimes = group.access.sort();
                         const inTimes = group.ins.sort();
                         const outTimes = group.outs.sort();
-                        const fallbackIn = inTimes[0] || accessTimes[0] || "";
-                        const fallbackOut = outTimes[outTimes.length - 1] || (accessTimes.length >= 2 ? accessTimes[accessTimes.length - 1] : "");
+                        const fallbackIn = inTimes[0] || "";
+                        const fallbackOut = outTimes[outTimes.length - 1] || "";
 
                         return {
                             '날짜': group.date,
