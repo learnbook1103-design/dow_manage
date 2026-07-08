@@ -1386,7 +1386,8 @@
                         manualReasons,
                         currentLeaveData,
                         currentUniqueDates: syncUniqueDates,
-                        preemptiveSupplements
+                        preemptiveSupplements,
+                        skipMissingEmployeeExpansion: !!ignorePeriod
                     });
                     console.log(`[AUTO ANOMALY] 감지된 이상근태: ${anomalies.length}건 (서버 전체 역사 ${allMergedData.length}건 기반 조사)`);
 

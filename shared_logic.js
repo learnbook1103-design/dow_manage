@@ -100,6 +100,7 @@ function calculateAnomalies(combinedData, config) {
         manualReasons = {},
         currentLeaveData = [],
         currentUniqueDates = new Set(),
+        skipMissingEmployeeExpansion = false,
         ignoreManualReasonsForDetection = false  // [추가] 수동 사유에 의한 자동 해결 제외 (검증 모달용)
     } = config || {};
     const anomalies = [];
@@ -238,7 +239,7 @@ function calculateAnomalies(combinedData, config) {
     }
 
     // [추가] 기간 내 모든 지정된 요약 사원에 대해 모든 유효 날짜(평일 등) 검증 대상에 강제 포함 (기록이 하나도 없는 날짜도 포착)
-    if (employeeConfigList && employeeConfigList.length > 0 && typeof currentUniqueDates !== 'undefined' && currentUniqueDates && currentUniqueDates.size > 0) {
+    if (!skipMissingEmployeeExpansion && employeeConfigList && employeeConfigList.length > 0 && typeof currentUniqueDates !== 'undefined' && currentUniqueDates && currentUniqueDates.size > 0) {
         currentUniqueDates.forEach(rawDate => {
             const fDate = normalizeAttendanceDateValue(rawDate);
             if (!fDate) return;
