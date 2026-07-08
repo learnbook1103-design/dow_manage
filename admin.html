@@ -126,41 +126,45 @@
         }
 
         .tardy-summary-section {
-            margin-top: 10px;
-            padding: 8px 0px;
+            margin-top: 6px;
+            padding: 4px 0px;
             break-inside: avoid;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
         .tardy-summary-title {
-            font-size: 0.85rem;
+            font-size: 0.72rem;
             font-weight: 700;
             color: #1f2937;
-            margin-bottom: 6px;
+            margin-bottom: 4px;
         }
 
         .tardy-summary-list {
-            display: flex;
-            gap: 20px;
-            font-size: 0.75rem;
+            display: grid;
+            grid-template-columns: repeat(var(--tardy-summary-columns, 3), minmax(0, 1fr));
+            column-gap: 10px;
+            row-gap: 1px;
+            font-size: 0.62rem;
+            line-height: 1.15;
         }
 
         .tardy-summary-col {
-            flex: 1;
             display: flex;
             flex-direction: column;
+            min-width: 0;
         }
 
         .tardy-summary-item {
-            margin-bottom: 1px;
             white-space: nowrap;
             color: #4b5563;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .tardy-summary-group {
             break-inside: avoid;
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             display: flex;
             flex-direction: column;
         }
@@ -2950,29 +2954,33 @@
                         });
 
                         const sortedNames = Object.keys(groups).sort();
-                        // [수정] 한 열에 최대 5줄(라인) 리미트 적용 분배
-                        const columns = [[], [], []];
+                        // 한 열에 표시할 행 수를 제한하고 필요한 만큼 열을 추가
+                        const columns = [[]];
                         let currentColIdx = 0;
                         let lineCountInCol = 0;
-                        const MAX_LINES_PER_COL = 12;
+                        const MAX_LINES_PER_COL = 8;
 
                         sortedNames.forEach(name => {
-                            const groupCount = groups[name].length;
-                            // 현재 열에 추가했을 때 12줄을 넘어가면 다음 열로 (최대 3번열까지)
-                            if (lineCountInCol + groupCount > MAX_LINES_PER_COL && currentColIdx < 2) {
+                            groups[name].forEach(item => {
+                            // 현재 열에 추가했을 때 제한 행 수를 넘어가면 다음 열로 이동
+                            if (lineCountInCol >= MAX_LINES_PER_COL && lineCountInCol > 0) {
                                 currentColIdx++;
+                                columns[currentColIdx] = [];
                                 lineCountInCol = 0;
                             }
-                            columns[currentColIdx].push(name);
-                            lineCountInCol += groupCount;
+                            columns[currentColIdx].push(item);
+                            lineCountInCol++;
+                            });
                         });
+
+                        summaryWrap.style.setProperty('--tardy-summary-columns', String(columns.length || 1));
 
                         columns.forEach(colNames => {
                             summaryHtml += `<div class="tardy-summary-col">`;
                             colNames.forEach(name => {
                                 // 각 사원 그룹을 통째로 묶어 세로줄 쪼개짐 방지
                                 summaryHtml += `<div class="tardy-summary-group">`;
-                                groups[name].forEach(item => {
+                                [name].forEach(item => {
                                     summaryHtml += `<div class="tardy-summary-item">
                                         [${item.date}] <strong>${item.name}</strong>: <span class="tardy-summary-time" style="color:#ef4444; font-weight:700;">${item.min}분</span>
                                     </div>`;
