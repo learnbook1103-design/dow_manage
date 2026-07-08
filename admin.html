@@ -1235,9 +1235,17 @@
                     const text = String(value || '').trim();
                     return /^\d{1,2}:\d{2}/.test(text);
                 };
-                const isLeaveReasonText = (value) => {
+                const isLeaveMarkerText = (value) => {
                     const text = String(value || '');
                     return text.includes("반차") || text.includes("연차");
+                };
+                const isLeaveReasonText = (value) => {
+                    const text = String(value || '');
+                    return isLeaveMarkerText(text);
+                };
+                const isWorkReasonText = (value) => {
+                    const text = String(value || '');
+                    return ["외부교육", "교육", "외근", "출장", "훈련", "파견", "현장"].some(k => text.includes(k));
                 };
                 const newRecords = [];
                 names.forEach(name => {
@@ -1296,6 +1304,12 @@
                         const mergePunchValue = (incoming, existing, mode) => {
                             const incomingIsTime = isActualAttendanceTime(incoming);
                             const existingIsTime = isActualAttendanceTime(existing);
+                            const incomingIsLeave = isLeaveMarkerText(incoming);
+                            const existingIsLeave = isLeaveMarkerText(existing);
+                            const incomingWorkReason = isWorkReasonText(r.reason) || isWorkReasonText(r.manager_reason);
+                            if (!incoming && existingIsLeave && incomingWorkReason) return null;
+                            if (incomingIsLeave) return incoming;
+                            if (existingIsLeave && incomingIsTime && uploadSource === 'attendance') return existing;
                             if (incomingIsTime && existingIsTime) {
                                 return mode === 'in'
                                     ? (incoming < existing ? incoming : existing)
@@ -1311,17 +1325,19 @@
                         const hasIncomingInTime = isActualAttendanceTime(r.in_time);
                         const hasIncomingOutTime = isActualAttendanceTime(r.out_time);
                         const dropExistingLeaveReason = hasMergedActualPunch && isLeaveReasonText(ex.manager_reason);
+                        const dropExistingLeaveMarker = (isLeaveMarkerText(ex.in_time) || isLeaveMarkerText(ex.out_time))
+                            && (isWorkReasonText(r.reason) || isWorkReasonText(r.manager_reason));
                         return {
                             ...r,
                             in_time: nextInTime,
                             out_time: nextOutTime,
                             shift: r.shift || ex.shift || null,
-                            manager_reason: r.manager_reason || (dropExistingLeaveReason ? "" : ex.manager_reason) || "",
+                            manager_reason: r.manager_reason || (dropExistingLeaveReason || dropExistingLeaveMarker ? "" : ex.manager_reason) || "",
                             employee_explanation: r.employee_explanation || ex.employee_explanation || "",
                             early_punch_mode: r.early_punch_mode || ex.early_punch_mode || "",
-                            status_in: dropExistingLeaveReason || hasIncomingInTime ? r.status_in : (r.status_in || ex.status_in),
-                            status_out: dropExistingLeaveReason || hasIncomingOutTime ? r.status_out : (r.status_out || ex.status_out),
-                            status_leave: dropExistingLeaveReason || hasMergedActualPunch ? r.status_leave : (r.status_leave || ex.status_leave),
+                            status_in: dropExistingLeaveReason || dropExistingLeaveMarker || hasIncomingInTime ? r.status_in : (r.status_in || ex.status_in),
+                            status_out: dropExistingLeaveReason || dropExistingLeaveMarker || hasIncomingOutTime ? r.status_out : (r.status_out || ex.status_out),
+                            status_leave: dropExistingLeaveReason || dropExistingLeaveMarker || hasMergedActualPunch ? r.status_leave : (r.status_leave || ex.status_leave),
                         };
                     }
                     return {
@@ -1982,8 +1998,17 @@
                         return `${parsed.y}-${pad2(parsed.m)}-${pad2(parsed.d)}`;
                     }
                 }
-                const text = String(value || '').trim().replace(/\./g, '-').replace(/\//g, '-').split(' ')[0];
-                const match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                const rawText = String(value || '').trim();
+                if (/^\d{4}-\d{1,2}-\d{1,2}T.*Z$/i.test(rawText)) {
+                    const parsedDate = new Date(rawText);
+                    if (!isNaN(parsedDate)) return `${parsedDate.getFullYear()}-${pad2(parsedDate.getMonth() + 1)}-${pad2(parsedDate.getDate())}`;
+                }
+                const text = rawText.replace(/\./g, '-').replace(/\//g, '-').replace('T', ' ').split(' ')[0];
+                let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                if (!match) {
+                    const shortMatch = text.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
+                    if (shortMatch) match = [`20${shortMatch[3]}-${shortMatch[1]}-${shortMatch[2]}`, `20${shortMatch[3]}`, shortMatch[1], shortMatch[2]];
+                }
                 return match ? `${match[1]}-${pad2(match[2])}-${pad2(match[3])}` : null;
             }
 
@@ -2377,22 +2402,21 @@
                                 bestHeaderIdx = i;
                             }
                         }
-                        if (bestHeaderIdx === -1 || maxMatches < 2) {
-                            rejectedMessages.push(`${file.name}: 휴가/연차 데이터 헤더 행을 찾지 못했습니다. 이름/시작일/종료일/종류/상태 열을 확인해 주세요.`);
-                            loadedCount++;
-                            if (loadedCount === fileArray.length) finishLeaveUpload();
-                            return;
+                        const fixedLeaveLayout = bestHeaderIdx === -1 || maxMatches < 2;
+                        if (fixedLeaveLayout) {
+                            // 휴가사용내역_260401_260630.xlsx처럼 헤더 없이 A5:K 범위에 바로 데이터가 있는 양식.
+                            bestHeaderIdx = -1;
                         }
 
-                        const headerRow = rawData[bestHeaderIdx];
+                        const headerRow = fixedLeaveLayout ? [] : rawData[bestHeaderIdx];
                         const findColIndex = (keywords) => headerRow.findIndex(v => keywords.some(k => String(v).includes(k)));
 
-                        const nameIdx = findColIndex(['이름', '성명', '사원명']);
-                        const startIdx = findColIndex(['휴가 시작일', '시작일', '시작']);
-                        const endIdx = findColIndex(['휴가 종료일', '종료일', '종료']);
-                        const typeIdx = findColIndex(['항목', '종류', '구분', '휴가구분']);
-                        const daysIdx = findColIndex(['사용시간(일)', '일수', '사용일']);
-                        const statusIdx = findColIndex(['처리상태', '문서상태', '결재', '상태', '결재상태']);
+                        const nameIdx = fixedLeaveLayout ? 1 : findColIndex(['이름', '성명', '사원명']);
+                        const startIdx = fixedLeaveLayout ? 4 : findColIndex(['휴가 시작일', '시작일', '시작']);
+                        const endIdx = fixedLeaveLayout ? 5 : findColIndex(['휴가 종료일', '종료일', '종료']);
+                        const typeIdx = fixedLeaveLayout ? 6 : findColIndex(['항목', '종류', '구분', '휴가구분']);
+                        const daysIdx = fixedLeaveLayout ? 7 : findColIndex(['사용시간(일)', '일수', '사용일']);
+                        const statusIdx = fixedLeaveLayout ? 9 : findColIndex(['처리상태', '문서상태', '결재', '상태', '결재상태']);
 
                         // 엑셀 파싱
                         const parsedLeaveData = rawData.map((row, rowIndex) => {
@@ -2541,6 +2565,14 @@
                     const cleaned = cleanTime(value);
                     return !!(cleaned && /^\d{1,2}:\d{2}/.test(cleaned));
                 };
+                const isLeaveMarkerValue = (value) => {
+                    const text = String(value || '');
+                    return text.includes("연차") || text.includes("반차");
+                };
+                const isWorkReasonValue = (value) => {
+                    const text = String(value || '');
+                    return ["외부교육", "교육", "외근", "출장", "훈련", "파견", "현장"].some(k => text.includes(k));
+                };
 
                 // [수동] 날짜 오프셋을 적용한 가상 데이터 생성
                 const effectiveRows = rows.map(row => {
@@ -2602,8 +2634,8 @@
                         // 주말 또는 공휴일 제외
                         if (jsDate.getDay() !== 0 && jsDate.getDay() !== 6 && !isHoliday(fDate)) {
                             const name = normalizeName(row["이름"]);
-                            const inTime = cleanTime(row["출근"]);
-                            const outTime = cleanTime(row["퇴근"]);
+                            let inTime = cleanTime(row["출근"]);
+                            let outTime = cleanTime(row["퇴근"]);
                             let shiftStr = String(row["근무조"] || "");
                             if (name === "박주연") shiftStr = "0900-1800";
 
@@ -2614,6 +2646,10 @@
                             }
 
                             const rawReason = row["비고"] || row["reason"] || ""; // [추가] 클라우드 사유 복구
+                            if (isWorkReasonValue(rawReason) && !isLeaveMarkerValue(rawReason)) {
+                                if (isLeaveMarkerValue(inTime)) inTime = "";
+                                if (isLeaveMarkerValue(outTime)) outTime = "";
+                            }
                             const hasActualPunch = isActualPunchValue(inTime) || isActualPunchValue(outTime);
                             const cloudReason = (hasActualPunch && (rawReason.includes("반차") || rawReason.includes("연차"))) ? "" : rawReason;
 

@@ -81,12 +81,26 @@ function normalizeAttendanceDateValue(value) {
 
     if (typeof value === 'number' && Number.isFinite(value)) {
         if (value < 30000 || value > 80000) return "";
+        if (typeof XLSX !== 'undefined' && XLSX.SSF && XLSX.SSF.parse_date_code) {
+            const parsed = XLSX.SSF.parse_date_code(value);
+            if (parsed) return `${parsed.y}-${String(parsed.m).padStart(2, '0')}-${String(parsed.d).padStart(2, '0')}`;
+        }
         const jsDate = new Date(Math.round((value - 25569) * 86400 * 1000));
         return formatLocalDateValue(jsDate);
     }
 
     const text = String(value || '').trim();
-    const match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:\s|$)/);
+    if (/^\d{4}-\d{1,2}-\d{1,2}T.*Z$/i.test(text)) {
+        const parsedDate = new Date(text);
+        if (!isNaN(parsedDate)) return formatLocalDateValue(parsedDate);
+    }
+    let match = text.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[T\s]|$)/);
+    if (!match) {
+        const shortMatch = text.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})(?:[T\s]|$)/);
+        if (shortMatch) {
+            match = [`20${shortMatch[3]}-${shortMatch[1]}-${shortMatch[2]}`, `20${shortMatch[3]}`, shortMatch[1], shortMatch[2]];
+        }
+    }
     if (!match) return "";
 
     const year = Number(match[1]);
