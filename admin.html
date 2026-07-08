@@ -1418,7 +1418,8 @@
                         preemptiveSupplements,
                         skipMissingEmployeeExpansion: !!ignorePeriod
                     });
-                    console.log(`[AUTO ANOMALY] 감지된 이상근태: ${anomalies.length}건 (서버 전체 역사 ${allMergedData.length}건 기반 조사)`);
+                    const activeAnomalies = anomalies.filter(a => !a.isResolved);
+                    console.log(`[AUTO ANOMALY] 감지된 이상근태: ${activeAnomalies.length}건 (해결됨 ${anomalies.length - activeAnomalies.length}건 제외, 서버 전체 역사 ${allMergedData.length}건 기반 조사)`);
 
                     // ── 구글 드라이브 원자료 업로드 (Supabase anomaly 처리 전에 실행) ──
                     if (filesToUpload && filesToUpload.length > 0) {
@@ -1439,7 +1440,7 @@
                             .lte('date', cleanEnd);
 
                         if (existingAnoms && existingAnoms.length > 0) {
-                            const currentAnomalyKeys = new Set(anomalies.map(a => `${a.name}_${a.date}`));
+                            const currentAnomalyKeys = new Set(activeAnomalies.map(a => `${a.name}_${a.date}`));
 
                             // 삭제 대상: 서버에는 있는데 현재 통합 데이터 분석 결과에는 없는 항목 (즉, 서버나 엑셀에 기록이 있어서 해소된 항목)
                             const toDeleteKeys = existingAnoms
@@ -1465,8 +1466,8 @@
                     }
 
                     // [수정] 2. 새로운 이상 근태 업서트
-                    if (anomalies.length > 0) {
-                        const anomalyKeys = anomalies.map(a => `${a.name}_${a.date}`);
+                    if (activeAnomalies.length > 0) {
+                        const anomalyKeys = activeAnomalies.map(a => `${a.name}_${a.date}`);
                         const { data: existingRecords } = await supabase
                             .from('attendance_anomalies')
                             .select('manager_key, status')
@@ -1475,7 +1476,7 @@
                         const existingStatusMap = {};
                         if (existingRecords) existingRecords.forEach(r => { existingStatusMap[r.manager_key] = r.status; });
 
-                        const anomalyRows = anomalies.map(a => {
+                        const anomalyRows = activeAnomalies.map(a => {
                             const key = `${a.name}_${a.date}`;
                             const existingStatus = existingStatusMap[key];
                             return {
