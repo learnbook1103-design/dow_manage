@@ -1439,7 +1439,10 @@
                         skipMissingEmployeeExpansion: !!ignorePeriod
                     });
                     const activeAnomalies = anomalies.filter(a => !a.isResolved);
-                    console.log(`[AUTO ANOMALY] 감지된 이상근태: ${activeAnomalies.length}건 (해결됨 ${anomalies.length - activeAnomalies.length}건 제외, 서버 전체 역사 ${allMergedData.length}건 기반 조사)`);
+                    const resolvedAnomalyKeys = new Set(anomalies
+                        .filter(a => a.isResolved)
+                        .map(a => `${a.name}_${a.date}`));
+                    console.log(`[AUTO ANOMALY] 감지된 이상근태: ${activeAnomalies.length}건 (해결됨 ${resolvedAnomalyKeys.size}건 제외, 서버 전체 역사 ${allMergedData.length}건 기반 조사)`);
 
                     // ── 구글 드라이브 원자료 업로드 (Supabase anomaly 처리 전에 실행) ──
                     if (filesToUpload && filesToUpload.length > 0) {
@@ -1464,10 +1467,10 @@
 
                             // 삭제 대상: 서버에는 있는데 현재 통합 데이터 분석 결과에는 없는 항목 (즉, 서버나 엑셀에 기록이 있어서 해소된 항목)
                             const toDeleteKeys = existingAnoms
-                                .filter(r => !currentAnomalyKeys.has(r.manager_key))
+                                .filter(r => resolvedAnomalyKeys.has(r.manager_key) || !currentAnomalyKeys.has(r.manager_key))
                                 .map(r => r.manager_key);
 
-                            console.log(`[DEEP CLEANUP] 삭제 예정: ${toDeleteKeys.length}건 (서버에 기록이 존재하는 인원들 포함)`);
+                            console.log(`[DEEP CLEANUP] 삭제 예정: ${toDeleteKeys.length}건 (해결됨 ${resolvedAnomalyKeys.size}건 포함)`);
 
                             if (toDeleteKeys.length > 0) {
                                 const DEL_CHUNK = 50;
@@ -1479,6 +1482,10 @@
                                         .delete()
                                         .in('manager_key', chunk);
                                     if (!delErr) deletedCountTotal += chunk.length;
+                                    await supabase
+                                        .from('attendance_records')
+                                        .update({ is_anomalous: false })
+                                        .in('manager_key', chunk);
                                 }
                                 console.log(`[DEEP CLEANUP] 총 ${deletedCountTotal}건의 잘못된 이상 근태를 서버에서 삭제 완료`);
                             }
