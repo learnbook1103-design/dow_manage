@@ -278,6 +278,13 @@ function calculateAnomalies(combinedData, config) {
         const outVal = group.out;
         const shiftStr = group.shift;
         const hasActualPunch = [inVal, outVal].some(t => t && String(t).includes(':') && !isNaN(parseInt(String(t).replace(':', ''))));
+        const toMinutes = (t) => {
+            if (!t) return null;
+            const cleaned = String(t).replace(':', '').trim();
+            if (!/^\d{3,4}$/.test(cleaned)) return null;
+            const padded = cleaned.padStart(4, '0');
+            return parseInt(padded.substring(0, 2), 10) * 60 + parseInt(padded.substring(2, 4), 10);
+        };
 
         if (!normalizeAttendanceDateValue(dateVal)) return;
         if (isWeekendDateString(dateVal)) return;
@@ -320,8 +327,20 @@ function calculateAnomalies(combinedData, config) {
                 isFullLeave = true;
             } else if (checkStr.includes("오전반차")) {
                 isAMHalf = true;
-            } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("생일자") || checkStr.includes("생일")) {
+            } else if (checkStr.includes("오후반차") || checkStr.includes("생일자") || checkStr.includes("생일")) {
                 isPMHalf = true;
+            } else if (checkStr.includes("반차")) {
+                const inMin = toMinutes(inVal);
+                const outMin = toMinutes(outVal);
+                if (inMin !== null) {
+                    isAMHalf = inMin >= 660;
+                    isPMHalf = !isAMHalf;
+                } else if (outMin !== null) {
+                    isAMHalf = outMin > 840;
+                    isPMHalf = !isAMHalf;
+                } else {
+                    isPMHalf = true;
+                }
             } else if (hasVacation && !hasActualPunch) {
                 // 기타 휴가 키워드가 포함된 경우만 자동 처리
                 otherLeaveType = checkStr;
