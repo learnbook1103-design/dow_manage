@@ -310,19 +310,22 @@ function calculateAnomalies(combinedData, config) {
                             const isJustEarly = type.trim() === '조퇴';
                             if (!isJustEarly) {
                                 const raw = lv.raw || "";
-                                let detectedAM = !raw.includes("오후");
+                                const halfText = `${type} ${raw}`;
+                                let detectedAM = false;
 
                                 const inT = inVal ? inVal.replace(':', '') : null;
                                 const outT = outVal ? outVal.replace(':', '') : null;
 
-                                if (inT && inT.length >= 4) {
+                                if (halfText.includes("오전")) {
+                                    detectedAM = true;
+                                } else if (halfText.includes("오후")) {
+                                    detectedAM = false;
+                                } else if (inT && inT.length >= 4) {
                                     const inMin = parseInt(inT.substring(0, 2)) * 60 + parseInt(inT.substring(2, 4));
-                                    if (inMin >= 660) detectedAM = true;
-                                    else detectedAM = false;
+                                    detectedAM = inMin >= 660;
                                 } else if (outT && outT.length >= 4) {
                                     const outMin = parseInt(outT.substring(0, 2)) * 60 + parseInt(outT.substring(2, 4));
-                                    if (outMin <= 840) detectedAM = false;
-                                    else detectedAM = true;
+                                    detectedAM = outMin > 840;
                                 }
 
                                 if (detectedAM) isAMHalf = true;
@@ -434,17 +437,6 @@ function calculateAnomalies(combinedData, config) {
                 } else if (isValidTime(inVal) && inVal > expIn) {
                     reasons.push("지각");
                     inAnom = true;
-                }
-                
-                // [추가] 오후 반차인데 퇴근 기록도 없으면, 관리자가 확인 버튼을 누를 수 있도록 '퇴근 기록 없음' 유지 (중요: isResolved가 아닐 때만)
-                if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
-                    outAnom = true;
-                    reasons.push("퇴근 기록 없음");
-                } else if (isValidTime(outVal) && outVal < expOut) {
-                    // 이미 입력된 반차 정보가 있더라도 조기퇴근이면 이상으로 잡음 (14시 반차인데 13시 퇴근 등)
-                    // 단, 13:00 퇴근도 '0'으로 간주될 수 있으니 시간 기준 체크
-                    reasons.push("조기퇴근");
-                    outAnom = true;
                 }
             }
         }
