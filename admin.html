@@ -1969,37 +1969,29 @@
                 }
 
                 const maxColumnCount = Math.max(...nonEmptySheetRows.map(row => row.filter(cell => String(cell || '').trim() !== '').length));
-                if (maxColumnCount < 3) {
+                if (maxColumnCount < 2) {
                     return {
                         ok: false,
-                        message: `${fileName}: 유효한 열이 너무 적습니다. 날짜/이름/출근/퇴근 또는 발생시각/이름/상태 열이 분리되어 있는지 확인해 주세요.`
+                        message: `${fileName}: 유효한 열이 너무 적습니다. 컬럼이 분리되어 있는지 확인해 주세요.`
                     };
                 }
 
                 const headerIdx = findHeaderRowIndex(sheetRows, ['날짜', '일자', '이름', '성명', '사원명', '출근', '퇴근', '발생시각', '상태', '근무조']);
-                if (headerIdx === -1) {
-                    return {
-                        ok: false,
-                        message: `${fileName}: 출퇴근 데이터 헤더 행을 찾지 못했습니다. 날짜/이름/출근/퇴근 또는 발생시각/이름/상태 헤더를 확인해 주세요.`
-                    };
-                }
+                if (headerIdx !== -1) {
+                    const rows = (normalizedRows || []).filter(row => row && Object.values(row).some(v => String(v || '').trim() !== ''));
+                    const hasRecognizedAttendanceRow = rows.slice(0, 150).some(row => {
+                        const date = getAttendanceField(row, ['날짜', '일자']);
+                        const name = getAttendanceField(row, ['이름', '성명', '사원명']);
+                        const inTime = getAttendanceField(row, ['출근', '출근시간', '출근시각']);
+                        const outTime = getAttendanceField(row, ['퇴근', '퇴근시간', '퇴근시각']);
+                        const eventTime = getAttendanceField(row, ['발생시각']);
+                        return (parseAttendanceDate(date) && isLikelyPersonName(name) && (isValidAttendanceTime(inTime) || isValidAttendanceTime(outTime)))
+                            || (isLikelyPersonName(name) && parseAttendanceDateTime(eventTime));
+                    });
 
-                const rows = (normalizedRows || []).filter(row => row && Object.values(row).some(v => String(v || '').trim() !== ''));
-                const hasRecognizedAttendanceRow = rows.slice(0, 150).some(row => {
-                    const date = getAttendanceField(row, ['날짜', '일자']);
-                    const name = getAttendanceField(row, ['이름', '성명', '사원명']);
-                    const inTime = getAttendanceField(row, ['출근', '출근시간', '출근시각']);
-                    const outTime = getAttendanceField(row, ['퇴근', '퇴근시간', '퇴근시각']);
-                    const eventTime = getAttendanceField(row, ['발생시각']);
-                    return (parseAttendanceDate(date) && isLikelyPersonName(name) && (isValidAttendanceTime(inTime) || isValidAttendanceTime(outTime)))
-                        || (isLikelyPersonName(name) && parseAttendanceDateTime(eventTime));
-                });
-
-                if (!hasRecognizedAttendanceRow) {
-                    return {
-                        ok: false,
-                        message: `${fileName}: 날짜/이름/출근/퇴근 값이 올바른 행을 찾지 못했습니다. 컬럼 구분이나 값 형식을 확인해 주세요.`
-                    };
+                    if (!hasRecognizedAttendanceRow) {
+                        console.warn(`[UPLOAD] ${fileName}: 헤더는 찾았지만 검증 가능한 출퇴근 행을 찾지 못했습니다. 기존 호환성을 위해 업로드는 허용합니다.`);
+                    }
                 }
 
                 return { ok: true };
