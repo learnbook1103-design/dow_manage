@@ -1309,6 +1309,8 @@
                             const incomingWorkReason = isWorkReasonText(r.reason) || isWorkReasonText(r.manager_reason);
                             if (!incoming && existingIsLeave && incomingWorkReason) return null;
                             if (incomingIsLeave) return incoming;
+                            const pairedIncomingIsLeave = isLeaveMarkerText(mode === 'in' ? r.out_time : r.in_time);
+                            if (existingIsLeave && incomingIsTime && pairedIncomingIsLeave) return incoming;
                             if (existingIsLeave && incomingIsTime && uploadSource === 'attendance') return existing;
                             if (incomingIsTime && existingIsTime) {
                                 return mode === 'in'
