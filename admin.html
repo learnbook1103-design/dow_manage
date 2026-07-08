@@ -2791,9 +2791,9 @@
                             }
 
                             if (detectedAM) {
-                                rec.inTime = "반차";
+                                if (!isActualPunchValue(rec.inTime)) rec.inTime = "반차";
                             } else {
-                                rec.outTime = "반차";
+                                if (!isActualPunchValue(rec.outTime)) rec.outTime = "반차";
                             }
                         }
                         else if (reason.includes("외근") || (employeeExplanations[`${name}_${fDate}`] || "").includes("외근")) {
