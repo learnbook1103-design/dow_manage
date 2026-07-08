@@ -1835,31 +1835,229 @@
             }
             // ────────────────────────────────────────────────────────────
 
+            function isPackedSingleColumnSheet(rows) {
+                const nonEmptyRows = (rows || [])
+                    .filter(row => Array.isArray(row) && row.some(cell => String(cell || '').trim() !== ''))
+                    .slice(0, 20);
+                if (nonEmptyRows.length === 0) return false;
+
+                const packedRows = nonEmptyRows.filter(row => {
+                    const cells = row.map(cell => String(cell || '').trim()).filter(Boolean);
+                    if (cells.length !== 1) return false;
+                    const text = cells[0];
+                    const delimiterParts = text.split(/,|\t|;|\|/).map(part => part.trim()).filter(Boolean);
+                    const hasExpectedWords = /(날짜|일자|이름|성명|사원명|출근|퇴근|근무조|비고|발생시각)/.test(text);
+                    const hasDateAndTime = /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(text) && /\d{1,2}:\d{2}/.test(text);
+                    return delimiterParts.length >= 3 || (hasExpectedWords && /\s+/.test(text)) || hasDateAndTime;
+                });
+
+                return packedRows.length >= Math.min(3, nonEmptyRows.length) || (nonEmptyRows.length <= 2 && packedRows.length > 0);
+            }
+
+            function getAttendanceField(row, names) {
+                for (const name of names) {
+                    if (row && row[name] !== undefined && String(row[name]).trim() !== '') return row[name];
+                }
+                return '';
+            }
+
+            function findHeaderRowIndex(rows, keywords, minMatches = 2) {
+                let bestIdx = -1;
+                let bestScore = 0;
+                (rows || []).slice(0, 12).forEach((row, idx) => {
+                    if (!Array.isArray(row)) return;
+                    const cells = row.map(v => String(v || '').trim()).filter(Boolean);
+                    const score = cells.reduce((sum, cell) => sum + (keywords.some(k => cell.includes(k)) ? 1 : 0), 0);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestIdx = idx;
+                    }
+                });
+                return bestScore >= minMatches ? bestIdx : -1;
+            }
+
+            function parseAttendanceDate(value) {
+                if (value instanceof Date && !isNaN(value)) {
+                    return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`;
+                }
+                if (typeof value === 'number' && Number.isFinite(value)) {
+                    const parsed = window.XLSX && window.XLSX.SSF
+                        ? window.XLSX.SSF.parse_date_code(value)
+                        : null;
+                    if (parsed && parsed.y && parsed.m && parsed.d) {
+                        return `${parsed.y}-${pad2(parsed.m)}-${pad2(parsed.d)}`;
+                    }
+                }
+                const text = String(value || '').trim().replace(/\./g, '-').replace(/\//g, '-').split(' ')[0];
+                const match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+                return match ? `${match[1]}-${pad2(match[2])}-${pad2(match[3])}` : null;
+            }
+
+            function isValidAttendanceTime(value) {
+                if (value === null || value === undefined || value === '') return false;
+                if (typeof value === 'number' && Number.isFinite(value)) return value >= 0 && value < 1;
+                const text = String(value).trim();
+                if (!text || text === '-') return false;
+                if (['연차', '반차', '오전반차', '오후반차', '외근', '출장'].some(k => text.includes(k))) return true;
+                const cleaned = text.replace(':', '').trim();
+                if (!/^\d{3,4}$/.test(cleaned)) return false;
+                const padded = cleaned.padStart(4, '0');
+                const hour = parseInt(padded.substring(0, 2), 10);
+                const minute = parseInt(padded.substring(2, 4), 10);
+                return hour >= 0 && hour <= 29 && minute >= 0 && minute <= 59;
+            }
+
+            function isLikelyPersonName(value) {
+                const text = String(value || '').trim().replace(/\s+/g, '');
+                if (text.length < 2 || text.length > 20) return false;
+                if (parseAttendanceDate(text) || isValidAttendanceTime(text)) return false;
+                if (/날짜|일자|출근|퇴근|상태|근무|시간|시각|부서|부문|팀|합계|총계/.test(text)) return false;
+                return /^[가-힣A-Za-z·.]+$/.test(text);
+            }
+
+            function pad2(value) {
+                return String(value).padStart(2, '0');
+            }
+
+            function parseAttendanceDateTime(value) {
+                if (value === null || value === undefined || value === '') return null;
+
+                if (value instanceof Date && !isNaN(value)) {
+                    return {
+                        date: `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`,
+                        time: `${pad2(value.getHours())}:${pad2(value.getMinutes())}:${pad2(value.getSeconds())}`
+                    };
+                }
+
+                if (typeof value === 'number' && Number.isFinite(value)) {
+                    const parsed = window.XLSX && window.XLSX.SSF
+                        ? window.XLSX.SSF.parse_date_code(value)
+                        : null;
+                    if (parsed) {
+                        return {
+                            date: `${parsed.y}-${pad2(parsed.m)}-${pad2(parsed.d)}`,
+                            time: `${pad2(parsed.H || 0)}:${pad2(parsed.M || 0)}:${pad2(Math.floor(parsed.S || 0))}`
+                        };
+                    }
+                }
+
+                const text = String(value).trim().replace('T', ' ');
+                const match = text.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+                if (match) {
+                    return {
+                        date: `${match[1]}-${pad2(match[2])}-${pad2(match[3])}`,
+                        time: `${pad2(match[4])}:${pad2(match[5])}:${pad2(match[6] || '00')}`
+                    };
+                }
+
+                return null;
+            }
+
+            function validateAttendanceUpload(fileName, sheetRows, normalizedRows) {
+                const nonEmptySheetRows = (sheetRows || [])
+                    .filter(row => Array.isArray(row) && row.some(cell => String(cell || '').trim() !== ''));
+
+                if (nonEmptySheetRows.length === 0) {
+                    return { ok: false, message: `${fileName}: 읽을 수 있는 데이터가 없습니다.` };
+                }
+
+                if (isPackedSingleColumnSheet(sheetRows)) {
+                    return {
+                        ok: false,
+                        message: `${fileName}: 여러 열로 나뉘어야 할 값이 A열 한 칸에 몰려 있습니다. 엑셀의 '텍스트 나누기' 또는 CSV 구분자 설정을 확인한 뒤 다시 업로드해 주세요.`
+                    };
+                }
+
+                const maxColumnCount = Math.max(...nonEmptySheetRows.map(row => row.filter(cell => String(cell || '').trim() !== '').length));
+                if (maxColumnCount < 3) {
+                    return {
+                        ok: false,
+                        message: `${fileName}: 유효한 열이 너무 적습니다. 날짜/이름/출근/퇴근 또는 발생시각/이름/상태 열이 분리되어 있는지 확인해 주세요.`
+                    };
+                }
+
+                const headerIdx = findHeaderRowIndex(sheetRows, ['날짜', '일자', '이름', '성명', '사원명', '출근', '퇴근', '발생시각', '상태', '근무조']);
+                if (headerIdx === -1) {
+                    return {
+                        ok: false,
+                        message: `${fileName}: 출퇴근 데이터 헤더 행을 찾지 못했습니다. 날짜/이름/출근/퇴근 또는 발생시각/이름/상태 헤더를 확인해 주세요.`
+                    };
+                }
+
+                const rows = (normalizedRows || []).filter(row => row && Object.values(row).some(v => String(v || '').trim() !== ''));
+                const hasRecognizedAttendanceRow = rows.slice(0, 150).some(row => {
+                    const date = getAttendanceField(row, ['날짜', '일자']);
+                    const name = getAttendanceField(row, ['이름', '성명', '사원명']);
+                    const inTime = getAttendanceField(row, ['출근', '출근시간', '출근시각']);
+                    const outTime = getAttendanceField(row, ['퇴근', '퇴근시간', '퇴근시각']);
+                    const eventTime = getAttendanceField(row, ['발생시각']);
+                    return (parseAttendanceDate(date) && isLikelyPersonName(name) && (isValidAttendanceTime(inTime) || isValidAttendanceTime(outTime)))
+                        || (isLikelyPersonName(name) && parseAttendanceDateTime(eventTime));
+                });
+
+                if (!hasRecognizedAttendanceRow) {
+                    return {
+                        ok: false,
+                        message: `${fileName}: 날짜/이름/출근/퇴근 값이 올바른 행을 찾지 못했습니다. 컬럼 구분이나 값 형식을 확인해 주세요.`
+                    };
+                }
+
+                return { ok: true };
+            }
+
             function handleFiles(files) {
                 let loadedCount = 0;
                 const fileArray = Array.from(files);
+                const acceptedFiles = [];
+                const rejectedMessages = [];
                 fileArray.forEach(file => {
                     if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                        rejectedMessages.push(`${file.name}: 지원하지 않는 파일 형식입니다.`);
                         loadedCount++;
                         return;
                     }
                     const reader = new FileReader();
                     reader.onload = async (e) => {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const jsonData = normalizeRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" }));
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                            const sheetRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+                            const headerIdx = findHeaderRowIndex(sheetRows, ['날짜', '일자', '이름', '성명', '사원명', '출근', '퇴근', '발생시각', '상태', '근무조']);
+                            const jsonData = normalizeRows(XLSX.utils.sheet_to_json(firstSheet, {
+                                defval: "",
+                                range: headerIdx > 0 ? headerIdx : undefined
+                            }));
+                            const validation = validateAttendanceUpload(file.name, sheetRows, jsonData);
 
-                        attendanceFilesMap.set(file.name, jsonData);
+                            if (!validation.ok) {
+                                rejectedMessages.push(validation.message);
+                            } else {
+                                attendanceFilesMap.set(file.name, jsonData);
+                                acceptedFiles.push(file);
+                            }
+                        } catch (err) {
+                            rejectedMessages.push(`${file.name}: 파일을 읽는 중 오류가 발생했습니다. ${err.message}`);
+                        }
                         loadedCount++;
 
                         if (loadedCount === fileArray.length) {
+                            if (rejectedMessages.length > 0) {
+                                alert(`업로드하지 않은 파일이 있습니다.\n\n${rejectedMessages.join('\n')}\n\n문제가 있는 파일은 클라우드 저장/동기화에서 제외했습니다.`);
+                            }
+
+                            if (acceptedFiles.length === 0) {
+                                renderFileList(attendanceFilesMap, fileListAttendance, dropZoneAttendance);
+                                return;
+                            }
+
                             renderFileList(attendanceFilesMap, fileListAttendance, dropZoneAttendance);
                             dropZoneAttendance.classList.add('loaded');
                             updateAndProcessData();
                             // [추가] 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Attendance files uploaded. Triggering full cloud sync...");
                             // 파일을 미리 base64로 변환
-                            const driveFiles = await Promise.all(fileArray.map(async f => {
+                            const driveFiles = await Promise.all(acceptedFiles.map(async f => {
                                 const b64 = await new Promise((res, rej) => {
                                     const r2 = new FileReader();
                                     r2.onload = () => res(r2.result.split(',')[1]);
@@ -1920,13 +2118,13 @@
                     const results = [];
                     rawData.forEach(row => {
                         const name = normalizeName(row['이름']);
-                        const fullTime = String(row['발생시각'] || "").trim();
+                        const parsedDateTime = parseAttendanceDateTime(row['발생시각']);
                         const shift = String(row['근무조'] || "").trim();
                         const status = String(row['상태'] || "").trim(); // 상태 확인
 
-                        if (!name || !fullTime) return;
+                        if (!name || !parsedDateTime) return;
 
-                        const [date, time] = fullTime.split(' ');
+                        const { date, time } = parsedDateTime;
                         if (date && time) {
                             let inTimeParam = "";
                             let outTimeParam = "";
@@ -2037,29 +2235,40 @@
             function handleLeaveFiles(files) {
                 let loadedCount = 0;
                 const fileArray = Array.from(files);
+                const acceptedFiles = [];
+                const rejectedMessages = [];
                 fileArray.forEach(file => {
                     if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                        rejectedMessages.push(`${file.name}: 지원하지 않는 파일 형식입니다.`);
                         loadedCount++;
                         return;
                     }
                     const reader = new FileReader();
                     reader.onload = async (e) => {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheet = workbook.Sheets[workbook.SheetNames[0]];
 
-                        // [Fix]: 엑셀 내장 !ref 범위가 잘못되어(예: A5:K96) 상단 헤더가 무시되는 현상 방지. 무조건 A1부터 읽도록 강제 범위를 지정합니다.
-                        let range = sheet['!ref'];
-                        if (range) {
-                            const parts = range.split(':');
-                            if (parts.length === 2) {
-                                // 강제로 A1부터 시작하도록 수정
-                                range = 'A1:' + parts[1];
+                            // [Fix]: 엑셀 내장 !ref 범위가 잘못되어(예: A5:K96) 상단 헤더가 무시되는 현상 방지. 무조건 A1부터 읽도록 강제 범위를 지정합니다.
+                            let range = sheet['!ref'];
+                            if (range) {
+                                const parts = range.split(':');
+                                if (parts.length === 2) {
+                                    // 강제로 A1부터 시작하도록 수정
+                                    range = 'A1:' + parts[1];
+                                }
                             }
-                        }
 
-                        // header: 1로 가져와 헤더가 밀리거나 없는 경우에도 유연하게 대처
-                        const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", range: range || undefined });
+                            // header: 1로 가져와 헤더가 밀리거나 없는 경우에도 유연하게 대처
+                            const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", range: range || undefined });
+
+                            if (isPackedSingleColumnSheet(rawData)) {
+                                rejectedMessages.push(`${file.name}: 휴가 데이터가 한 열에 몰려 있습니다. 엑셀의 '텍스트 나누기' 또는 CSV 구분자 설정을 확인해 주세요.`);
+                                loadedCount++;
+                                if (loadedCount === fileArray.length) finishLeaveUpload();
+                                return;
+                            }
 
                         // 1. 헤더 행 찾기 (상위 10개 행 대상)
                         let bestHeaderIdx = -1;
@@ -2075,7 +2284,14 @@
                                 bestHeaderIdx = i;
                             }
                         }
-                        const headerRow = bestHeaderIdx !== -1 ? rawData[bestHeaderIdx] : [];
+                        if (bestHeaderIdx === -1 || maxMatches < 2) {
+                            rejectedMessages.push(`${file.name}: 휴가/연차 데이터 헤더 행을 찾지 못했습니다. 이름/시작일/종료일/종류/상태 열을 확인해 주세요.`);
+                            loadedCount++;
+                            if (loadedCount === fileArray.length) finishLeaveUpload();
+                            return;
+                        }
+
+                        const headerRow = rawData[bestHeaderIdx];
                         const findColIndex = (keywords) => headerRow.findIndex(v => keywords.some(k => String(v).includes(k)));
 
                         const nameIdx = findColIndex(['이름', '성명', '사원명']);
@@ -2173,10 +2389,34 @@
                             return null;
                         }).filter(d => d !== null);
 
-                        leaveFilesMap.set(file.name, parsedLeaveData);
+                        if (parsedLeaveData.length === 0) {
+                            rejectedMessages.push(`${file.name}: 읽을 수 있는 휴가/연차 행을 찾지 못했습니다. 이름, 날짜, 휴가 종류 값이 올바른지 확인해 주세요.`);
+                        } else {
+                            leaveFilesMap.set(file.name, parsedLeaveData);
+                            acceptedFiles.push(file);
+                        }
+                        } catch (err) {
+                            rejectedMessages.push(`${file.name}: 파일을 읽는 중 오류가 발생했습니다. ${err.message}`);
+                        }
                         loadedCount++;
 
                         if (loadedCount === fileArray.length) {
+                            finishLeaveUpload();
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+
+                async function finishLeaveUpload() {
+                    if (rejectedMessages.length > 0) {
+                        alert(`업로드하지 않은 휴가/연차 파일이 있습니다.\n\n${rejectedMessages.join('\n')}\n\n문제가 있는 파일은 클라우드 저장/동기화에서 제외했습니다.`);
+                    }
+
+                    if (acceptedFiles.length === 0 && leaveFilesMap.size === 0) {
+                        renderFileList(leaveFilesMap, fileListLeave, dropZoneLeave);
+                        return;
+                    }
+
                             currentLeaveData = [];
                             leaveFilesMap.forEach(data => currentLeaveData.push(...data));
 
@@ -2187,7 +2427,7 @@
                             // [추가] 휴가 파일 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Leave files uploaded. Triggering full cloud sync...");
                             // 파일을 미리 base64로 변환
-                            const driveFiles = await Promise.all(fileArray.map(async f => {
+                            const driveFiles = await Promise.all(acceptedFiles.map(async f => {
                                 const b64 = await new Promise((res, rej) => {
                                     const r2 = new FileReader();
                                     r2.onload = () => res(r2.result.split(',')[1]);
@@ -2197,10 +2437,7 @@
                                 return { name: f.name, base64: b64, mimeType: f.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
                             }));
                             try { await syncAllToCloud(true, null, true, driveFiles); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
-                        }
-                    };
-                    reader.readAsArrayBuffer(file);
-                });
+                }
             }
 
 
