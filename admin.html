@@ -2986,6 +2986,18 @@
                             if (s.length < 4 || isNaN(parseInt(s))) return null;
                             return parseInt(s.substring(0, 2)) * 60 + parseInt(s.substring(2, 4));
                         };
+                        const getExpectedOutMinutes = (rec, emp) => {
+                            const rawShift = rec.shiftStart || emp.shift || '0800';
+                            const expanded = expandShift(String(rawShift));
+                            let end = (expanded.split(/[-~]/)[1] || '').replace(/[^0-9]/g, '');
+                            if (!end) return null;
+                            if (end.length === 3) end = `0${end}`;
+                            if (end.length !== 4) return null;
+                            const h = parseInt(end.substring(0, 2), 10);
+                            const m = parseInt(end.substring(2, 4), 10);
+                            if (Number.isNaN(h) || Number.isNaN(m)) return null;
+                            return h * 60 + m;
+                        };
                         datesChunk.forEach(dt => {
                             filteredNames.forEach(n => {
                                 const empI = employeeConfigList.find(e => normalizeName(e.name) === n) || {};
@@ -2995,15 +3007,18 @@
                                 const r = (recordsMap[n] || {})[dt] || {};
                                 const inMin = toMinutes(r.inTime);
                                 const outMin = toMinutes(r.outTime);
+                                const anomaly = unconfirmedAnomaliesMap[`${n}_${dt}`] || {};
+                                const expectedOutMin = getExpectedOutMinutes(r, empI);
+                                const isEarlyOutValue = outMin !== null && expectedOutMin !== null && outMin < expectedOutMin;
                                 if (isPark) {
-                                    if (inMin !== null && (!earliestInMapPark[dt] || inMin < earliestInMapPark[dt].min))
+                                    if (inMin !== null && !anomaly.in && (!earliestInMapPark[dt] || inMin < earliestInMapPark[dt].min))
                                         earliestInMapPark[dt] = { name: n, min: inMin };
-                                    if (outMin !== null && (!latestOutMapPark[dt] || outMin > latestOutMapPark[dt].min))
+                                    if (outMin !== null && !anomaly.out && !isEarlyOutValue && (!latestOutMapPark[dt] || outMin > latestOutMapPark[dt].min))
                                         latestOutMapPark[dt] = { name: n, min: outMin };
                                 } else {
-                                    if (inMin !== null && (!earliestInMap[dt] || inMin < earliestInMap[dt].min))
+                                    if (inMin !== null && !anomaly.in && (!earliestInMap[dt] || inMin < earliestInMap[dt].min))
                                         earliestInMap[dt] = { name: n, min: inMin };
-                                    if (outMin !== null && (!latestOutMap[dt] || outMin > latestOutMap[dt].min))
+                                    if (outMin !== null && !anomaly.out && !isEarlyOutValue && (!latestOutMap[dt] || outMin > latestOutMap[dt].min))
                                         latestOutMap[dt] = { name: n, min: outMin };
                                 }
                             });
