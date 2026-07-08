@@ -1293,15 +1293,22 @@
                     const ex = existingMap[r.manager_key];
                     if (!ex) return r;
                     if (overwriteAttendanceValues) {
-                        const hasActualPunch = isActualAttendanceTime(r.in_time) || isActualAttendanceTime(r.out_time);
-                        const protectExistingPunches = uploadSource === 'leave';
-                        const nextInTime = protectExistingPunches && isActualAttendanceTime(ex.in_time) && !isActualAttendanceTime(r.in_time)
-                            ? ex.in_time
-                            : r.in_time;
-                        const nextOutTime = protectExistingPunches && isActualAttendanceTime(ex.out_time) && !isActualAttendanceTime(r.out_time)
-                            ? ex.out_time
-                            : r.out_time;
-                        const dropExistingLeaveReason = hasActualPunch && isLeaveReasonText(ex.manager_reason);
+                        const mergePunchValue = (incoming, existing, mode) => {
+                            const incomingIsTime = isActualAttendanceTime(incoming);
+                            const existingIsTime = isActualAttendanceTime(existing);
+                            if (incomingIsTime && existingIsTime) {
+                                return mode === 'in'
+                                    ? (incoming < existing ? incoming : existing)
+                                    : (incoming > existing ? incoming : existing);
+                            }
+                            if (incomingIsTime) return incoming;
+                            if (existingIsTime && (uploadSource === 'attendance' || uploadSource === 'leave')) return existing;
+                            return incoming || existing || null;
+                        };
+                        const nextInTime = mergePunchValue(r.in_time, ex.in_time, 'in');
+                        const nextOutTime = mergePunchValue(r.out_time, ex.out_time, 'out');
+                        const hasMergedActualPunch = isActualAttendanceTime(nextInTime) || isActualAttendanceTime(nextOutTime);
+                        const dropExistingLeaveReason = hasMergedActualPunch && isLeaveReasonText(ex.manager_reason);
                         return {
                             ...r,
                             in_time: nextInTime,
@@ -1379,19 +1386,23 @@
                         }
                     }
 
-                    // 2. 현재 세션의 엑셀 데이터와 서버 자료를 병합 (엑셀이 최신이면 덮어씀)
+                    // 2. 방금 계산한 저장 대상과 서버 자료를 병합 (분할 업로드 raw 행이 합쳐진 값을 다시 덮지 않도록 함)
                     const mergedDataMap = new Map();
                     // 먼저 서버 데이터 채우기
                     cloudCombinedRecords.forEach(r => {
                         const key = `${normalizeName(r['이름'])}_${r['날짜']}`;
                         mergedDataMap.set(key, r);
                     });
-                    // 현재 엑셀 데이터로 업데이트/추가
-                    attendanceFilesMap.forEach(fileData => {
-                        fileData.forEach(row => {
-                            const key = `${normalizeName(row['이름'])}_${row['날짜']}`;
-                            // 엑셀에 데이터가 있는 경우만 덮어쓰거나, 아예 새로운 인원이면 추가
-                            mergedDataMap.set(key, row);
+                    // 현재 업로드에서 최종 병합된 데이터로 업데이트/추가
+                    toUpsert.forEach(row => {
+                        const key = row.manager_key;
+                        mergedDataMap.set(key, {
+                            '날짜': row.date,
+                            '이름': row.name,
+                            '출근': row.in_time || "",
+                            '퇴근': row.out_time || "",
+                            '근무조': row.shift || "",
+                            '비고': row.reason || ""
                         });
                     });
 
