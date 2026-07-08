@@ -2287,7 +2287,9 @@
                             '이름': group.name,
                             '출근': fallbackIn,
                             '퇴근': fallbackOut,
-                            '근무조': group.shift
+                            '근무조': group.shift,
+                            '__hasAccessLog': accessTimes.length > 0,
+                            '__accessTimes': accessTimes.join(', ')
                         };
                     });
                 }
@@ -2667,6 +2669,10 @@
                             }
 
                             const rawReason = row["비고"] || row["reason"] || ""; // [추가] 클라우드 사유 복구
+                            const hasAccessLog = row.__hasAccessLog === true || String(row.__hasAccessLog || '').toLowerCase() === 'true';
+                            const accessReason = hasAccessLog
+                                ? `출입기록 있음${row.__accessTimes ? ` (${row.__accessTimes})` : ''}`
+                                : "";
                             if (isWorkReasonValue(rawReason) && !isLeaveMarkerValue(rawReason)) {
                                 if (isLeaveMarkerValue(inTime)) inTime = "";
                                 if (isLeaveMarkerValue(outTime)) outTime = "";
@@ -2674,25 +2680,29 @@
                             const hasActualPunch = isActualPunchValue(inTime) || isActualPunchValue(outTime);
                             const cloudReason = (hasActualPunch && (rawReason.includes("반차") || rawReason.includes("연차"))) ? "" : rawReason;
 
-                            // [수정] 출퇴근 기록이 없더라도 사유(일반 휴가 등)가 있으면 데이터에 포함
-                            if (name && (inTime || outTime || cloudReason)) {
+                            // [수정] 출퇴근 기록이 없더라도 사유(일반 휴가 등)나 출입 로그가 있으면 데이터에 포함
+                            if (name && (inTime || outTime || cloudReason || hasAccessLog)) {
                                 uniqueDates.add(fDate);
                                 if (!recordsMap[name]) recordsMap[name] = {};
 
-                                const existing = recordsMap[name][fDate] || { inTime: "", outTime: "", shiftStart: "" };
+                                const existing = recordsMap[name][fDate] || { inTime: "", outTime: "", shiftStart: "", hasAccessLog: false };
 
                                 const mergedIn = (inTime && (!existing.inTime || inTime < existing.inTime)) ? inTime : existing.inTime;
                                 const mergedOut = (outTime && (!existing.outTime || outTime > existing.outTime)) ? outTime : existing.outTime;
+                                const mergedHasAccessLog = !!existing.hasAccessLog || hasAccessLog;
 
                                 let shiftStart = existing.shiftStart;
                                 if (shiftStr) {
                                     shiftStart = expandShift(shiftStr);
                                 }
 
-                                // [추가] 클라우드에서 복구된 사유가 있으면 적용
-                                const mergedReason = existing.reason || cloudReason;
+                                // [추가] 출입 로그가 있으면 결근 판정 사유보다 출입 맥락을 우선 보존
+                                let mergedReason = existing.reason || cloudReason;
+                                if (hasAccessLog && (!mergedReason || String(mergedReason).includes("결근"))) {
+                                    mergedReason = accessReason;
+                                }
 
-                                recordsMap[name][fDate] = { inTime: mergedIn, outTime: mergedOut, shiftStart, reason: mergedReason };
+                                recordsMap[name][fDate] = { inTime: mergedIn, outTime: mergedOut, shiftStart, reason: mergedReason, hasAccessLog: mergedHasAccessLog };
                             }
                         }
                     }
@@ -2851,28 +2861,6 @@
                             return h * 3600 + m * 60 + s;
                         };
 
-                        // [추가] 지각 자동 사유 기입 (사유가 비어있는 지각건 대상, 사용자 요청)
-                        const inSeconds = parseSeconds(rec.inTime);
-                        if (inSeconds !== null) {
-                            // [개선] 엑셀 기록 -> 사원 설정 -> 기본값(0800) 순으로 기준 시각 도출
-                            let shiftStartStr = rec.shiftStart || "";
-                            if (!shiftStartStr) {
-                                const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
-                                if (empInfo && empInfo.shift) shiftStartStr = empInfo.shift;
-                            }
-                            // 숫자만 성분 추출 (08:30 -> 0830)
-                            shiftStartStr = shiftStartStr.split(/[-~]/)[0].replace(/[^0-9]/g, '');
-                            if (!shiftStartStr) shiftStartStr = "0800";
-
-                            const sSeconds = (parseInt(shiftStartStr.substring(0, 2), 10) * 3600) + (parseInt(shiftStartStr.substring(2, 4), 10) * 60) + 59;
-                            if (inSeconds > sSeconds) {
-                                // 사유가 아예 없거나 기존에 달린 지각만 있는 경우에만 "지각" 자동 기입
-                                if (!reason.trim() || reason.trim() === "지각") rec.reason = "지각";
-                            } else {
-                                // 만약 지각이 아닌데 사유가 "지각"인 경우 (잘못된 자동완성) 삭제 처리
-                                if (rec.reason === "지각") rec.reason = "";
-                            }
-                        }
 
                         if (reason.includes("연차")) {
                             if (!rec.inTime) rec.inTime = "연차";

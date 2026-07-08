@@ -156,6 +156,12 @@ function calculateAnomalies(combinedData, config) {
         return base ? `${base}, ${cleanExtra}` : cleanExtra;
     };
     const getStoredReason = (key) => mergeReason(manualReasons[key] || "", preemptiveSupplements[key] || "");
+    const ACCESS_LOG_REASON = "출입기록 있음";
+    const hasAccessLogValue = (value) => String(value || '').includes(ACCESS_LOG_REASON);
+    const stripAccessLogReason = (value) => String(value || "")
+        .replace(/(?:^|,\s*)출입기록 있음(?:\s*\([^)]*\))?/g, "")
+        .replace(/^,\s*|,\s*$/g, "")
+        .trim();
 
     // 이름과 날짜별로 데이터 통합 (중복 제거)
     const groupedMap = {};
@@ -193,6 +199,7 @@ function calculateAnomalies(combinedData, config) {
                 shift: defaultShift,
                 originalDate: originalDateStr,
                 hasEarly: false,
+                hasAccessLog: false,
                 reason: getStoredReason(manualKey) // [추가] 수동/사전 사유 연동
             };
         }
@@ -200,6 +207,10 @@ function calculateAnomalies(combinedData, config) {
 
         // [추가] 행 자체에 사유가 있다면 합침
         const rowReason = row["비고"] || row["reason"] || "";
+        const rowHasAccessLog = row.__hasAccessLog === true
+            || String(row.__hasAccessLog || '').toLowerCase() === 'true'
+            || hasAccessLogValue(rowReason);
+        if (rowHasAccessLog) groupedMap[manualKey].hasAccessLog = true;
         if (rowReason && !groupedMap[manualKey].reason.includes(rowReason)) {
             groupedMap[manualKey].reason = mergeReason(groupedMap[manualKey].reason, rowReason);
         }
@@ -235,7 +246,7 @@ function calculateAnomalies(combinedData, config) {
                 const shiftedDateStr = formatLocalDateValue(jsDatePrev);
                 const prevKey = `${nameVal}_${shiftedDateStr}`;
                 if (!groupedMap[prevKey]) {
-                    groupedMap[prevKey] = { date: shiftedDateStr, name: nameVal, in: newIn, out: newOut, minOut: newOut, shift: shiftStr, originalDate: originalDateStr, hasEarly: false };
+                    groupedMap[prevKey] = { date: shiftedDateStr, name: nameVal, in: newIn, out: newOut, minOut: newOut, shift: shiftStr, originalDate: originalDateStr, hasEarly: false, hasAccessLog: false };
                 } else {
                     if (newIn && (!groupedMap[prevKey].in || newIn < groupedMap[prevKey].in)) groupedMap[prevKey].in = newIn;
                     if (newOut) {
@@ -250,6 +261,7 @@ function calculateAnomalies(combinedData, config) {
 
         // 일반 기록 또는 시프팅되지 않은 기록 합치기
         const g = groupedMap[manualKey];
+        if (rowHasAccessLog) g.hasAccessLog = true;
         if (inVal && (!g.in || inVal < g.in)) g.in = inVal;
         if (outVal) {
             if (!g.out || outVal > g.out) g.out = outVal;
@@ -280,6 +292,7 @@ function calculateAnomalies(combinedData, config) {
                             shift: "0800-1700",
                             originalDate: fDate,
                             hasEarly: false,
+                            hasAccessLog: false,
                             reason: getStoredReason(manualKey)
                         };
                     }
@@ -309,6 +322,7 @@ function calculateAnomalies(combinedData, config) {
                     shift: (empInfo && empInfo.shift) ? empInfo.shift : "0800-1700",
                     originalDate: fDate,
                     hasEarly: false,
+                    hasAccessLog: false,
                     reason: getStoredReason(manualKey) || reason
                 };
             } else {
@@ -339,6 +353,7 @@ function calculateAnomalies(combinedData, config) {
                         shift: "0800-1700",
                         originalDate: fDate,
                         hasEarly: false,
+                        hasAccessLog: false,
                         reason: getStoredReason(manualKey)
                     };
                 }
@@ -389,7 +404,8 @@ function calculateAnomalies(combinedData, config) {
 
         let isResolved = false;
         // [수정] 수동 사유(클라우드 복구분) 및 행 사유 결합
-        const manualReason = group.reason || "";
+        const hasAccessLog = !!group.hasAccessLog || hasAccessLogValue(group.reason);
+        const manualReason = stripAccessLogReason(group.reason || "");
         const combinedReason = manualReason;
         const hasPreemptiveReason = !!preemptiveSupplements[`${nameVal}_${dateVal}`];
         const shouldIgnoreStoredReasons = ignoreManualReasonsForDetection && !hasPreemptiveReason;
@@ -559,7 +575,7 @@ function calculateAnomalies(combinedData, config) {
 
         // [수정] 조정 내역 보존: 사유가 있거나 휴가/조정 사항인 경우 이상 근태가 아니더라도 목록에 유지 (사용자 요청)
         const isManualAdjustment = reasons.length > 0 || hasEarly;
-        const isHistoryPersistent = !!group.reason;
+        const isHistoryPersistent = !!manualReason;
 
         if (isManualAdjustment || isHistoryPersistent) {
             anomalies.push({
@@ -573,6 +589,7 @@ function calculateAnomalies(combinedData, config) {
                 originalDate: group.originalDate,
                 inAnom: inAnom,
                 outAnom: outAnom,
+                hasAccessLog: hasAccessLog,
                 isResolved: isResolved
             });
         }
