@@ -738,13 +738,18 @@ textarea:focus {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: .2rem;
-    font-size: .4rem;
+    gap: .25rem;
+    font-size: .625rem;
+    line-height: 1.25;
 }
 
 .meta-item {
     display: flex;
     gap: .5rem;
+}
+
+.meta-label {
+    font-weight: 600;
 }
 
 /* ── 15. 매트릭스 테이블 ────────────────────────────────── */
