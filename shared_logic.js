@@ -277,6 +277,7 @@ function calculateAnomalies(combinedData, config) {
         const inVal = group.in;
         const outVal = group.out;
         const shiftStr = group.shift;
+        const hasActualPunch = [inVal, outVal].some(t => t && String(t).includes(':') && !isNaN(parseInt(String(t).replace(':', ''))));
 
         if (!normalizeAttendanceDateValue(dateVal)) return;
         if (isWeekendDateString(dateVal)) return;
@@ -315,13 +316,13 @@ function calculateAnomalies(combinedData, config) {
             const checkStr = combinedReason + " " + String(inVal) + " " + String(outVal);
             const isPartialKeyword = checkStr.includes("반차") || checkStr.includes("조퇴") || checkStr.includes("외출") || checkStr.includes("생일자");
 
-            if (hasVacation && !isPartialKeyword) {
+            if (hasVacation && !isPartialKeyword && !hasActualPunch) {
                 isFullLeave = true;
             } else if (checkStr.includes("오전반차")) {
                 isAMHalf = true;
             } else if (checkStr.includes("오후반차") || checkStr.includes("반차") || checkStr.includes("생일자") || checkStr.includes("생일")) {
                 isPMHalf = true;
-            } else if (hasVacation) {
+            } else if (hasVacation && !hasActualPunch) {
                 // 기타 휴가 키워드가 포함된 경우만 자동 처리
                 otherLeaveType = checkStr;
                 isResolved = true;
@@ -369,9 +370,9 @@ function calculateAnomalies(combinedData, config) {
                                 if (detectedAM) isAMHalf = true;
                                 else isPMHalf = true;
                             }
-                        } else if (lv.days >= 1 || type.includes("연차")) {
+                        } else if ((lv.days >= 1 || type.includes("연차")) && !hasActualPunch) {
                             isFullLeave = true;
-                        } else {
+                        } else if (!type.includes("연차")) {
                             otherLeaveType = type;
                         }
                     }

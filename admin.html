@@ -2561,6 +2561,11 @@
                 });
 
                 // [NEW] 휴가 데이터 결합 로직
+                const isActualPunchValue = (value) => {
+                    const cleaned = cleanTime(value);
+                    return !!(cleaned && /^\d{1,2}:\d{2}/.test(cleaned));
+                };
+
                 if (currentLeaveData && currentLeaveData.length > 0) {
                     currentLeaveData.forEach(lv => {
                         const name = normalizeName(lv.name);
@@ -2598,9 +2603,10 @@
                                 const type = lv.type || "";
                                 const isHalfDay = lv.days < 1 || type.includes("반차");
                                 const raw = lv.raw || "";
+                                const rec = recordsMap[name][fDate];
+                                const hasActualPunch = isActualPunchValue(rec.inTime) || isActualPunchValue(rec.outTime);
 
                                 if (isHalfDay) {
-                                    const rec = recordsMap[name][fDate];
                                     const actualIn = rec.inTime;
                                     const shiftStart = rec.shiftStart;
 
@@ -2636,7 +2642,12 @@
                                         recordsMap[name][fDate].outTime = "반차";
                                     }
                                 } else if (type.includes("연차")) {
-                                    recordsMap[name][fDate].inTime = "연차";
+                                    if (!hasActualPunch) {
+                                        recordsMap[name][fDate].inTime = "연차";
+                                        recordsMap[name][fDate].outTime = "";
+                                    } else {
+                                        console.warn(`[LEAVE] ${name} ${fDate}: 출입기록이 있어 연차 표시를 적용하지 않았습니다.`);
+                                    }
                                 } else {
                                     // 연차, 반차를 제외한 휴가 사항은 사유란에만 입력
                                     let displayType = type;
@@ -2776,6 +2787,9 @@
                             .filter(r => !r.includes("반차") && !r.includes("연차") && r !== "")
                             .join(', ');
                         rec.reason = cleaned;
+
+                        if (rec.inTime === "연차" && isActualPunchValue(rec.outTime)) rec.inTime = "";
+                        if (rec.outTime === "연차" && isActualPunchValue(rec.inTime)) rec.outTime = "";
                     });
                 });
 
