@@ -1384,16 +1384,34 @@
                     const fetchStart = ignorePeriod ? GLOBAL_RANGE_START : cleanupStart;
                     const fetchEnd = ignorePeriod ? GLOBAL_RANGE_END : cleanupEnd;
 
+                    const fetchAllPaged = async (table, selectCols, start, end) => {
+                        const rows = [];
+                        const PAGE_SIZE = 1000;
+                        for (let from = 0; ; from += PAGE_SIZE) {
+                            const { data, error } = await supabase
+                                .from(table)
+                                .select(selectCols)
+                                .gte('date', start)
+                                .lte('date', end)
+                                .range(from, from + PAGE_SIZE - 1);
+                            if (error) throw error;
+                            if (data && data.length > 0) rows.push(...data);
+                            if (!data || data.length < PAGE_SIZE) break;
+                        }
+                        return rows;
+                    };
+
                     let cloudCombinedRecords = [];
                     if (fetchStart && fetchEnd) {
                         console.log(`[SYNC ANOMALY] 서버 기록 전수 조사 쿼리: ${fetchStart} ~ ${fetchEnd}`);
-                        const { data: cloudRecs, error: recFetchErr } = await supabase
-                            .from('attendance_records')
-                            .select('manager_key, name, date, in_time, out_time, shift, reason')
-                            .gte('date', fetchStart)
-                            .lte('date', fetchEnd);
+                        const cloudRecs = await fetchAllPaged(
+                            'attendance_records',
+                            'manager_key, name, date, in_time, out_time, shift, reason',
+                            fetchStart,
+                            fetchEnd
+                        );
 
-                        if (!recFetchErr && cloudRecs) {
+                        if (cloudRecs) {
                             cloudCombinedRecords = cloudRecs.map(r => ({
                                 '날짜': r.date,
                                 '이름': r.name,
@@ -1476,11 +1494,12 @@
 
                     if (cleanStart && cleanEnd) {
                         console.log(`[DEEP CLEANUP] 서버 이상 근태 글로벌 전수 대조: ${cleanStart} ~ ${cleanEnd}`);
-                        const { data: existingAnoms, error: anomFetchErr } = await supabase
-                            .from('attendance_anomalies')
-                            .select('manager_key, reason, status')
-                            .gte('date', cleanStart)
-                            .lte('date', cleanEnd);
+                        const existingAnoms = await fetchAllPaged(
+                            'attendance_anomalies',
+                            'manager_key, reason, status, date',
+                            cleanStart,
+                            cleanEnd
+                        );
 
                         if (existingAnoms && existingAnoms.length > 0) {
                             const currentAnomalyKeys = new Set(activeAnomalies.map(a => `${a.name}_${a.date}`));
