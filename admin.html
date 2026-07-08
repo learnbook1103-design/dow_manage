@@ -1222,6 +1222,18 @@
                 }
             }
 
+            function hasAccessLogReasonText(value) {
+                return String(value || '').includes("출입기록 있음");
+            }
+
+            function stripAccessLogReasonText(value) {
+                return String(value || "")
+                    .replace(/(?:^|,\s*)출입기록 있음(?:\s*\([^)]*\))?/g, "")
+                    .replace(/\s*,\s*,\s*/g, ", ")
+                    .replace(/^,\s*|,\s*$/g, "")
+                    .trim();
+            }
+
 
             async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false, filesToUpload = [], uploadSource = 'auto') {
                 if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
@@ -1270,7 +1282,7 @@
                             status_leave: !!corrData.leave,
                             manager_reason: managerReason,
                             employee_explanation: employeeExplanations[corrKey] || "",
-                            reason: rec.reason || "",
+                            reason: stripAccessLogReasonText(rec.reason || ""),
                             early_punch_mode: manualEarlyPunches[corrKey] || "",
                             is_anomalous: !!(unconfirmedAnomaliesMap[corrKey] && (unconfirmedAnomaliesMap[corrKey].in || unconfirmedAnomaliesMap[corrKey].out))
                         });
@@ -1347,7 +1359,7 @@
                         shift: r.shift || ex.shift || null,
                         in_time: r.in_time || ex.in_time || null,
                         out_time: r.out_time || ex.out_time || null,
-                        reason: r.reason || ex.reason || "",
+                        reason: stripAccessLogReasonText(r.reason || ex.reason || ""),
                         manager_reason: r.manager_reason || ex.manager_reason || "",
                         employee_explanation: r.employee_explanation || ex.employee_explanation || "",
                         early_punch_mode: r.early_punch_mode || ex.early_punch_mode || "",
@@ -1418,7 +1430,7 @@
                                 '출근': r.in_time || "",
                                 '퇴근': r.out_time || "",
                                 '근무조': r.shift || "",
-                                '비고': r.reason || ""
+                                '비고': stripAccessLogReasonText(r.reason || "")
                             }));
                             console.log(`[SYNC ANOMALY] 서버 기록 ${cloudCombinedRecords.length}건 로드 완료`);
                         }
@@ -1440,7 +1452,7 @@
                             '출근': row.in_time || "",
                             '퇴근': row.out_time || "",
                             '근무조': row.shift || "",
-                            '비고': row.reason || ""
+                            '비고': stripAccessLogReasonText(row.reason || "")
                         });
                     });
 
@@ -1612,7 +1624,7 @@
                             const existingIdx = cloudData.findIndex(d => `${d.이름}_${d.날짜}` === key);
                             const newRow = {
                                 "날짜": row.date, "이름": row.name, "근무조": row.shift,
-                                "출근": row.in_time, "퇴근": row.out_time, "비고": row.reason || ""
+                                "출근": row.in_time, "퇴근": row.out_time, "비고": stripAccessLogReasonText(row.reason || "")
                             };
                             if (existingIdx > -1) cloudData[existingIdx] = newRow;
                             else cloudData.push(newRow);
@@ -1879,7 +1891,7 @@
                         status_leave: typeof corrData.leave === 'boolean' ? corrData.leave : (ex ? ex.status_leave : false),
                         manager_reason: (manualReasons && key in manualReasons) ? manualReasons[key] : (ex ? ex.manager_reason : ""),
                         employee_explanation: employeeExplanations[key] || (ex ? ex.employee_explanation : ""),
-                        reason: rec.reason || (ex ? ex.reason : ""),
+                        reason: stripAccessLogReasonText(rec.reason || (ex ? ex.reason : "")),
                         early_punch_mode: manualEarlyPunches[key] || (ex ? ex.early_punch_mode : ""),
                         is_anomalous: !!(unconfirmedAnomaliesMap[key] && (unconfirmedAnomaliesMap[key].in || unconfirmedAnomaliesMap[key].out))
                     };
@@ -2596,6 +2608,12 @@
                     const text = String(value || '');
                     return ["외부교육", "교육", "외근", "출장", "훈련", "파견", "현장"].some(k => text.includes(k));
                 };
+                const hasAccessLogReasonText = (value) => String(value || '').includes("출입기록 있음");
+                const stripAccessLogReasonText = (value) => String(value || "")
+                    .replace(/(?:^|,\s*)출입기록 있음(?:\s*\([^)]*\))?/g, "")
+                    .replace(/\s*,\s*,\s*/g, ", ")
+                    .replace(/^,\s*|,\s*$/g, "")
+                    .trim();
 
                 // [수동] 날짜 오프셋을 적용한 가상 데이터 생성
                 const effectiveRows = rows.map(row => {
@@ -2668,11 +2686,11 @@
                                 if (empInfo && empInfo.shift) shiftStr = empInfo.shift;
                             }
 
-                            const rawReason = row["비고"] || row["reason"] || ""; // [추가] 클라우드 사유 복구
-                            const hasAccessLog = row.__hasAccessLog === true || String(row.__hasAccessLog || '').toLowerCase() === 'true';
-                            const accessReason = hasAccessLog
-                                ? `출입기록 있음${row.__accessTimes ? ` (${row.__accessTimes})` : ''}`
-                                : "";
+                            const rawReasonValue = row["비고"] || row["reason"] || ""; // [추가] 클라우드 사유 복구
+                            const hasAccessLog = row.__hasAccessLog === true
+                                || String(row.__hasAccessLog || '').toLowerCase() === 'true'
+                                || hasAccessLogReasonText(rawReasonValue);
+                            const rawReason = stripAccessLogReasonText(rawReasonValue);
                             if (isWorkReasonValue(rawReason) && !isLeaveMarkerValue(rawReason)) {
                                 if (isLeaveMarkerValue(inTime)) inTime = "";
                                 if (isLeaveMarkerValue(outTime)) outTime = "";
@@ -2696,11 +2714,8 @@
                                     shiftStart = expandShift(shiftStr);
                                 }
 
-                                // [추가] 출입 로그가 있으면 결근 판정 사유보다 출입 맥락을 우선 보존
-                                let mergedReason = existing.reason || cloudReason;
-                                if (hasAccessLog && (!mergedReason || String(mergedReason).includes("결근"))) {
-                                    mergedReason = accessReason;
-                                }
+                                // [추가] 출입 로그는 판정용 내부 정보로만 보존하고 사유란에는 표시하지 않음
+                                let mergedReason = stripAccessLogReasonText(existing.reason || cloudReason);
 
                                 recordsMap[name][fDate] = { inTime: mergedIn, outTime: mergedOut, shiftStart, reason: mergedReason, hasAccessLog: mergedHasAccessLog };
                             }
@@ -3283,7 +3298,7 @@
                             else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
                             const isConfirmedIn = corrData.in === true;
 
-                            const rawReason = (recs[dt] || {}).reason || '';
+                            const rawReason = stripAccessLogReasonText((recs[dt] || {}).reason || '');
                             let currentReason = isOutRange ? '' : rawReason.replace(/\(\s*\[/g, '(').replace(/\]\s*\)/g, ')');
                             
                             // [추가] 외근의 경우 '외근' 키워드와 괄호를 제거하고 업체명만 표시 (사용자 요청)
@@ -3316,7 +3331,7 @@
 
                                         const nextCorrKey = `${name}_${nextDt}`;
                                         const nextManualRes = manualReasons[nextCorrKey] || '';
-                                        const nextExcelRes = (recs[nextDt] || {}).reason || '';
+                                        const nextExcelRes = stripAccessLogReasonText((recs[nextDt] || {}).reason || '');
                                         const nextReason = nextIsOutRange ? '' : (nextManualRes || nextExcelRes);
                                         if (nextReason === currentReason) {
                                             span++;
@@ -3457,7 +3472,7 @@
                             snapshot[name][dt] = {
                                 inTime: rec?.inTime || '',
                                 outTime: rec?.outTime || '',
-                                reason: rec?.reason || '',
+                                reason: stripAccessLogReasonText(rec?.reason || ''),
                                 shift: rec?.shiftStart || '',
                                 confirmedIn: !!corrData.in,
                                 confirmedOut: !!corrData.out,
@@ -4400,11 +4415,11 @@
                             let i = 0;
                             while (i < datesChunk.length) {
                                 const dt = datesChunk[i];
-                                const reason = (rec[dt]?.reason || rec[dt]?.managerReason || '');
+                                const reason = stripAccessLogReasonText(rec[dt]?.reason || rec[dt]?.managerReason || '');
                                 let span = 1;
                                 if (reason.length >= 6) {
                                     while (i + span < datesChunk.length) {
-                                        const next = (rec[datesChunk[i + span]]?.reason || rec[datesChunk[i + span]]?.managerReason || '');
+                                        const next = stripAccessLogReasonText(rec[datesChunk[i + span]]?.reason || rec[datesChunk[i + span]]?.managerReason || '');
                                         if (next === reason) span++;
                                         else break;
                                     }
@@ -4571,7 +4586,7 @@
                                     snapshot[name][dt] = {
                                         inTime: rec?.inTime || '',
                                         outTime: rec?.outTime || '',
-                                        reason: rec?.reason || '',
+                                        reason: stripAccessLogReasonText(rec?.reason || ''),
                                         shift: rec?.shiftStart || '',
                                         confirmedIn: !!corrData.in,
                                         confirmedOut: !!corrData.out,
