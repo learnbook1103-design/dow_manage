@@ -2658,34 +2658,8 @@
                                 const hasActualPunch = isActualPunchValue(rec.inTime) || isActualPunchValue(rec.outTime);
 
                                 if (isHalfDay) {
-                                    const actualIn = rec.inTime;
-                                    const shiftStart = rec.shiftStart;
-
-                                    const parseToMin = (t) => {
-                                        if (!t) return null;
-                                        const cleaned = t.replace(':', '').trim();
-                                        if (cleaned.length >= 4) {
-                                            return parseInt(cleaned.substring(0, 2)) * 60 + parseInt(cleaned.substring(2, 4));
-                                        }
-                                        return null;
-                                    };
-
-                                    const inMin = parseToMin(actualIn);
-                                    const outMin = parseToMin(rec.outTime);
-
                                     const halfText = `${type} ${raw}`;
-                                    let detectedAM = false;
-                                    if (halfText.includes("오전")) {
-                                        detectedAM = true;
-                                    } else if (halfText.includes("오후")) {
-                                        detectedAM = false;
-                                    } else if (inMin !== null) {
-                                        // 11시 이후에 출근했다면 오전 반차(오전에 쉬고 오후 출근)로 간주
-                                        detectedAM = inMin >= 660;
-                                    } else if (outMin !== null) {
-                                        // 14시 이전에 퇴근했다면 오후 반차(오전에 일하고 오후 퇴사)로 간주
-                                        detectedAM = outMin > 840;
-                                    }
+                                    const detectedAM = detectHalfDayIsAM(halfText, rec.inTime, rec.outTime);
 
                                     if (detectedAM) {
                                         if (isActualPunchValue(rec.inTime)) console.warn(`[LEAVE] ${name} ${fDate}: 출입기록이 있어 반차 표시를 출근란에 적용하지 않았습니다.`);
@@ -2797,25 +2771,7 @@
                             // 이미 한쪽이 "반차"면 중복 처리 방지
                             if (rec.inTime === "반차" || rec.outTime === "반차") return;
 
-                            const parseM = (t) => {
-                                if (!t) return null;
-                                const c = t.replace(':', '').trim();
-                                if (c.length >= 4) return parseInt(c.substring(0, 2)) * 60 + parseInt(c.substring(2, 4));
-                                return null;
-                            };
-                            const inMin = parseM(rec.inTime);
-                            const outMin = parseM(rec.outTime);
-
-                            let detectedAM = false;
-                            if (reason.includes("오전")) {
-                                detectedAM = true;
-                            } else if (reason.includes("오후")) {
-                                detectedAM = false;
-                            } else if (inMin !== null) {
-                                detectedAM = inMin >= 660; // 11시 이후 출근 -> 오전반차
-                            } else if (outMin !== null) {
-                                detectedAM = outMin > 840; // 14시 이전 퇴근 -> 오후반차
-                            }
+                            const detectedAM = detectHalfDayIsAM(reason, rec.inTime, rec.outTime);
 
                             if (detectedAM) {
                                 if (!isActualPunchValue(rec.inTime)) rec.inTime = "반차";
@@ -2844,6 +2800,10 @@
 
                         if (rec.inTime === "연차" && isActualPunchValue(rec.outTime)) rec.inTime = "";
                         if (rec.outTime === "연차" && isActualPunchValue(rec.inTime)) rec.outTime = "";
+                        const finalInMin = timeToMinutesForHalfDay(rec.inTime);
+                        const finalOutMin = timeToMinutesForHalfDay(rec.outTime);
+                        if (rec.outTime === "반차" && finalInMin !== null && finalInMin >= 660) rec.outTime = "";
+                        if (rec.inTime === "반차" && finalOutMin !== null && finalOutMin <= 840) rec.inTime = "";
                     });
                 });
 

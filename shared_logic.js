@@ -92,6 +92,29 @@ function normalizeAttendanceDateValue(value) {
     return `${match[1]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+function timeToMinutesForHalfDay(value) {
+    const cleaned = cleanTime(value).replace(':', '').trim();
+    if (!/^\d{3,4}$/.test(cleaned)) return null;
+    const padded = cleaned.padStart(4, '0');
+    return parseInt(padded.substring(0, 2), 10) * 60 + parseInt(padded.substring(2, 4), 10);
+}
+
+function detectHalfDayIsAM(halfText = "", inValue = "", outValue = "") {
+    const text = String(halfText || "");
+    const inMin = timeToMinutesForHalfDay(inValue);
+    const outMin = timeToMinutesForHalfDay(outValue);
+
+    // Actual punch times are stronger than labels when split source files disagree.
+    if (inMin !== null && inMin >= 660) return true;
+    if (outMin !== null && outMin <= 840) return false;
+
+    if (text.includes("오전")) return true;
+    if (text.includes("오후")) return false;
+    if (inMin !== null) return inMin >= 660;
+    if (outMin !== null) return outMin > 840;
+    return false;
+}
+
 
 function calculateAnomalies(combinedData, config) {
     const {
@@ -330,17 +353,8 @@ function calculateAnomalies(combinedData, config) {
             } else if (checkStr.includes("오후반차") || checkStr.includes("생일자") || checkStr.includes("생일")) {
                 isPMHalf = true;
             } else if (checkStr.includes("반차")) {
-                const inMin = toMinutes(inVal);
-                const outMin = toMinutes(outVal);
-                if (inMin !== null) {
-                    isAMHalf = inMin >= 660;
-                    isPMHalf = !isAMHalf;
-                } else if (outMin !== null) {
-                    isAMHalf = outMin > 840;
-                    isPMHalf = !isAMHalf;
-                } else {
-                    isPMHalf = true;
-                }
+                isAMHalf = detectHalfDayIsAM(checkStr, inVal, outVal);
+                isPMHalf = !isAMHalf;
             } else if (hasVacation && !hasActualPunch) {
                 // 기타 휴가 키워드가 포함된 경우만 자동 처리
                 otherLeaveType = checkStr;
@@ -369,22 +383,7 @@ function calculateAnomalies(combinedData, config) {
                             if (!isJustEarly) {
                                 const raw = lv.raw || "";
                                 const halfText = `${type} ${raw}`;
-                                let detectedAM = false;
-
-                                const inT = inVal ? inVal.replace(':', '') : null;
-                                const outT = outVal ? outVal.replace(':', '') : null;
-
-                                if (halfText.includes("오전")) {
-                                    detectedAM = true;
-                                } else if (halfText.includes("오후")) {
-                                    detectedAM = false;
-                                } else if (inT && inT.length >= 4) {
-                                    const inMin = parseInt(inT.substring(0, 2)) * 60 + parseInt(inT.substring(2, 4));
-                                    detectedAM = inMin >= 660;
-                                } else if (outT && outT.length >= 4) {
-                                    const outMin = parseInt(outT.substring(0, 2)) * 60 + parseInt(outT.substring(2, 4));
-                                    detectedAM = outMin > 840;
-                                }
+                                const detectedAM = detectHalfDayIsAM(halfText, inVal, outVal);
 
                                 if (detectedAM) isAMHalf = true;
                                 else isPMHalf = true;
