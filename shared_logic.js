@@ -551,13 +551,9 @@ function calculateAnomalies(combinedData, config) {
         } else if (isAMHalf) {
             // 오전 반차 (오전 휴가 → 오후 출근)
             if (!isResolved || shouldIgnoreStoredReasons) {
-                if (!isValidTime(outVal) && !isLeaveMarker(outVal)) {
-                    // 퇴근 기록도 없으면 이상 — 단, 출근 기록 자체가 없을 때는 제외
-                    // (오전 반차인데 출근 기록도 없으면 아예 안 온 것이므로 이상 아님)
-                    if (isValidTime(inVal)) {
-                        reasons.push("퇴근 기록 없음");
-                        outAnom = true;
-                    }
+                if (!isValidTime(outVal)) {
+                    reasons.push("퇴근 기록 없음");
+                    outAnom = true;
                 } else if (isValidTime(outVal) && outVal < expOut) {
                     reasons.push("조기퇴근");
                     outAnom = true;
