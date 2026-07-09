@@ -1234,7 +1234,6 @@
                     .trim();
             }
 
-
             async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false, filesToUpload = [], uploadSource = 'auto') {
                 if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
                 const currentMatrix = prebuiltMatrix || updateAndProcessData(true, ignorePeriod);
@@ -1485,6 +1484,7 @@
                         manualReasons,
                         currentLeaveData,
                         currentUniqueDates: syncUniqueDates,
+                        holidayDates: holidayConfigList.map(h => h.date),
                         preemptiveSupplements,
                         skipMissingEmployeeExpansion: !!ignorePeriod
                     });
@@ -2256,6 +2256,26 @@
 
                 const firstRow = rawData[0];
                 const headers = Object.keys(firstRow);
+                const previousDateString = (dateStr) => {
+                    const date = new Date(`${dateStr}T00:00:00`);
+                    if (isNaN(date)) return dateStr;
+                    date.setDate(date.getDate() - 1);
+                    return formatLocalDateValue(date);
+                };
+                const getAttendanceLogBucket = (time) => {
+                    const match = String(time || "").match(/^(\d{1,2}):(\d{2})/);
+                    if (!match) return "";
+                    const minutes = Number(match[1]) * 60 + Number(match[2]);
+                    if (minutes <= 299) return "prevOut";
+                    if (minutes <= 719) return "in";
+                    if (minutes <= 779) return "lunch";
+                    return "out";
+                };
+                const toPreviousDayOutTime = (time) => {
+                    const match = String(time || "").match(/^(\d{1,2}):(\d{2})/);
+                    if (!match) return time;
+                    return `${String(Number(match[1]) + 24).padStart(2, '0')}:${match[2]}`;
+                };
 
                 // [NEW] 로그 형태의 데이터 처리 (발생시각, 이름 기반)
                 if (headers.includes('발생시각') && !headers.includes('출근')) {
@@ -2264,44 +2284,40 @@
                         const name = normalizeName(row['이름']);
                         const parsedDateTime = parseAttendanceDateTime(row['발생시각']);
                         const shift = String(row['근무조'] || "").trim();
-                        const status = String(row['상태'] || "").trim(); // 상태 확인
-
                         if (!name || !parsedDateTime) return;
 
                         const { date, time } = parsedDateTime;
                         if (date && time) {
-                            const key = `${name}_${date}`;
-                            if (!grouped[key]) grouped[key] = { date, name, shift, ins: [], outs: [], access: [] };
+                            const bucket = getAttendanceLogBucket(time);
+                            const recordDate = bucket === "prevOut" ? previousDateString(date) : date;
+                            const key = `${name}_${recordDate}`;
+                            if (!grouped[key]) grouped[key] = { date: recordDate, name, shift, ins: [], lunches: [], outs: [] };
                             if (shift && !grouped[key].shift) grouped[key].shift = shift;
 
-                            if (status.includes('퇴근')) {
-                                grouped[key].outs.push(time);
-                            } else if (status.includes('출근')) {
+                            if (bucket === "in") {
                                 grouped[key].ins.push(time);
-                            } else if (status.includes('출입') || status.includes('입')) {
-                                grouped[key].access.push(time);
-                            } else if (status.includes('퇴')) {
+                            } else if (bucket === "lunch") {
+                                grouped[key].lunches.push(time);
+                            } else if (bucket === "out") {
                                 grouped[key].outs.push(time);
-                            } else {
-                                grouped[key].access.push(time);
+                            } else if (bucket === "prevOut") {
+                                grouped[key].outs.push(toPreviousDayOutTime(time));
                             }
                         }
                     });
                     return Object.values(grouped).map(group => {
-                        const accessTimes = group.access.sort();
                         const inTimes = group.ins.sort();
+                        const lunchTimes = group.lunches.sort();
                         const outTimes = group.outs.sort();
-                        const fallbackIn = inTimes[0] || "";
-                        const fallbackOut = outTimes[outTimes.length - 1] || "";
+                        const fallbackIn = inTimes[0] || lunchTimes[0] || "";
+                        const fallbackOut = outTimes[outTimes.length - 1] || lunchTimes[lunchTimes.length - 1] || "";
 
                         return {
                             '날짜': group.date,
                             '이름': group.name,
                             '출근': fallbackIn,
                             '퇴근': fallbackOut,
-                            '근무조': group.shift,
-                            '__hasAccessLog': accessTimes.length > 0,
-                            '__accessTimes': accessTimes.join(', ')
+                            '근무조': group.shift
                         };
                     });
                 }
@@ -2686,11 +2702,7 @@
                                 if (empInfo && empInfo.shift) shiftStr = empInfo.shift;
                             }
 
-                            const rawReasonValue = row["비고"] || row["reason"] || ""; // [추가] 클라우드 사유 복구
-                            const hasAccessLog = row.__hasAccessLog === true
-                                || String(row.__hasAccessLog || '').toLowerCase() === 'true'
-                                || hasAccessLogReasonText(rawReasonValue);
-                            const rawReason = stripAccessLogReasonText(rawReasonValue);
+                            const rawReason = stripAccessLogReasonText(row["비고"] || row["reason"] || ""); // [추가] 클라우드 사유 복구
                             if (isWorkReasonValue(rawReason) && !isLeaveMarkerValue(rawReason)) {
                                 if (isLeaveMarkerValue(inTime)) inTime = "";
                                 if (isLeaveMarkerValue(outTime)) outTime = "";
@@ -2698,26 +2710,24 @@
                             const hasActualPunch = isActualPunchValue(inTime) || isActualPunchValue(outTime);
                             const cloudReason = (hasActualPunch && (rawReason.includes("반차") || rawReason.includes("연차"))) ? "" : rawReason;
 
-                            // [수정] 출퇴근 기록이 없더라도 사유(일반 휴가 등)나 출입 로그가 있으면 데이터에 포함
-                            if (name && (inTime || outTime || cloudReason || hasAccessLog)) {
+                            // [수정] 출퇴근 기록이 없더라도 사유(일반 휴가 등)가 있으면 데이터에 포함
+                            if (name && (inTime || outTime || cloudReason)) {
                                 uniqueDates.add(fDate);
                                 if (!recordsMap[name]) recordsMap[name] = {};
 
-                                const existing = recordsMap[name][fDate] || { inTime: "", outTime: "", shiftStart: "", hasAccessLog: false };
+                                const existing = recordsMap[name][fDate] || { inTime: "", outTime: "", shiftStart: "" };
 
                                 const mergedIn = (inTime && (!existing.inTime || inTime < existing.inTime)) ? inTime : existing.inTime;
                                 const mergedOut = (outTime && (!existing.outTime || outTime > existing.outTime)) ? outTime : existing.outTime;
-                                const mergedHasAccessLog = !!existing.hasAccessLog || hasAccessLog;
 
                                 let shiftStart = existing.shiftStart;
                                 if (shiftStr) {
                                     shiftStart = expandShift(shiftStr);
                                 }
 
-                                // [추가] 출입 로그는 판정용 내부 정보로만 보존하고 사유란에는 표시하지 않음
                                 let mergedReason = stripAccessLogReasonText(existing.reason || cloudReason);
 
-                                recordsMap[name][fDate] = { inTime: mergedIn, outTime: mergedOut, shiftStart, reason: mergedReason, hasAccessLog: mergedHasAccessLog };
+                                recordsMap[name][fDate] = { inTime: mergedIn, outTime: mergedOut, shiftStart, reason: mergedReason };
                             }
                         }
                     }
@@ -2996,7 +3006,7 @@
                 if (showAnomaliesHighlight) {
                     const allData = [];
                     attendanceFilesMap.forEach(data => allData.push(...data));
-                    const anomalies = calculateAnomalies(allData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, preemptiveSupplements });
+                    const anomalies = calculateAnomalies(allData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, holidayDates: holidayConfigList.map(h => h.date), preemptiveSupplements });
                     anomalies.forEach(a => {
                         // [추가] 사전 등록 등으로 이미 처리된(isResolved) 항목은 하이라이트 제외
                         if (a.isResolved) return;
@@ -3657,7 +3667,7 @@
                         return;
                     }
 
-                    const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, preemptiveSupplements, ignoreManualReasonsForDetection: true });
+                    const anomalies = calculateAnomalies(combinedData, { employeeConfigList, manualEarlyPunches, manualReasons, currentLeaveData, currentUniqueDates, holidayDates: holidayConfigList.map(h => h.date), preemptiveSupplements, ignoreManualReasonsForDetection: true });
                     const mode = groupSelect ? groupSelect.value : 'none';
 
                     // 사원 보완 사유 모드: 클라우드에서 최신 explanation 동기화

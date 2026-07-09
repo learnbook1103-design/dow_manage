@@ -143,10 +143,13 @@ function calculateAnomalies(combinedData, config) {
         preemptiveSupplements = {},
         currentLeaveData = [],
         currentUniqueDates = new Set(),
+        holidayDates = [],
         skipMissingEmployeeExpansion = false,
         ignoreManualReasonsForDetection = false  // [추가] 수동 사유에 의한 자동 해결 제외 (검증 모달용)
     } = config || {};
     const anomalies = [];
+    const holidayDateSet = new Set((holidayDates || []).map(normalizeAttendanceDateValue).filter(Boolean));
+    const isConfiguredHoliday = (dateStr) => holidayDateSet.has(normalizeAttendanceDateValue(dateStr));
     const manualNames = employeeConfigList.map(e => e.name.trim()).filter(n => n.length > 0);
     const ceoNames = new Set(employeeConfigList.filter(e => e.org === "대표이사").map(e => normalizeName(e.name)));
     const mergeReason = (base, extra) => {
@@ -282,7 +285,7 @@ function calculateAnomalies(combinedData, config) {
             let curDay = new Date(startDt);
             while (curDay <= endDt) {
                 const fDate = formatLocalDateValue(curDay);
-                if (typeof currentUniqueDates !== 'undefined' && currentUniqueDates && currentUniqueDates.has(fDate)) {
+                if (typeof currentUniqueDates !== 'undefined' && currentUniqueDates && currentUniqueDates.has(fDate) && !isConfiguredHoliday(fDate)) {
                     const manualKey = `${nameVal}_${fDate}`;
                     if (!groupedMap[manualKey]) {
                         groupedMap[manualKey] = {
@@ -310,6 +313,7 @@ function calculateAnomalies(combinedData, config) {
             const nameVal = normalizeName(key.slice(0, splitAt));
             const fDate = normalizeAttendanceDateValue(key.slice(splitAt + 1));
             if (!nameVal || !fDate || ceoNames.has(nameVal)) return;
+            if (isConfiguredHoliday(fDate)) return;
             if (currentUniqueDates && currentUniqueDates.size > 0 && !currentUniqueDates.has(fDate)) return;
             const manualKey = `${nameVal}_${fDate}`;
 
@@ -336,6 +340,7 @@ function calculateAnomalies(combinedData, config) {
         currentUniqueDates.forEach(rawDate => {
             const fDate = normalizeAttendanceDateValue(rawDate);
             if (!fDate) return;
+            if (isConfiguredHoliday(fDate)) return;
             employeeConfigList.forEach(emp => {
                 const nameVal = normalizeName(emp.name);
                 if (!nameVal || ceoNames.has(nameVal)) return;
@@ -382,6 +387,7 @@ function calculateAnomalies(combinedData, config) {
 
         if (!normalizeAttendanceDateValue(dateVal)) return;
         if (isWeekendDateString(dateVal)) return;
+        if (isConfiguredHoliday(dateVal)) return;
 
         // 표에 나타나지 않은 날짜(기록/휴가 둘 다 없는 날짜)는 검증에서 제외
         // [수정] currentUniqueDates가 비어있어도 클라우드 데이터가 있다면 검사가 가능하도록 함
