@@ -2624,6 +2624,10 @@
                     const text = String(value || '');
                     return ["외부교육", "교육", "외근", "출장", "훈련", "파견", "현장"].some(k => text.includes(k));
                 };
+                const isLunchPunchValue = (value) => {
+                    const minutes = timeToMinutesForHalfDay(value);
+                    return minutes !== null && minutes >= 720 && minutes <= 779;
+                };
                 const hasAccessLogReasonText = (value) => String(value || '').includes("출입기록 있음");
                 const stripAccessLogReasonText = (value) => String(value || "")
                     .replace(/(?:^|,\s*)출입기록 있음(?:\s*\([^)]*\))?/g, "")
@@ -2775,14 +2779,15 @@
 
                                 if (isHalfDay) {
                                     const halfText = `${type} ${raw}`;
+                                    const hasSingleLunchPunch = rec.inTime && rec.inTime === rec.outTime && isLunchPunchValue(rec.inTime);
                                     const detectedAM = detectHalfDayIsAM(halfText, rec.inTime, rec.outTime);
 
                                     if (detectedAM) {
                                         recordsMap[name][fDate].inTime = "반차";
-                                        if (recordsMap[name][fDate].outTime === "반차") recordsMap[name][fDate].outTime = "";
+                                        if (recordsMap[name][fDate].outTime === "반차" || hasSingleLunchPunch) recordsMap[name][fDate].outTime = "";
                                     } else {
                                         recordsMap[name][fDate].outTime = "반차";
-                                        if (recordsMap[name][fDate].inTime === "반차") recordsMap[name][fDate].inTime = "";
+                                        if (recordsMap[name][fDate].inTime === "반차" || hasSingleLunchPunch) recordsMap[name][fDate].inTime = "";
                                     }
                                 } else if (type.includes("연차")) {
                                     if (!hasActualPunch) {

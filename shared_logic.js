@@ -120,8 +120,13 @@ function timeToMinutesForHalfDay(value) {
 
 function detectHalfDayIsAM(halfText = "", inValue = "", outValue = "") {
     const text = String(halfText || "");
+    const inText = String(inValue || "");
+    const outText = String(outValue || "");
     const inMin = timeToMinutesForHalfDay(inValue);
     const outMin = timeToMinutesForHalfDay(outValue);
+
+    if (inText.includes("반차")) return true;
+    if (outText.includes("반차")) return false;
 
     // Actual punch times are stronger than labels when split source files disagree.
     if (inMin !== null && inMin >= 660) return true;
