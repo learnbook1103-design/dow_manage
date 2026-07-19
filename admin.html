@@ -280,21 +280,21 @@
                         </div>
                     </div>
                     <!-- 왼쪽 4버튼 -->
-                    <div class="middle-controls">
-                        <div class="settings-group" style="flex: 1; align-self: stretch;">
-                            <button id="open-manager-btn" class="secondary-btn" style="flex: 1;">
+                    <div class="middle-controls" style="align-items:flex-start;">
+                        <div class="settings-group" style="width:128px;">
+                            <button id="open-manager-btn" class="secondary-btn" style="width:100%; min-height:44px;">
                                 사원 관리
                             </button>
                             <button id="open-holiday-btn" class="secondary-btn"
-                                style="flex: 1; color: #6366f1; background: #f5f3ff; border-color: #ddd6fe;">
+                                style="width:100%; min-height:44px; color: #6366f1; background: #f5f3ff; border-color: #ddd6fe;">
                                 공휴일 설정
                             </button>
                             <button id="highlight-anomaly-btn" class="secondary-btn"
-                                style="flex: 1; color: #e11d48; background: #fff1f2; border-color: #fecdd3;">
+                                style="width:100%; min-height:44px; color: #e11d48; background: #fff1f2; border-color: #fecdd3;">
                                 이상 근태 표시
                             </button>
                             <button id="verify-data-btn" class="secondary-btn"
-                                style="flex: 1; color: #f97316; background: #fff7ed; border-color: #fed7aa;">
+                                style="width:100%; min-height:44px; color: #f97316; background: #fff7ed; border-color: #fed7aa;">
                                 근태 내역 조정
                             </button>
                         </div>
@@ -320,25 +320,16 @@
                                 style="width:14px; height:14px; margin:0; accent-color:#1e40af;">
                             양식 2 잔여 연차 표시
                         </label>
-                        <button id="print-btn" class="primary-btn"
-                            style="flex: 1; background-color: #0d5e94; font-size: 0.9rem;">
-                            보고서 인쇄 및 PDF 저장
-                        </button>
-                        <div style="padding:0.45rem 0.55rem; border:1px solid #fde68a; border-radius:6px; background:#fffbeb; font-size:0.78rem; color:#78350f;">
-                            <div style="font-weight:700; margin-bottom:0.35rem;">지각 보고서 표시 항목</div>
-                            <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-                                <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
-                                    <input type="checkbox" id="tardy-show-in-time" checked> 출근 시각
-                                </label>
-                                <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
-                                    <input type="checkbox" id="tardy-show-minutes"> 지각 시간(분)
-                                </label>
-                            </div>
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem;">
+                            <button id="print-btn" class="primary-btn" title="근태 보고서 인쇄 및 PDF 저장"
+                                style="min-width:0; padding:0.6rem 0.5rem; background-color:#0d5e94; font-size:0.82rem;">
+                                근태 보고서
+                            </button>
+                            <button id="tardy-report-btn" class="secondary-btn" title="지각 현황 보고서 열기"
+                                style="min-width:0; padding:0.6rem 0.5rem; background:#fffbeb; color:#b45309; border-color:#fcd34d; font-size:0.82rem;">
+                                지각 보고서
+                            </button>
                         </div>
-                        <button id="tardy-report-btn" class="secondary-btn"
-                            style="flex:1; background:#fffbeb; color:#b45309; border-color:#fcd34d; font-size:0.9rem;">
-                            지각 보고서 열기
-                        </button>
                         <button id="saved-reports-btn" class="secondary-btn"
                             style="flex: 1; background: #faf5ff; color: #6d28d9; border-color: #ddd6fe; font-size: 0.9rem;">
                             저장된 보고서 열람
@@ -634,8 +625,6 @@
             const printBtn = document.getElementById('print-btn');
             const simpleLeaveColumnToggle = document.getElementById('simple-leave-column-toggle');
             const tardyReportBtn = document.getElementById('tardy-report-btn');
-            const tardyShowInTime = document.getElementById('tardy-show-in-time');
-            const tardyShowMinutes = document.getElementById('tardy-show-minutes');
 
             // 검증(Verification) 기능 요소
             const verifyBtn = document.getElementById('verify-data-btn');
@@ -3566,8 +3555,8 @@
                 }));
                 items.sort((a, b) => a.name.localeCompare(b.name, 'ko') || a.date.localeCompare(b.date));
 
-                const showInTime = tardyShowInTime?.checked !== false;
-                const showMinutes = tardyShowMinutes?.checked === true;
+                const showInTime = localStorage.getItem('tardy_report_show_in_time') !== 'false';
+                const showMinutes = localStorage.getItem('tardy_report_show_minutes') === 'true';
                 const missingCount = items.filter(item => item.missing).length;
                 const optionalHeaders = `${showInTime ? '<th>출근 시각</th>' : ''}${showMinutes ? '<th>지각 시간</th>' : ''}`;
                 const reportDate = reportDateInput?.value || formatLocalDateValue(new Date());
@@ -3621,6 +3610,7 @@
                         #tardy-report-screen button{border:0;border-radius:6px;background:#b45309;color:white;padding:8px 14px;font-weight:700;cursor:pointer}#tardy-report-screen .back-btn{margin-right:8px;background:#fff;color:#374151;border:1px solid #d1d5db}
                         #tardy-report-screen .report-toolbar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:12px;margin-bottom:18px;border:1px solid #fde68a;border-radius:8px;background:#fffbeb}
                         #tardy-report-screen .date-field{display:flex;flex-direction:column;gap:4px;min-width:150px}#tardy-report-screen .date-field label{font-size:11px;font-weight:700;color:#78350f}#tardy-report-screen .date-field input{height:34px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;box-sizing:border-box}
+                        #tardy-report-screen .display-options{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border:1px solid #fcd34d;border-radius:6px;background:#fff;box-sizing:border-box}#tardy-report-screen .display-options>span{font-size:11px;font-weight:700;color:#78350f}#tardy-report-screen .display-options label{display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}#tardy-report-screen .display-options input{accent-color:#b45309}
                         #tardy-report-screen .refresh-btn{height:34px}#tardy-report-screen button:disabled{opacity:.6;cursor:wait}
                         #tardy-report-screen .month-section{margin-top:28px;padding-top:20px;border-top:2px solid #d1d5db}#tardy-report-screen .month-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}#tardy-report-screen .month-heading h2{font-size:18px;margin:0;color:#92400e}#tardy-report-screen .month-heading span{color:#6b7280;font-weight:600}
                         @media print{body>*:not(#tardy-report-screen){display:none!important}#tardy-report-screen{position:static;overflow:visible;background:#fff;padding:0}#tardy-report-screen .report-content{max-width:none;min-height:0;padding:0;box-shadow:none}#tardy-report-screen .actions,#tardy-report-screen .report-toolbar{display:none}#tardy-report-screen h2{break-after:avoid}#tardy-report-screen tr{break-inside:avoid}#tardy-report-screen .month-section{border-top:0;margin-top:0;padding-top:0}#tardy-report-screen .month-section+.month-section{break-before:page}}
@@ -3631,7 +3621,8 @@
                             <div class="date-field"><label for="tardy-report-date">보고일자</label><input id="tardy-report-date" type="date" max="9999-12-31" value="${escapeTardyReportHtml(reportDate)}"></div>
                             <div class="date-field"><label for="tardy-period-start">시작일자</label><input id="tardy-period-start" type="date" max="9999-12-31" value="${escapeTardyReportHtml(start)}"></div>
                             <div class="date-field"><label for="tardy-period-end">종료일자</label><input id="tardy-period-end" type="date" max="9999-12-31" value="${escapeTardyReportHtml(end)}"></div>
-                            <button id="tardy-report-refresh" type="button" class="refresh-btn">조회</button>
+                            <div class="display-options"><span>표시 항목</span><label><input id="tardy-show-in-time" type="checkbox" ${showInTime ? 'checked' : ''}> 출근 시각</label><label><input id="tardy-show-minutes" type="checkbox" ${showMinutes ? 'checked' : ''}> 지각 시간(분)</label></div>
+                            <button id="tardy-report-refresh" type="button" class="refresh-btn">조회 / 적용</button>
                         </div>
                         <h1>지각 현황 보고서</h1><div class="meta">보고일자 ${escapeTardyReportHtml(reportDate)} · 조회기간 ${escapeTardyReportHtml(start || '-')} ~ ${escapeTardyReportHtml(end || '-')}</div>
                         <div class="cards"><div class="card">대상 직원<b>${Object.keys(grouped).length}명</b></div><div class="card">총 지각<b>${items.length}건</b></div><div class="card">사유 작성<b>${items.length - missingCount}건</b></div><div class="card">사유 미작성<b>${missingCount}건</b></div></div>
@@ -3643,6 +3634,8 @@
                     const nextReportDate = reportScreen.querySelector('#tardy-report-date')?.value || '';
                     const nextStart = reportScreen.querySelector('#tardy-period-start')?.value || '';
                     const nextEnd = reportScreen.querySelector('#tardy-period-end')?.value || '';
+                    const nextShowInTime = reportScreen.querySelector('#tardy-show-in-time')?.checked !== false;
+                    const nextShowMinutes = reportScreen.querySelector('#tardy-show-minutes')?.checked === true;
                     if (!nextReportDate || !nextStart || !nextEnd) {
                         alert('보고일자, 시작일자, 종료일자를 모두 선택해주세요.');
                         return;
@@ -3659,19 +3652,13 @@
                     document.getElementById('report-period-end').value = nextEnd;
                     localStorage.setItem('report_period_start', nextStart);
                     localStorage.setItem('report_period_end', nextEnd);
+                    localStorage.setItem('tardy_report_show_in_time', String(nextShowInTime));
+                    localStorage.setItem('tardy_report_show_minutes', String(nextShowMinutes));
                     if (supabase) await fetchAllFromCloud(true);
                     await openTardyReport();
                 });
             }
 
-            if (tardyShowInTime) {
-                tardyShowInTime.checked = localStorage.getItem('tardy_report_show_in_time') !== 'false';
-                tardyShowInTime.addEventListener('change', () => localStorage.setItem('tardy_report_show_in_time', String(tardyShowInTime.checked)));
-            }
-            if (tardyShowMinutes) {
-                tardyShowMinutes.checked = localStorage.getItem('tardy_report_show_minutes') === 'true';
-                tardyShowMinutes.addEventListener('change', () => localStorage.setItem('tardy_report_show_minutes', String(tardyShowMinutes.checked)));
-            }
             if (tardyReportBtn) tardyReportBtn.addEventListener('click', openTardyReport);
 
             async function saveReportToCloud(dateChunks, names, recordsMap) {
