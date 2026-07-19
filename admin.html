@@ -324,6 +324,21 @@
                             style="flex: 1; background-color: #0d5e94; font-size: 0.9rem;">
                             보고서 인쇄 및 PDF 저장
                         </button>
+                        <div style="padding:0.45rem 0.55rem; border:1px solid #fde68a; border-radius:6px; background:#fffbeb; font-size:0.78rem; color:#78350f;">
+                            <div style="font-weight:700; margin-bottom:0.35rem;">지각 보고서 표시 항목</div>
+                            <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+                                <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                                    <input type="checkbox" id="tardy-show-in-time" checked> 출근 시각
+                                </label>
+                                <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer;">
+                                    <input type="checkbox" id="tardy-show-minutes"> 지각 시간(분)
+                                </label>
+                            </div>
+                        </div>
+                        <button id="tardy-report-btn" class="secondary-btn"
+                            style="flex:1; background:#fffbeb; color:#b45309; border-color:#fcd34d; font-size:0.9rem;">
+                            지각 보고서 열기
+                        </button>
                         <button id="saved-reports-btn" class="secondary-btn"
                             style="flex: 1; background: #faf5ff; color: #6d28d9; border-color: #ddd6fe; font-size: 0.9rem;">
                             저장된 보고서 열람
@@ -618,6 +633,9 @@
             const syncEmployeesBtn = document.getElementById('sync-employees-btn');
             const printBtn = document.getElementById('print-btn');
             const simpleLeaveColumnToggle = document.getElementById('simple-leave-column-toggle');
+            const tardyReportBtn = document.getElementById('tardy-report-btn');
+            const tardyShowInTime = document.getElementById('tardy-show-in-time');
+            const tardyShowMinutes = document.getElementById('tardy-show-minutes');
 
             // 검증(Verification) 기능 요소
             const verifyBtn = document.getElementById('verify-data-btn');
@@ -3443,6 +3461,153 @@
                 });
                 reportContainer.classList.remove('hidden');
             }
+
+            function escapeTardyReportHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function getTardyReportItem(name, date, rec) {
+                const corrKey = `${name}_${date}`;
+                let correction = manualCorrections[corrKey];
+                if (correction === true) correction = { in: true };
+                if (correction && correction.in === true) return null;
+
+                const reason = String(rec?.reason || '');
+                const skipKeywords = ['출장', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '교육', '훈련', '파견', '현장', '반차', '오전반차', '오후반차', '예비군'];
+                if (skipKeywords.some(k => reason.includes(k))) return null;
+
+                const parts = String(rec?.inTime || '').match(/\d{1,2}/g);
+                if (!parts || parts.length < 2) return null;
+                const inHour = parseInt(parts[0], 10);
+                const inMinute = parseInt(parts[1], 10);
+                const inSecond = parts.length >= 3 ? parseInt(parts[2], 10) : 0;
+                if ([inHour, inMinute, inSecond].some(Number.isNaN)) return null;
+
+                const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
+                let shiftStart = String(rec?.shiftStart || '').split(/[-~]/)[0].replace(/[^0-9]/g, '');
+                if (!shiftStart && empInfo.shift) shiftStart = String(empInfo.shift).split(/[-~]/)[0].replace(/[^0-9]/g, '');
+                if (shiftStart.length === 3) shiftStart = `0${shiftStart}`;
+                if (shiftStart.length < 4) shiftStart = '0800';
+
+                const shiftSeconds = parseInt(shiftStart.substring(0, 2), 10) * 3600
+                    + parseInt(shiftStart.substring(2, 4), 10) * 60 + 59;
+                const punchSeconds = inHour * 3600 + inMinute * 60 + inSecond;
+                if (punchSeconds <= shiftSeconds) return null;
+
+                const explanation = String(employeeExplanations[corrKey] || '').trim();
+                return {
+                    name,
+                    date,
+                    inTime: String(rec.inTime || ''),
+                    minutes: Math.ceil((punchSeconds - shiftSeconds) / 60),
+                    explanation,
+                    missing: !explanation
+                };
+            }
+
+            async function openTardyReport() {
+                const reportWindow = window.open('', '_blank');
+                if (!reportWindow) {
+                    alert('지각 보고서를 열려면 브라우저의 팝업 차단을 해제해주세요.');
+                    return;
+                }
+                reportWindow.document.write('<p style="font-family:sans-serif;padding:24px;">지각 보고서를 준비하고 있습니다...</p>');
+
+                const matrix = updateAndProcessData(true);
+                if (!matrix || !matrix.recordsMap) {
+                    reportWindow.close();
+                    alert('보고서를 만들 출퇴근 데이터가 없습니다.');
+                    return;
+                }
+
+                const start = document.getElementById('report-period-start')?.value || '';
+                const end = document.getElementById('report-period-end')?.value || '';
+                const dates = (matrix.uniqueDates || []).filter(date => (!start || date >= start) && (!end || date <= end));
+                const candidateKeys = [];
+                matrix.names.forEach(name => dates.forEach(date => {
+                    if (getTardyReportItem(name, date, matrix.recordsMap[name]?.[date])) candidateKeys.push(`${name}_${date}`);
+                }));
+
+                if (supabase && candidateKeys.length > 0) {
+                    try {
+                        const CHUNK = 100;
+                        for (let i = 0; i < candidateKeys.length; i += CHUNK) {
+                            const { data } = await supabase.from('attendance_anomalies')
+                                .select('manager_key, explanation')
+                                .in('manager_key', candidateKeys.slice(i, i + CHUNK));
+                            (data || []).forEach(row => {
+                                employeeExplanations[row.manager_key] = String(row.explanation || '').trim();
+                            });
+                        }
+                        localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
+                    } catch (error) {
+                        console.warn('[TARDY REPORT] 직원 사유 동기화 실패:', error);
+                    }
+                }
+
+                const items = [];
+                matrix.names.forEach(name => dates.forEach(date => {
+                    const item = getTardyReportItem(name, date, matrix.recordsMap[name]?.[date]);
+                    if (item) items.push(item);
+                }));
+                items.sort((a, b) => a.name.localeCompare(b.name, 'ko') || a.date.localeCompare(b.date));
+
+                const showInTime = tardyShowInTime?.checked !== false;
+                const showMinutes = tardyShowMinutes?.checked === true;
+                const grouped = {};
+                items.forEach(item => {
+                    if (!grouped[item.name]) grouped[item.name] = [];
+                    grouped[item.name].push(item);
+                });
+                const missingCount = items.filter(item => item.missing).length;
+                const optionalHeaders = `${showInTime ? '<th>출근 시각</th>' : ''}${showMinutes ? '<th>지각 시간</th>' : ''}`;
+                const detailRows = items.map((item, index) => `
+                    <tr class="${item.missing ? 'missing' : ''}">
+                        <td>${index + 1}</td><td>${escapeTardyReportHtml(item.name)}</td><td>${escapeTardyReportHtml(item.date)}</td>
+                        ${showInTime ? `<td>${escapeTardyReportHtml(item.inTime)}</td>` : ''}
+                        ${showMinutes ? `<td>${item.minutes}분</td>` : ''}
+                        <td>${item.explanation ? escapeTardyReportHtml(item.explanation) : '<strong>미작성</strong>'}</td>
+                    </tr>`).join('');
+                const summaryRows = Object.entries(grouped).map(([name, rows]) => {
+                    const missingDates = rows.filter(row => row.missing).map(row => row.date);
+                    return `<tr><td>${escapeTardyReportHtml(name)}</td><td>${rows.length}회</td><td>${rows.length - missingDates.length}건</td><td>${missingDates.length}건</td><td>${missingDates.length ? escapeTardyReportHtml(missingDates.join(', ')) : '-'}</td></tr>`;
+                }).join('');
+                const reportDate = reportDateInput?.value || formatLocalDateValue(new Date());
+                const emptyRowColspan = 4 + (showInTime ? 1 : 0) + (showMinutes ? 1 : 0);
+
+                reportWindow.document.open();
+                reportWindow.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>지각 보고서</title>
+                    <style>
+                        @page{size:A4 portrait;margin:14mm} body{font-family:"Noto Sans KR",Arial,sans-serif;color:#111827;margin:0;font-size:12px}
+                        h1{font-size:22px;margin:0 0 6px}.meta{color:#4b5563;margin-bottom:18px}.cards{display:flex;gap:10px;margin-bottom:18px}
+                        .card{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:10px}.card b{display:block;font-size:18px;margin-top:3px}
+                        h2{font-size:15px;margin:20px 0 7px}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #d1d5db;padding:6px;text-align:center;word-break:break-word}
+                        th{background:#f3f4f6}.missing td{background:#fff7ed}.detail td:last-child{text-align:left}.actions{display:flex;justify-content:flex-end;margin-bottom:12px}
+                        button{border:0;border-radius:6px;background:#b45309;color:white;padding:8px 14px;font-weight:700;cursor:pointer}@media print{.actions{display:none}h2{break-after:avoid}tr{break-inside:avoid}}
+                    </style></head><body>
+                    <div class="actions"><button onclick="window.print()">인쇄 / PDF 저장</button></div>
+                    <h1>지각 현황 보고서</h1><div class="meta">보고일자 ${escapeTardyReportHtml(reportDate)} · 조회기간 ${escapeTardyReportHtml(start || '-')} ~ ${escapeTardyReportHtml(end || '-')}</div>
+                    <div class="cards"><div class="card">대상 직원<b>${Object.keys(grouped).length}명</b></div><div class="card">총 지각<b>${items.length}건</b></div><div class="card">사유 작성<b>${items.length - missingCount}건</b></div><div class="card">사유 미작성<b>${missingCount}건</b></div></div>
+                    <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${summaryRows || '<tr><td colspan="5">조회 기간에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
+                    <h2>날짜별 상세 내역</h2><table class="detail"><thead><tr><th style="width:36px">번호</th><th>직원명</th><th>날짜</th>${optionalHeaders}<th style="width:34%">직원 작성 사유</th></tr></thead><tbody>${detailRows || `<tr><td colspan="${emptyRowColspan}">조회 기간에 지각 내역이 없습니다.</td></tr>`}</tbody></table>
+                    </body></html>`);
+                reportWindow.document.close();
+            }
+
+            if (tardyShowInTime) {
+                tardyShowInTime.checked = localStorage.getItem('tardy_report_show_in_time') !== 'false';
+                tardyShowInTime.addEventListener('change', () => localStorage.setItem('tardy_report_show_in_time', String(tardyShowInTime.checked)));
+            }
+            if (tardyShowMinutes) {
+                tardyShowMinutes.checked = localStorage.getItem('tardy_report_show_minutes') === 'true';
+                tardyShowMinutes.addEventListener('change', () => localStorage.setItem('tardy_report_show_minutes', String(tardyShowMinutes.checked)));
+            }
+            if (tardyReportBtn) tardyReportBtn.addEventListener('click', openTardyReport);
 
             async function saveReportToCloud(dateChunks, names, recordsMap) {
                 if (!supabase) return;
