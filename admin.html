@@ -3568,26 +3568,43 @@
 
                 const showInTime = tardyShowInTime?.checked !== false;
                 const showMinutes = tardyShowMinutes?.checked === true;
-                const grouped = {};
-                items.forEach(item => {
-                    if (!grouped[item.name]) grouped[item.name] = [];
-                    grouped[item.name].push(item);
-                });
                 const missingCount = items.filter(item => item.missing).length;
                 const optionalHeaders = `${showInTime ? '<th>출근 시각</th>' : ''}${showMinutes ? '<th>지각 시간</th>' : ''}`;
-                const detailRows = items.map((item, index) => `
+                const reportDate = reportDateInput?.value || formatLocalDateValue(new Date());
+                const emptyRowColspan = 4 + (showInTime ? 1 : 0) + (showMinutes ? 1 : 0);
+                const groupByEmployee = rows => {
+                    const result = {};
+                    rows.forEach(item => {
+                        if (!result[item.name]) result[item.name] = [];
+                        result[item.name].push(item);
+                    });
+                    return result;
+                };
+                const renderSummaryRows = rows => Object.entries(groupByEmployee(rows)).map(([name, employeeRows]) => {
+                    const missingDates = employeeRows.filter(row => row.missing).map(row => row.date);
+                    return `<tr><td>${escapeTardyReportHtml(name)}</td><td>${employeeRows.length}회</td><td>${employeeRows.length - missingDates.length}건</td><td>${missingDates.length}건</td><td>${missingDates.length ? escapeTardyReportHtml(missingDates.join(', ')) : '-'}</td></tr>`;
+                }).join('');
+                const renderDetailRows = rows => rows.slice().sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name, 'ko')).map((item, index) => `
                     <tr class="${item.missing ? 'missing' : ''}">
                         <td>${index + 1}</td><td>${escapeTardyReportHtml(item.name)}</td><td>${escapeTardyReportHtml(item.date)}</td>
                         ${showInTime ? `<td>${escapeTardyReportHtml(item.inTime)}</td>` : ''}
                         ${showMinutes ? `<td>${item.minutes}분</td>` : ''}
                         <td>${item.explanation ? escapeTardyReportHtml(item.explanation) : '<strong>미작성</strong>'}</td>
                     </tr>`).join('');
-                const summaryRows = Object.entries(grouped).map(([name, rows]) => {
-                    const missingDates = rows.filter(row => row.missing).map(row => row.date);
-                    return `<tr><td>${escapeTardyReportHtml(name)}</td><td>${rows.length}회</td><td>${rows.length - missingDates.length}건</td><td>${missingDates.length}건</td><td>${missingDates.length ? escapeTardyReportHtml(missingDates.join(', ')) : '-'}</td></tr>`;
-                }).join('');
-                const reportDate = reportDateInput?.value || formatLocalDateValue(new Date());
-                const emptyRowColspan = 4 + (showInTime ? 1 : 0) + (showMinutes ? 1 : 0);
+                const renderTables = rows => `
+                    <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${renderSummaryRows(rows) || '<tr><td colspan="5">해당 월에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
+                    <h2>날짜별 상세 내역</h2><table class="detail"><thead><tr><th style="width:36px">번호</th><th>직원명</th><th>날짜</th>${optionalHeaders}<th style="width:34%">직원 작성 사유</th></tr></thead><tbody>${renderDetailRows(rows) || `<tr><td colspan="${emptyRowColspan}">해당 월에 지각 내역이 없습니다.</td></tr>`}</tbody></table>`;
+                const grouped = groupByEmployee(items);
+                const monthKeys = Array.from(new Set(dates.map(date => date.slice(0, 7)))).sort();
+                const isMultiMonth = monthKeys.length > 1;
+                const reportTables = isMultiMonth
+                    ? monthKeys.map(monthKey => {
+                        const monthItems = items.filter(item => item.date.startsWith(monthKey));
+                        const [year, month] = monthKey.split('-');
+                        const monthMissingCount = monthItems.filter(item => item.missing).length;
+                        return `<section class="month-section"><div class="month-heading"><h2>${escapeTardyReportHtml(year)}년 ${parseInt(month, 10)}월</h2><span>총 ${monthItems.length}건 · 사유 미작성 ${monthMissingCount}건</span></div>${renderTables(monthItems)}</section>`;
+                    }).join('')
+                    : renderTables(items);
 
                 reportScreen.removeAttribute('style');
                 reportScreen.innerHTML = `
@@ -3603,7 +3620,8 @@
                         #tardy-report-screen .report-toolbar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:12px;margin-bottom:18px;border:1px solid #fde68a;border-radius:8px;background:#fffbeb}
                         #tardy-report-screen .date-field{display:flex;flex-direction:column;gap:4px;min-width:150px}#tardy-report-screen .date-field label{font-size:11px;font-weight:700;color:#78350f}#tardy-report-screen .date-field input{height:34px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;box-sizing:border-box}
                         #tardy-report-screen .refresh-btn{height:34px}#tardy-report-screen button:disabled{opacity:.6;cursor:wait}
-                        @media print{body>*:not(#tardy-report-screen){display:none!important}#tardy-report-screen{position:static;overflow:visible;background:#fff;padding:0}#tardy-report-screen .report-content{max-width:none;min-height:0;padding:0;box-shadow:none}#tardy-report-screen .actions,#tardy-report-screen .report-toolbar{display:none}#tardy-report-screen h2{break-after:avoid}#tardy-report-screen tr{break-inside:avoid}}
+                        #tardy-report-screen .month-section{margin-top:28px;padding-top:20px;border-top:2px solid #d1d5db}#tardy-report-screen .month-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}#tardy-report-screen .month-heading h2{font-size:18px;margin:0;color:#92400e}#tardy-report-screen .month-heading span{color:#6b7280;font-weight:600}
+                        @media print{body>*:not(#tardy-report-screen){display:none!important}#tardy-report-screen{position:static;overflow:visible;background:#fff;padding:0}#tardy-report-screen .report-content{max-width:none;min-height:0;padding:0;box-shadow:none}#tardy-report-screen .actions,#tardy-report-screen .report-toolbar{display:none}#tardy-report-screen h2{break-after:avoid}#tardy-report-screen tr{break-inside:avoid}#tardy-report-screen .month-section{border-top:0;margin-top:0;padding-top:0}#tardy-report-screen .month-section+.month-section{break-before:page}}
                     </style>
                     <div class="report-content">
                         <div class="actions"><button id="tardy-report-back" type="button" class="back-btn">관리자 화면으로 돌아가기</button><button id="tardy-report-print" type="button">인쇄 / PDF 저장</button></div>
@@ -3615,8 +3633,7 @@
                         </div>
                         <h1>지각 현황 보고서</h1><div class="meta">보고일자 ${escapeTardyReportHtml(reportDate)} · 조회기간 ${escapeTardyReportHtml(start || '-')} ~ ${escapeTardyReportHtml(end || '-')}</div>
                         <div class="cards"><div class="card">대상 직원<b>${Object.keys(grouped).length}명</b></div><div class="card">총 지각<b>${items.length}건</b></div><div class="card">사유 작성<b>${items.length - missingCount}건</b></div><div class="card">사유 미작성<b>${missingCount}건</b></div></div>
-                        <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${summaryRows || '<tr><td colspan="5">조회 기간에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
-                        <h2>날짜별 상세 내역</h2><table class="detail"><thead><tr><th style="width:36px">번호</th><th>직원명</th><th>날짜</th>${optionalHeaders}<th style="width:34%">직원 작성 사유</th></tr></thead><tbody>${detailRows || `<tr><td colspan="${emptyRowColspan}">조회 기간에 지각 내역이 없습니다.</td></tr>`}</tbody></table>
+                        ${reportTables}
                     </div>`;
                 reportScreen.querySelector('#tardy-report-back')?.addEventListener('click', closeTardyReport);
                 reportScreen.querySelector('#tardy-report-print')?.addEventListener('click', () => window.print());
