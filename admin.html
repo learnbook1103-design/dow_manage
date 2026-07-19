@@ -3580,9 +3580,11 @@
                     });
                     return result;
                 };
-                const renderSummaryRows = rows => Object.entries(groupByEmployee(rows)).map(([name, employeeRows]) => {
-                    const missingDates = employeeRows.filter(row => row.missing).map(row => row.date);
-                    return `<tr><td>${escapeTardyReportHtml(name)}</td><td>${employeeRows.length}회</td><td>${employeeRows.length - missingDates.length}건</td><td>${missingDates.length}건</td><td>${missingDates.length ? escapeTardyReportHtml(missingDates.join(', ')) : '-'}</td></tr>`;
+                const formatSummaryDate = (date, dayOnly) => dayOnly ? `${parseInt(date.slice(8, 10), 10)}일` : date;
+                const renderSummaryRows = (rows, dayOnly = false) => Object.entries(groupByEmployee(rows)).map(([name, employeeRows]) => {
+                    const tardyDates = employeeRows.map(row => formatSummaryDate(row.date, dayOnly));
+                    const missingDates = employeeRows.filter(row => row.missing).map(row => formatSummaryDate(row.date, dayOnly));
+                    return `<tr><td>${escapeTardyReportHtml(name)}</td><td>${employeeRows.length}회</td><td>${escapeTardyReportHtml(tardyDates.join(', '))}</td><td>${employeeRows.length - missingDates.length}건</td><td>${missingDates.length}건</td><td>${missingDates.length ? escapeTardyReportHtml(missingDates.join(', ')) : '-'}</td></tr>`;
                 }).join('');
                 const renderDetailRows = rows => rows.slice().sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name, 'ko')).map((item, index) => `
                     <tr class="${item.missing ? 'missing' : ''}">
@@ -3591,8 +3593,8 @@
                         ${showMinutes ? `<td>${item.minutes}분</td>` : ''}
                         <td>${item.explanation ? escapeTardyReportHtml(item.explanation) : '<strong>미작성</strong>'}</td>
                     </tr>`).join('');
-                const renderTables = rows => `
-                    <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${renderSummaryRows(rows) || '<tr><td colspan="5">해당 월에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
+                const renderTables = (rows, dayOnly = false) => `
+                    <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>지각 날짜</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${renderSummaryRows(rows, dayOnly) || '<tr><td colspan="6">해당 월에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
                     <h2>날짜별 상세 내역</h2><table class="detail"><thead><tr><th style="width:36px">번호</th><th>직원명</th><th>날짜</th>${optionalHeaders}<th style="width:34%">직원 작성 사유</th></tr></thead><tbody>${renderDetailRows(rows) || `<tr><td colspan="${emptyRowColspan}">해당 월에 지각 내역이 없습니다.</td></tr>`}</tbody></table>`;
                 const grouped = groupByEmployee(items);
                 const monthKeys = Array.from(new Set(dates.map(date => date.slice(0, 7)))).sort();
@@ -3602,7 +3604,7 @@
                         const monthItems = items.filter(item => item.date.startsWith(monthKey));
                         const [year, month] = monthKey.split('-');
                         const monthMissingCount = monthItems.filter(item => item.missing).length;
-                        return `<section class="month-section"><div class="month-heading"><h2>${escapeTardyReportHtml(year)}년 ${parseInt(month, 10)}월</h2><span>총 ${monthItems.length}건 · 사유 미작성 ${monthMissingCount}건</span></div>${renderTables(monthItems)}</section>`;
+                        return `<section class="month-section"><div class="month-heading"><h2>${escapeTardyReportHtml(year)}년 ${parseInt(month, 10)}월</h2><span>총 ${monthItems.length}건 · 사유 미작성 ${monthMissingCount}건</span></div>${renderTables(monthItems, true)}</section>`;
                     }).join('')
                     : renderTables(items);
 
