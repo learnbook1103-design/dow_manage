@@ -3510,17 +3510,26 @@
                 };
             }
 
+            function closeTardyReport() {
+                document.getElementById('tardy-report-screen')?.remove();
+                document.body.style.overflow = document.body.dataset.tardyPreviousOverflow || '';
+                delete document.body.dataset.tardyPreviousOverflow;
+            }
+
             async function openTardyReport() {
-                const reportWindow = window.open('', '_blank');
-                if (!reportWindow) {
-                    alert('지각 보고서를 열려면 브라우저의 팝업 차단을 해제해주세요.');
-                    return;
-                }
-                reportWindow.document.write('<p style="font-family:sans-serif;padding:24px;">지각 보고서를 준비하고 있습니다...</p>');
+                closeTardyReport();
+                document.body.dataset.tardyPreviousOverflow = document.body.style.overflow || '';
+                document.body.style.overflow = 'hidden';
+                const reportScreen = document.createElement('section');
+                reportScreen.id = 'tardy-report-screen';
+                reportScreen.style.cssText = 'position:fixed;inset:0;z-index:10000;overflow:auto;background:#f3f4f6;padding:24px;box-sizing:border-box;font-family:"Noto Sans KR",Arial,sans-serif;';
+                reportScreen.innerHTML = '<div style="max-width:1000px;margin:auto;background:white;border-radius:10px;padding:24px;box-sizing:border-box;"><div style="display:flex;justify-content:flex-end;margin-bottom:18px;"><button id="tardy-loading-back" type="button" style="border:1px solid #d1d5db;border-radius:6px;background:white;color:#374151;padding:8px 14px;font-weight:700;cursor:pointer;">관리자 화면으로 돌아가기</button></div><p>지각 보고서를 준비하고 있습니다...</p></div>';
+                document.body.appendChild(reportScreen);
+                reportScreen.querySelector('#tardy-loading-back')?.addEventListener('click', closeTardyReport);
 
                 const matrix = updateAndProcessData(true);
                 if (!matrix || !matrix.recordsMap) {
-                    reportWindow.close();
+                    closeTardyReport();
                     alert('보고서를 만들 출퇴근 데이터가 없습니다.');
                     return;
                 }
@@ -3580,23 +3589,28 @@
                 const reportDate = reportDateInput?.value || formatLocalDateValue(new Date());
                 const emptyRowColspan = 4 + (showInTime ? 1 : 0) + (showMinutes ? 1 : 0);
 
-                reportWindow.document.open();
-                reportWindow.document.write(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>지각 보고서</title>
+                reportScreen.removeAttribute('style');
+                reportScreen.innerHTML = `
                     <style>
-                        @page{size:A4 portrait;margin:14mm} body{font-family:"Noto Sans KR",Arial,sans-serif;color:#111827;margin:0;font-size:12px}
-                        h1{font-size:22px;margin:0 0 6px}.meta{color:#4b5563;margin-bottom:18px}.cards{display:flex;gap:10px;margin-bottom:18px}
-                        .card{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:10px}.card b{display:block;font-size:18px;margin-top:3px}
-                        h2{font-size:15px;margin:20px 0 7px}table{border-collapse:collapse;width:100%;table-layout:fixed}th,td{border:1px solid #d1d5db;padding:6px;text-align:center;word-break:break-word}
-                        th{background:#f3f4f6}.missing td{background:#fff7ed}.detail td:last-child{text-align:left}.actions{display:flex;justify-content:flex-end;margin-bottom:12px}
-                        button{border:0;border-radius:6px;background:#b45309;color:white;padding:8px 14px;font-weight:700;cursor:pointer}.back-btn{margin-right:8px;background:#fff;color:#374151;border:1px solid #d1d5db}@media print{.actions{display:none}h2{break-after:avoid}tr{break-inside:avoid}}
-                    </style></head><body>
-                    <div class="actions"><button class="back-btn" onclick="if(window.opener&&!window.opener.closed){window.opener.focus()}window.close()">관리자 화면으로 돌아가기</button><button onclick="window.print()">인쇄 / PDF 저장</button></div>
-                    <h1>지각 현황 보고서</h1><div class="meta">보고일자 ${escapeTardyReportHtml(reportDate)} · 조회기간 ${escapeTardyReportHtml(start || '-')} ~ ${escapeTardyReportHtml(end || '-')}</div>
-                    <div class="cards"><div class="card">대상 직원<b>${Object.keys(grouped).length}명</b></div><div class="card">총 지각<b>${items.length}건</b></div><div class="card">사유 작성<b>${items.length - missingCount}건</b></div><div class="card">사유 미작성<b>${missingCount}건</b></div></div>
-                    <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${summaryRows || '<tr><td colspan="5">조회 기간에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
-                    <h2>날짜별 상세 내역</h2><table class="detail"><thead><tr><th style="width:36px">번호</th><th>직원명</th><th>날짜</th>${optionalHeaders}<th style="width:34%">직원 작성 사유</th></tr></thead><tbody>${detailRows || `<tr><td colspan="${emptyRowColspan}">조회 기간에 지각 내역이 없습니다.</td></tr>`}</tbody></table>
-                    </body></html>`);
-                reportWindow.document.close();
+                        @page{size:A4 portrait;margin:14mm}
+                        #tardy-report-screen{position:fixed;inset:0;z-index:10000;overflow:auto;background:#f3f4f6;padding:24px;box-sizing:border-box;font-family:"Noto Sans KR",Arial,sans-serif;color:#111827;font-size:12px}
+                        #tardy-report-screen .report-content{max-width:1000px;min-height:calc(100vh - 48px);margin:auto;background:#fff;border-radius:10px;padding:24px;box-sizing:border-box;box-shadow:0 4px 18px rgba(0,0,0,.08)}
+                        #tardy-report-screen h1{font-size:22px;margin:0 0 6px}#tardy-report-screen .meta{color:#4b5563;margin-bottom:18px}#tardy-report-screen .cards{display:flex;gap:10px;margin-bottom:18px}
+                        #tardy-report-screen .card{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:10px}#tardy-report-screen .card b{display:block;font-size:18px;margin-top:3px}
+                        #tardy-report-screen h2{font-size:15px;margin:20px 0 7px}#tardy-report-screen table{border-collapse:collapse;width:100%;table-layout:fixed}#tardy-report-screen th,#tardy-report-screen td{border:1px solid #d1d5db;padding:6px;text-align:center;word-break:break-word}
+                        #tardy-report-screen th{background:#f3f4f6}#tardy-report-screen .missing td{background:#fff7ed}#tardy-report-screen .detail td:last-child{text-align:left}#tardy-report-screen .actions{display:flex;justify-content:flex-end;margin-bottom:12px}
+                        #tardy-report-screen button{border:0;border-radius:6px;background:#b45309;color:white;padding:8px 14px;font-weight:700;cursor:pointer}#tardy-report-screen .back-btn{margin-right:8px;background:#fff;color:#374151;border:1px solid #d1d5db}
+                        @media print{body>*:not(#tardy-report-screen){display:none!important}#tardy-report-screen{position:static;overflow:visible;background:#fff;padding:0}#tardy-report-screen .report-content{max-width:none;min-height:0;padding:0;box-shadow:none}#tardy-report-screen .actions{display:none}#tardy-report-screen h2{break-after:avoid}#tardy-report-screen tr{break-inside:avoid}}
+                    </style>
+                    <div class="report-content">
+                        <div class="actions"><button id="tardy-report-back" type="button" class="back-btn">관리자 화면으로 돌아가기</button><button id="tardy-report-print" type="button">인쇄 / PDF 저장</button></div>
+                        <h1>지각 현황 보고서</h1><div class="meta">보고일자 ${escapeTardyReportHtml(reportDate)} · 조회기간 ${escapeTardyReportHtml(start || '-')} ~ ${escapeTardyReportHtml(end || '-')}</div>
+                        <div class="cards"><div class="card">대상 직원<b>${Object.keys(grouped).length}명</b></div><div class="card">총 지각<b>${items.length}건</b></div><div class="card">사유 작성<b>${items.length - missingCount}건</b></div><div class="card">사유 미작성<b>${missingCount}건</b></div></div>
+                        <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${summaryRows || '<tr><td colspan="5">조회 기간에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
+                        <h2>날짜별 상세 내역</h2><table class="detail"><thead><tr><th style="width:36px">번호</th><th>직원명</th><th>날짜</th>${optionalHeaders}<th style="width:34%">직원 작성 사유</th></tr></thead><tbody>${detailRows || `<tr><td colspan="${emptyRowColspan}">조회 기간에 지각 내역이 없습니다.</td></tr>`}</tbody></table>
+                    </div>`;
+                reportScreen.querySelector('#tardy-report-back')?.addEventListener('click', closeTardyReport);
+                reportScreen.querySelector('#tardy-report-print')?.addEventListener('click', () => window.print());
             }
 
             if (tardyShowInTime) {
