@@ -11,7 +11,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <!-- Supabase Client Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.0"></script>
     <script src="shared_logic.js"></script>
     <style>
         /* admin 전용 — 나머지는 style.css */
@@ -202,7 +202,7 @@
             }
         })();
     </script>
-    <div id="main-dashboard-wrap" style="display:block;">
+    <div id="main-dashboard-wrap" style="display:none;">
         <div id="ui-container" class="no-print">
             <header>
                 <h1>DOW 근태 보고서</h1>
@@ -547,9 +547,61 @@
             const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
             let supabase = null;
 
-            if (SUPABASE_URL && SUPABASE_KEY) {
+            if (SUPABASE_URL && SUPABASE_KEY && window.supabase?.createClient) {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 // loadAllInitialData()는 모든 변수 선언 후 하단에서 호출
+            }
+
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function splitManagerKey(value) {
+                const key = String(value || '');
+                const separatorIndex = key.lastIndexOf('_');
+                return separatorIndex > 0
+                    ? [key.slice(0, separatorIndex), key.slice(separatorIndex + 1)]
+                    : [key, ''];
+            }
+
+            async function verifyAdminSession() {
+                const name = normalizeName(localStorage.getItem('attendance_user_name') || '');
+                const pin = localStorage.getItem('attendance_user_pin') || '';
+                if (!supabase || !name || !pin) return false;
+
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('name, is_admin')
+                    .eq('name', name)
+                    .eq('pin', pin)
+                    .eq('is_admin', true)
+                    .maybeSingle();
+                if (error) throw error;
+                return !!data?.is_admin;
+            }
+
+            async function initializeAdminPage() {
+                try {
+                    if (!supabase) throw new Error('클라우드 라이브러리를 불러오지 못했습니다.');
+                    const isValidAdmin = await verifyAdminSession();
+                    if (!isValidAdmin) {
+                        sessionStorage.removeItem('attendance_user_is_admin');
+                        alert('관리자 권한을 다시 확인해 주세요. 로그인 화면으로 이동합니다.');
+                        location.href = 'index.html';
+                        return;
+                    }
+                    document.getElementById('main-dashboard-wrap').style.display = 'block';
+                    await loadAllInitialData();
+                } catch (error) {
+                    console.error('[ADMIN AUTH] 관리자 권한 확인 실패:', error);
+                    alert('관리자 권한 확인 중 오류가 발생했습니다: ' + error.message);
+                    location.href = 'index.html';
+                }
             }
 
             // [추가] 관리자 세션 처리 함수
@@ -597,7 +649,12 @@
                     document.getElementById('report-period-end').value = end;
                     document.getElementById('report-date-input').value = formatLocalDateValue(now);
 
-                    await fetchAllFromCloud(true); // 해당 기간 데이터 로드
+                    const cloudLoaded = await fetchAllFromCloud(true); // 해당 기간 데이터 로드
+                    if (!cloudLoaded) {
+                        console.warn('Initial cloud sync did not complete.');
+                        alert('초기 클라우드 동기화에 실패했습니다. 새로고침하거나 클라우드 데이터 불러오기를 다시 실행해 주세요.');
+                        return;
+                    }
                     await cleanupOldSupplements();    // 30일 지난 processed 데이터 정리
                     console.log("Initial cloud sync complete.");
                 } catch (err) {
@@ -772,8 +829,8 @@
                 return holidayConfigList.some(h => h.date === dateStr);
             }
 
-            // 모든 변수 선언 완료 후 초기 데이터 로드 실행
-            if (supabase) loadAllInitialData();
+            // 모든 변수 선언 완료 후 관리자 권한을 서버에서 재검증하고 초기화
+            initializeAdminPage();
 
             // 공휴일 관리 UI 렌더링
             function renderHolidayManager() {
@@ -790,8 +847,8 @@
                     item.className = 'holiday-item';
                     item.innerHTML = `
                 <div>
-                    <span class="holiday-date">${hol.date}</span>
-                    <span class="holiday-name">${hol.name || ''}</span>
+                    <span class="holiday-date">${escapeHtml(hol.date)}</span>
+                    <span class="holiday-name">${escapeHtml(hol.name || '')}</span>
                 </div>
                 <button class="remove-holiday-btn" data-index="${index}">&times;</button>
             `;
@@ -1241,14 +1298,41 @@
                     .trim();
             }
 
+            async function fetchAllCloudRowsByDate(table, selectCols, start, end, secondaryOrder = 'manager_key') {
+                const rows = [];
+                const PAGE_SIZE = 1000;
+                for (let from = 0; ; from += PAGE_SIZE) {
+                    let query = supabase
+                        .from(table)
+                        .select(selectCols)
+                        .gte('date', start)
+                        .lte('date', end)
+                        .order('date', { ascending: true });
+                    if (secondaryOrder) query = query.order(secondaryOrder, { ascending: true });
+                    const { data, error } = await query.range(from, from + PAGE_SIZE - 1);
+                    if (error) throw error;
+                    if (data && data.length > 0) rows.push(...data);
+                    if (!data || data.length < PAGE_SIZE) break;
+                }
+                return rows;
+            }
+
             async function syncAllToCloud(skipConfirm = false, prebuiltMatrix = null, ignorePeriod = false, filesToUpload = [], uploadSource = 'auto') {
-                if (!supabase) { alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
+                if (!supabase) {
+                    const message = "시스템 연결 중입니다. 잠시 후 다시 시도해 주세요.";
+                    if (!skipConfirm) alert(message);
+                    throw new Error(message);
+                }
                 const currentMatrix = prebuiltMatrix || updateAndProcessData(true, ignorePeriod);
                 if (!currentMatrix) {
-                    if (!skipConfirm) alert("저장할 데이터가 없습니다. 먼저 엑셀 파일을 업로드해주세요.");
-                    return;
+                    const message = "저장할 데이터가 없습니다. 업로드한 파일의 형식과 내용을 확인해 주세요.";
+                    if (!skipConfirm) alert(message);
+                    throw new Error(message);
                 }
                 const { recordsMap, names, uniqueDates } = currentMatrix;
+                const sortedUniqueDates = Array.from(uniqueDates || []).sort();
+                const periodStartRaw = sortedUniqueDates[0] || '';
+                const periodEndRaw = sortedUniqueDates[sortedUniqueDates.length - 1] || '';
                 const isActualAttendanceTime = (value) => {
                     const text = String(value || '').trim();
                     return /^\d{1,2}:\d{2}/.test(text);
@@ -1295,8 +1379,9 @@
                     });
                 });
                 if (newRecords.length === 0) {
-                    if (!skipConfirm) alert("저장할 활동 데이터가 없습니다.");
-                    return;
+                    const message = "업로드 파일에서 저장 가능한 출퇴근·휴가 데이터를 찾지 못했습니다.";
+                    if (!skipConfirm) alert(message);
+                    throw new Error(message);
                 }
                 if (!skipConfirm) {
                     if (!confirm(`현재 화면에 로드된 ${newRecords.length}건의 데이터를 클라우드에 백업하시겠습니까?\n(기존 동일 날짜 데이터는 업데이트됩니다)`)) return;
@@ -1308,10 +1393,11 @@
                 const existingMap = {};
                 for (let i = 0; i < keys.length; i += CHUNK) {
                     const chunk = keys.slice(i, i + CHUNK);
-                    const { data: chunkData } = await supabase
+                    const { data: chunkData, error: chunkError } = await supabase
                         .from('attendance_records')
                         .select('manager_key, manager_reason, employee_explanation, early_punch_mode, status_in, status_out, status_leave, in_time, out_time, shift, reason')
                         .in('manager_key', chunk);
+                    if (chunkError) throw new Error(`기존 클라우드 기록 조회 실패: ${chunkError.message}`);
                     if (chunkData) chunkData.forEach(row => { existingMap[row.manager_key] = row; });
                 }
                 const overwriteAttendanceValues = !!ignorePeriod;
@@ -1374,17 +1460,23 @@
                         status_leave: r.status_leave || ex.status_leave,
                     };
                 });
-                const { error } = await supabase.from('attendance_records').upsert(toUpsert, { onConflict: 'manager_key' });
-                if (error) {
-                    console.error('Cloud Sync Error:', error);
-                    if (!skipConfirm) alert('저장 중 오류가 발생했습니다: ' + error.message);
-                } else {
-                    console.log(`자동 저장 완료: ${toUpsert.length}건`);
-                    if (cloudFetchAllBtn) {
-                        cloudFetchAllBtn.textContent = `저장됨 (${toUpsert.length}건)`;
-                        setTimeout(() => { cloudFetchAllBtn.disabled = false; cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기"; }, 3000);
+                const UPSERT_CHUNK = 250;
+                let savedCount = 0;
+                for (let i = 0; i < toUpsert.length; i += UPSERT_CHUNK) {
+                    const chunk = toUpsert.slice(i, i + UPSERT_CHUNK);
+                    const { error } = await supabase
+                        .from('attendance_records')
+                        .upsert(chunk, { onConflict: 'manager_key' });
+                    if (error) {
+                        if (cloudFetchAllBtn) {
+                            cloudFetchAllBtn.disabled = false;
+                            cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
+                        }
+                        throw new Error(`클라우드 저장 실패 (${savedCount}/${toUpsert.length}건 완료): ${error.message}`);
                     }
+                    savedCount += chunk.length;
                 }
+                console.log(`근태 기록 저장 완료: ${savedCount}건`);
 
                 // ── [자동] 이상근태 → attendance_anomalies 동시 저장 ──────────
                 try {
@@ -1398,31 +1490,14 @@
                     // 1. 서버의 기존 기록들을 한꺼번에 가져오기 (Source of Truth 확보)
                     // [수정] ignorePeriod가 true면 UI 날짜를 무시하고 전체 역사를 가져옵니다 (전수 조사 모드)
                     const GLOBAL_RANGE_START = "2024-01-01";
-                    const GLOBAL_RANGE_END = "2026-12-31";
+                    const GLOBAL_RANGE_END = "2099-12-31";
                     const fetchStart = ignorePeriod ? GLOBAL_RANGE_START : cleanupStart;
                     const fetchEnd = ignorePeriod ? GLOBAL_RANGE_END : cleanupEnd;
-
-                    const fetchAllPaged = async (table, selectCols, start, end) => {
-                        const rows = [];
-                        const PAGE_SIZE = 1000;
-                        for (let from = 0; ; from += PAGE_SIZE) {
-                            const { data, error } = await supabase
-                                .from(table)
-                                .select(selectCols)
-                                .gte('date', start)
-                                .lte('date', end)
-                                .range(from, from + PAGE_SIZE - 1);
-                            if (error) throw error;
-                            if (data && data.length > 0) rows.push(...data);
-                            if (!data || data.length < PAGE_SIZE) break;
-                        }
-                        return rows;
-                    };
 
                     let cloudCombinedRecords = [];
                     if (fetchStart && fetchEnd) {
                         console.log(`[SYNC ANOMALY] 서버 기록 전수 조사 쿼리: ${fetchStart} ~ ${fetchEnd}`);
-                        const cloudRecs = await fetchAllPaged(
+                        const cloudRecs = await fetchAllCloudRowsByDate(
                             'attendance_records',
                             'manager_key, name, date, in_time, out_time, shift, reason',
                             fetchStart,
@@ -1501,19 +1576,13 @@
                         .map(a => `${a.name}_${a.date}`));
                     console.log(`[AUTO ANOMALY] 감지된 이상근태: ${activeAnomalies.length}건 (해결됨 ${resolvedAnomalyKeys.size}건 제외, 서버 전체 역사 ${allMergedData.length}건 기반 조사)`);
 
-                    // ── 구글 드라이브 원자료 업로드 (Supabase anomaly 처리 전에 실행) ──
-                    if (filesToUpload && filesToUpload.length > 0) {
-                        console.log('[DRIVE] 원자료 업로드 시작:', filesToUpload.map(f => f.name));
-                        for (const f of filesToUpload) { await uploadFileToDrive(f); }
-                    }
-
                     // [수정] 1. 기존 '기록 없음' 꼬리표 정제 로직 (글로벌 정제 범위 적용)
                     const cleanStart = ignorePeriod ? GLOBAL_RANGE_START : cleanupStart;
                     const cleanEnd = ignorePeriod ? GLOBAL_RANGE_END : cleanupEnd;
 
                     if (cleanStart && cleanEnd) {
                         console.log(`[DEEP CLEANUP] 서버 이상 근태 글로벌 전수 대조: ${cleanStart} ~ ${cleanEnd}`);
-                        const existingAnoms = await fetchAllPaged(
+                        const existingAnoms = await fetchAllCloudRowsByDate(
                             'attendance_anomalies',
                             'manager_key, reason, status, date',
                             cleanStart,
@@ -1542,11 +1611,13 @@
                                         .from('attendance_anomalies')
                                         .delete()
                                         .in('manager_key', chunk);
-                                    if (!delErr) deletedCountTotal += chunk.length;
-                                    await supabase
+                                    if (delErr) throw delErr;
+                                    deletedCountTotal += chunk.length;
+                                    const { error: recordUpdateError } = await supabase
                                         .from('attendance_records')
                                         .update({ is_anomalous: false })
                                         .in('manager_key', chunk);
+                                    if (recordUpdateError) throw recordUpdateError;
                                 }
                                 console.log(`[DEEP CLEANUP] 총 ${deletedCountTotal}건의 잘못된 이상 근태를 서버에서 삭제 완료`);
                             }
@@ -1556,13 +1627,18 @@
                     // [수정] 2. 새로운 이상 근태 업서트
                     if (activeAnomalies.length > 0) {
                         const anomalyKeys = activeAnomalies.map(a => `${a.name}_${a.date}`);
-                        const { data: existingRecords } = await supabase
-                            .from('attendance_anomalies')
-                            .select('manager_key, status')
-                            .in('manager_key', anomalyKeys);
-
                         const existingStatusMap = {};
-                        if (existingRecords) existingRecords.forEach(r => { existingStatusMap[r.manager_key] = r.status; });
+                        const ANOMALY_CHUNK = 100;
+                        for (let i = 0; i < anomalyKeys.length; i += ANOMALY_CHUNK) {
+                            const { data: existingRecords, error: existingError } = await supabase
+                                .from('attendance_anomalies')
+                                .select('manager_key, status')
+                                .in('manager_key', anomalyKeys.slice(i, i + ANOMALY_CHUNK));
+                            if (existingError) throw existingError;
+                            (existingRecords || []).forEach(record => {
+                                existingStatusMap[record.manager_key] = record.status;
+                            });
+                        }
 
                         const anomalyRows = activeAnomalies.map(a => {
                             const key = `${a.name}_${a.date}`;
@@ -1576,24 +1652,42 @@
                             };
                         });
 
-                        const { error: anomErr } = await supabase
-                            .from('attendance_anomalies')
-                            .upsert(anomalyRows, { onConflict: 'manager_key' });
-
-                        if (anomErr) console.error('[AUTO ANOMALY] upsert 에러:', anomErr);
-                        else console.log(`[AUTO ANOMALY] ${anomalyRows.length}건 동기화 완료`);
+                        let anomalySavedCount = 0;
+                        for (let i = 0; i < anomalyRows.length; i += 250) {
+                            const chunk = anomalyRows.slice(i, i + 250);
+                            const { error: anomalyError } = await supabase
+                                .from('attendance_anomalies')
+                                .upsert(chunk, { onConflict: 'manager_key' });
+                            if (anomalyError) throw anomalyError;
+                            anomalySavedCount += chunk.length;
+                        }
+                        console.log(`[AUTO ANOMALY] ${anomalySavedCount}건 동기화 완료`);
                     }
                 } catch (anomSyncErr) {
                     console.error('[AUTO ANOMALY] 동기화 오류:', anomSyncErr);
+                    throw new Error(`근태 기록은 저장되었지만 이상근태 동기화에 실패했습니다: ${anomSyncErr.message}`);
                 }
                 // ─────────────────────────────────────────────────────────────
+                if (filesToUpload && filesToUpload.length > 0) {
+                    console.log('[DRIVE] 원자료 업로드 시작:', filesToUpload.map(file => file.name));
+                    for (const file of filesToUpload) await uploadFileToDrive(file);
+                }
+                console.log(`전체 자동 저장 완료: ${savedCount}건`);
+                if (cloudFetchAllBtn) {
+                    cloudFetchAllBtn.textContent = `저장됨 (${savedCount}건)`;
+                    setTimeout(() => {
+                        cloudFetchAllBtn.disabled = false;
+                        cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
+                    }, 3000);
+                }
+                return { savedCount };
             }
 
             async function fetchAllFromCloud(silent = false) {
-                if (!supabase) { if (!silent) alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return; }
+                if (!supabase) { if (!silent) alert("시스템 연결 중입니다. 잠시 후 시도해 주세요."); return false; }
                 const start = document.getElementById('report-period-start')?.value;
                 const end = document.getElementById('report-period-end')?.value;
-                if (!start || !end) { if (!silent) alert("불러오기 전 '기간 설정'의 시작일과 종료일을 입력해주세요."); return; }
+                if (!start || !end) { if (!silent) alert("불러오기 전 '기간 설정'의 시작일과 종료일을 입력해주세요."); return false; }
 
                 if (cloudFetchAllBtn) {
                     cloudFetchAllBtn.disabled = true;
@@ -1601,8 +1695,16 @@
                 }
 
                 try {
-                    const { data, error } = await supabase.from('attendance_records').select('*').gte('date', start).lte('date', end);
-                    if (error) throw error;
+                    const [data, pData, aData] = await Promise.all([
+                        fetchAllCloudRowsByDate('attendance_records', '*', start, end),
+                        fetchAllCloudRowsByDate('attendance_supplements', '*', start, end, 'name'),
+                        fetchAllCloudRowsByDate(
+                            'attendance_anomalies',
+                            'manager_key, date, explanation, status',
+                            start,
+                            end
+                        )
+                    ]);
 
                     const clearCachedRange = (obj) => {
                         Object.keys(obj || {}).forEach(key => {
@@ -1617,6 +1719,16 @@
                     clearCachedRange(employeeExplanations);
                     clearCachedRange(manualEarlyPunches);
                     clearCachedRange(preemptiveSupplements);
+                    Array.from(sentAnomalyKeys).forEach(key => {
+                        const [, datePart] = splitManagerKey(key);
+                        if (datePart >= start && datePart <= end) sentAnomalyKeys.delete(key);
+                    });
+
+                    const retainedCloudRows = (attendanceFilesMap.get('Cloud_Data') || []).filter(row => {
+                        const rowDate = normalizeAttendanceDateValue(row.날짜);
+                        return !rowDate || rowDate < start || rowDate > end;
+                    });
+                    attendanceFilesMap.set('Cloud_Data', retainedCloudRows);
 
                     if (data && data.length > 0) {
                         data.forEach(row => {
@@ -1642,10 +1754,16 @@
                         localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
                     }
 
-                    // 선제적 보완 데이터(사전 등록 내역) 로딩
-                    const { data: pData, error: prepError } = await supabase.from('attendance_supplements').select('*').gte('date', start).lte('date', end);
-                    if (prepError) throw prepError;
+                    // 직원 소명은 attendance_anomalies를 최신 원본으로 사용
+                    (aData || []).forEach(row => {
+                        const key = row.manager_key;
+                        const explanation = String(row.explanation || '').trim();
+                        if (explanation) employeeExplanations[key] = explanation;
+                        else delete employeeExplanations[key];
+                        if (row.status === 'requested') sentAnomalyKeys.add(key);
+                    });
 
+                    // 선제적 보완 데이터(사전 등록 내역) 로딩
                     if (pData && pData.length > 0) {
                         pData.forEach(row => {
                             const key = `${normalizeName(row.name)}_${row.date}`;
@@ -1661,6 +1779,7 @@
                     localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
                     localStorage.setItem('manualEarlyPunches', JSON.stringify(manualEarlyPunches));
                     localStorage.setItem('preemptiveSupplements', JSON.stringify(preemptiveSupplements));
+                    localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
 
                     updateAndProcessData();
 
@@ -1670,23 +1789,18 @@
                         if (matrix && matrix.names && matrix.names.length > 0) {
                             const allDates = matrix.uniqueDates || [];
                             if (allDates.length > 0) {
-                                // dateChunks 형태로 변환 (월 상/하반기 단위로 분리)
-                                const chunks = [];
-                                allDates.forEach(dt => {
-                                    const jsDt = new Date(dt);
-                                    const key = `${jsDt.getFullYear()}-${jsDt.getMonth() + 1}-P${jsDt.getDate() <= 15 ? 1 : 2}`;
-                                    if (!chunks.length || chunks[chunks.length - 1].key !== key) chunks.push({ key, dates: [] });
-                                    chunks[chunks.length - 1].dates.push(dt);
-                                });
-                                saveReportToCloud(chunks.map(c => c.dates), matrix.names, matrix.recordsMap);
+                                const chunks = groupDatesByReportPeriod(allDates);
+                                await saveReportToCloud(chunks, matrix.names, matrix.recordsMap);
                             }
                         }
                     }
 
-                    if (!silent) alert(`클라우드 데이터를 불러왔습니다.\n(기록: ${data.length}건, 사전등록: ${pData ? pData.length : 0}건)`);
+                    if (!silent) alert(`클라우드 데이터를 불러왔습니다.\n(기록: ${data.length}건, 이상근태: ${aData.length}건, 사전등록: ${pData.length}건)`);
+                    return true;
                 } catch (err) {
                     console.error('Cloud Fetch Error:', err);
                     if (!silent) alert('불러오기 중 오류가 발생했습니다: ' + err.message);
+                    return false;
                 } finally {
                     if (cloudFetchAllBtn) {
                         cloudFetchAllBtn.disabled = false;
@@ -1701,17 +1815,17 @@
                 const validEmployees = tempEmployeeConfigList.filter(emp => emp.name.trim() !== "");
                 if (validEmployees.length === 0) { alert("저장할 사원 정보가 없습니다."); return; }
 
-                // [추가] 동명이인 확인코드 중복 체크
-                const namePinPairs = new Set();
+                // 근태/보고서 키가 이름을 기준으로 구성되므로 동명이인은 현재 구조에서 지원하지 않음
+                const normalizedNames = new Set();
                 for (const emp of validEmployees) {
-                    const key = `${normalizeName(emp.name)}_${emp.pin || '0000'}`;
-                    if (namePinPairs.has(key)) {
-                        alert(`중복된 이름과 확인코드 조합이 있습니다: ${emp.name} (${emp.pin || '0000'})\n동명이인은 반드시 서로 다른 확인코드를 가져야 합니다.`);
+                    const normalizedName = normalizeName(emp.name);
+                    if (normalizedNames.has(normalizedName)) {
+                        alert(`중복된 사원명이 있습니다: ${normalizedName}\n현재 근태 데이터 구조에서는 동명이인을 구분할 수 없습니다.`);
                         syncEmployeesBtn.disabled = false;
                         syncEmployeesBtn.textContent = "클라우드 저장 및 적용";
                         return;
                     }
-                    namePinPairs.add(key);
+                    normalizedNames.add(normalizedName);
                 }
 
                 syncEmployeesBtn.disabled = true;
@@ -1719,10 +1833,11 @@
 
                 const names = validEmployees.map(e => normalizeName(e.name));
                 try {
-                    const { data: existingEmployees } = await supabase
+                    const { data: existingEmployees, error: existingEmployeesError } = await supabase
                         .from('employees')
                         .select('*')
                         .in('name', names);
+                    if (existingEmployeesError) throw existingEmployeesError;
 
                     const existingMap = {};
                     if (existingEmployees) existingEmployees.forEach(emp => { existingMap[emp.name] = emp; });
@@ -1832,11 +1947,13 @@
                 try {
                     // [개선] 클라우드에는 있으나 로컬에는 없는(삭제된) 항목 처리
                     const { data: cloudHolidays, error: fetchErr } = await supabase.from('attendance_holidays').select('date');
-                    if (!fetchErr && cloudHolidays) {
+                    if (fetchErr) throw fetchErr;
+                    if (cloudHolidays) {
                         const localDates = new Set(holidayConfigList.map(h => h.date));
                         const toDelete = cloudHolidays.filter(h => !localDates.has(h.date)).map(h => h.date);
                         if (toDelete.length > 0) {
-                            await supabase.from('attendance_holidays').delete().in('date', toDelete);
+                            const { error: deleteError } = await supabase.from('attendance_holidays').delete().in('date', toDelete);
+                            if (deleteError) throw deleteError;
                         }
                     }
 
@@ -1867,8 +1984,8 @@
             }
 
             async function syncSingleRecordToCloud(key) {
-                if (!supabase) return;
-                const [name, date] = key.split('_');
+                if (!supabase) throw new Error('클라우드에 연결되지 않았습니다.');
+                const [name, date] = splitManagerKey(key);
                 const corrData = manualCorrections[key] || { in: false, out: false, leave: false };
 
                 let rec = {};
@@ -1886,7 +2003,9 @@
                 }
 
                 try {
-                    const { data: ex } = await supabase.from('attendance_records').select('*').eq('manager_key', key).single();
+                    const { data: ex, error: fetchError } = await supabase
+                        .from('attendance_records').select('*').eq('manager_key', key).maybeSingle();
+                    if (fetchError) throw fetchError;
 
                     const record = {
                         manager_key: key, name, date,
@@ -1904,9 +2023,11 @@
                     };
 
                     const { error } = await supabase.from('attendance_records').upsert([record], { onConflict: 'manager_key' });
-                    if (error) console.error("Realtime Sync Error:", error);
+                    if (error) throw error;
+                    return true;
                 } catch (e) {
                     console.error("Realtime Sync Failed:", e);
+                    throw e;
                 }
             }
 
@@ -1933,13 +2054,26 @@
                     dropZone.classList.remove('loaded');
                     return;
                 }
-                listContainer.innerHTML = Array.from(fileMap.keys())
-                    .map(name => `
-                        <div class="file-item" style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 6px;">
-                            <span class="file-name" style="font-size: 0.85rem; color: var(--text-main);">✓ ${name}</span>
-                            <button class="remove-file-btn" data-name="${name}" style="background: none; border: none; color: #ef4444; font-size: 1.1rem; cursor: pointer; line-height: 1; padding: 0;">&times;</button>
-                        </div>
-                    `).join('');
+                listContainer.innerHTML = '';
+                Array.from(fileMap.keys()).forEach(name => {
+                    const item = document.createElement('div');
+                    item.className = 'file-item';
+                    item.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:white;padding:6px 10px;border:1px solid var(--border-color);border-radius:6px;margin-top:6px;';
+
+                    const label = document.createElement('span');
+                    label.className = 'file-name';
+                    label.style.cssText = 'font-size:0.85rem;color:var(--text-main);';
+                    label.textContent = `✓ ${name}`;
+
+                    const removeButton = document.createElement('button');
+                    removeButton.className = 'remove-file-btn';
+                    removeButton.dataset.name = name;
+                    removeButton.style.cssText = 'background:none;border:none;color:#ef4444;font-size:1.1rem;cursor:pointer;line-height:1;padding:0;';
+                    removeButton.innerHTML = '&times;';
+
+                    item.append(label, removeButton);
+                    listContainer.appendChild(item);
+                });
 
                 listContainer.querySelectorAll('.remove-file-btn').forEach(btn => {
                     btn.onclick = (e) => {
@@ -1969,18 +2103,42 @@
             // ── 구글 드라이브 원자료 업로드 ─────────────────────────────
             const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxqkzDu2LXSsdgdBRmKmYASzBDQfYGfLosh7bBGssquVuEdEHRBwV8WA9Lhgqh25APbvA/exec';
 
+            async function verifyDriveUploadResponse(response, label) {
+                if (!response.ok) throw new Error(`${label} HTTP ${response.status}`);
+                const responseText = (await response.text()).trim();
+                if (!responseText) throw new Error(`${label} 응답이 비어 있어 저장 여부를 확인할 수 없습니다.`);
+
+                try {
+                    const result = JSON.parse(responseText);
+                    const failed = result?.success === false || result?.error || result?.status === 'error';
+                    if (failed) throw new Error(result.error || result.message || `${label} 실패`);
+                    const confirmed = result?.success === true
+                        || result?.status === 'success'
+                        || result?.fileId
+                        || result?.url;
+                    if (!confirmed) throw new Error(`${label} 응답에서 성공 여부를 확인할 수 없습니다.`);
+                } catch (parseError) {
+                    if (!(parseError instanceof SyntaxError)) throw parseError;
+                    if (/error|fail|실패/i.test(responseText)) throw new Error(responseText.slice(0, 200));
+                    if (!/success|ok|완료|uploaded|저장/i.test(responseText) && !/^https?:\/\//i.test(responseText)) {
+                        throw new Error(`${label} 응답 형식을 확인할 수 없습니다.`);
+                    }
+                }
+            }
+
             async function uploadFileToDrive(fileData) {
                 try {
                     // fileData: { name, base64, mimeType } 형태
-                    await fetch(APPS_SCRIPT_URL, {
+                    const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        mode: 'no-cors',
                         headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({ file: fileData.base64, fileName: fileData.name, mimeType: fileData.mimeType })
                     });
-                    console.log('[DRIVE] 원자료 업로드 요청 완료:', fileData.name);
+                    await verifyDriveUploadResponse(response, '원자료 업로드');
+                    console.log('[DRIVE] 원자료 업로드 확인 완료:', fileData.name);
                 } catch (err) {
-                    console.warn('[DRIVE] 원자료 업로드 오류 (무시):', err);
+                    console.error('[DRIVE] 원자료 업로드 오류:', err);
+                    throw new Error(`${fileData.name} 원자료 업로드 실패: ${err.message}`);
                 }
             }
             // ────────────────────────────────────────────────────────────
@@ -2161,8 +2319,54 @@
                 const fileArray = Array.from(files);
                 const acceptedFiles = [];
                 const rejectedMessages = [];
+                let finalized = false;
+
+                const finishAttendanceUpload = async () => {
+                    if (finalized) return;
+                    finalized = true;
+                    if (rejectedMessages.length > 0) {
+                        alert(`업로드하지 않은 파일이 있습니다.\n\n${rejectedMessages.join('\n')}\n\n문제가 있는 파일은 클라우드 저장/동기화에서 제외했습니다.`);
+                    }
+
+                    if (acceptedFiles.length === 0) {
+                        renderFileList(attendanceFilesMap, fileListAttendance, dropZoneAttendance);
+                        return;
+                    }
+
+                    renderFileList(attendanceFilesMap, fileListAttendance, dropZoneAttendance);
+                    dropZoneAttendance.classList.add('loaded');
+                    updateAndProcessData();
+                    console.log("Attendance files uploaded. Triggering full cloud sync...");
+
+                    try {
+                        const driveFiles = await Promise.all(acceptedFiles.map(async file => {
+                            const base64 = await new Promise((resolve, reject) => {
+                                const base64Reader = new FileReader();
+                                base64Reader.onload = () => resolve(base64Reader.result.split(',')[1]);
+                                base64Reader.onerror = () => reject(new Error(`${file.name}: 드라이브 업로드용 변환 실패`));
+                                base64Reader.readAsDataURL(file);
+                            });
+                            return {
+                                name: file.name,
+                                base64,
+                                mimeType: file.name.toLowerCase().endsWith('.csv')
+                                    ? 'text/csv'
+                                    : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                            };
+                        }));
+                        await syncAllToCloud(true, null, true, driveFiles, 'attendance');
+                    } catch (syncErr) {
+                        console.error('[SYNC] 출퇴근 자료 자동 저장 실패:', syncErr);
+                        if (cloudFetchAllBtn) {
+                            cloudFetchAllBtn.disabled = false;
+                            cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
+                        }
+                        alert(`파일은 화면에 불러왔지만 클라우드 또는 드라이브 저장에 실패했습니다.\n\n${syncErr.message || syncErr}`);
+                    }
+                };
+
                 fileArray.forEach(file => {
-                    if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                    if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
                         rejectedMessages.push(`${file.name}: 지원하지 않는 파일 형식입니다.`);
                         loadedCount++;
                         return;
@@ -2191,37 +2395,18 @@
                             rejectedMessages.push(`${file.name}: 파일을 읽는 중 오류가 발생했습니다. ${err.message}`);
                         }
                         loadedCount++;
-
-                        if (loadedCount === fileArray.length) {
-                            if (rejectedMessages.length > 0) {
-                                alert(`업로드하지 않은 파일이 있습니다.\n\n${rejectedMessages.join('\n')}\n\n문제가 있는 파일은 클라우드 저장/동기화에서 제외했습니다.`);
-                            }
-
-                            if (acceptedFiles.length === 0) {
-                                renderFileList(attendanceFilesMap, fileListAttendance, dropZoneAttendance);
-                                return;
-                            }
-
-                            renderFileList(attendanceFilesMap, fileListAttendance, dropZoneAttendance);
-                            dropZoneAttendance.classList.add('loaded');
-                            updateAndProcessData();
-                            // [추가] 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
-                            console.log("Attendance files uploaded. Triggering full cloud sync...");
-                            // 파일을 미리 base64로 변환
-                            const driveFiles = await Promise.all(acceptedFiles.map(async f => {
-                                const b64 = await new Promise((res, rej) => {
-                                    const r2 = new FileReader();
-                                    r2.onload = () => res(r2.result.split(',')[1]);
-                                    r2.onerror = rej;
-                                    r2.readAsDataURL(f);
-                                });
-                                return { name: f.name, base64: b64, mimeType: f.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
-                            }));
-                            try { await syncAllToCloud(true, null, true, driveFiles, 'attendance'); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
-                        }
+                        if (loadedCount === fileArray.length) await finishAttendanceUpload();
+                    };
+                    reader.onerror = async () => {
+                        rejectedMessages.push(`${file.name}: 파일을 읽지 못했습니다.`);
+                        loadedCount++;
+                        if (loadedCount === fileArray.length) await finishAttendanceUpload();
                     };
                     reader.readAsArrayBuffer(file);
                 });
+                if (fileArray.length > 0 && loadedCount === fileArray.length) {
+                    void finishAttendanceUpload();
+                }
             }
 
             dropZoneAttendance.addEventListener('click', () => fileInputAttendance.click());
@@ -2404,7 +2589,7 @@
                 reader.readAsArrayBuffer(file);
             }
 
-            if (cloudFetchAllBtn) cloudFetchAllBtn.onclick = fetchAllFromCloud;
+            if (cloudFetchAllBtn) cloudFetchAllBtn.onclick = () => { void fetchAllFromCloud(false); };
 
 
 
@@ -2414,7 +2599,7 @@
                 const acceptedFiles = [];
                 const rejectedMessages = [];
                 fileArray.forEach(file => {
-                    if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
+                    if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
                         rejectedMessages.push(`${file.name}: 지원하지 않는 파일 형식입니다.`);
                         loadedCount++;
                         return;
@@ -2579,15 +2764,23 @@
                             finishLeaveUpload();
                         }
                     };
+                    reader.onerror = () => {
+                        rejectedMessages.push(`${file.name}: 파일을 읽지 못했습니다.`);
+                        loadedCount++;
+                        if (loadedCount === fileArray.length) void finishLeaveUpload();
+                    };
                     reader.readAsArrayBuffer(file);
                 });
+                if (fileArray.length > 0 && loadedCount === fileArray.length) {
+                    void finishLeaveUpload();
+                }
 
                 async function finishLeaveUpload() {
                     if (rejectedMessages.length > 0) {
                         alert(`업로드하지 않은 휴가/연차 파일이 있습니다.\n\n${rejectedMessages.join('\n')}\n\n문제가 있는 파일은 클라우드 저장/동기화에서 제외했습니다.`);
                     }
 
-                    if (acceptedFiles.length === 0 && leaveFilesMap.size === 0) {
+                    if (acceptedFiles.length === 0) {
                         renderFileList(leaveFilesMap, fileListLeave, dropZoneLeave);
                         return;
                     }
@@ -2601,17 +2794,31 @@
                             updateAndProcessData();
                             // [추가] 휴가 파일 업로드 시 기간과 상관없이 모든 데이터를 클라우드로 자동 저장
                             console.log("Leave files uploaded. Triggering full cloud sync...");
-                            // 파일을 미리 base64로 변환
-                            const driveFiles = await Promise.all(acceptedFiles.map(async f => {
-                                const b64 = await new Promise((res, rej) => {
-                                    const r2 = new FileReader();
-                                    r2.onload = () => res(r2.result.split(',')[1]);
-                                    r2.onerror = rej;
-                                    r2.readAsDataURL(f);
-                                });
-                                return { name: f.name, base64: b64, mimeType: f.name.endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' };
-                            }));
-                            try { await syncAllToCloud(true, null, true, driveFiles, 'leave'); } catch (syncErr) { console.warn('[SYNC] 오류 (무시):', syncErr); }
+                            try {
+                                const driveFiles = await Promise.all(acceptedFiles.map(async file => {
+                                    const base64 = await new Promise((resolve, reject) => {
+                                        const base64Reader = new FileReader();
+                                        base64Reader.onload = () => resolve(base64Reader.result.split(',')[1]);
+                                        base64Reader.onerror = () => reject(new Error(`${file.name}: 드라이브 업로드용 변환 실패`));
+                                        base64Reader.readAsDataURL(file);
+                                    });
+                                    return {
+                                        name: file.name,
+                                        base64,
+                                        mimeType: file.name.toLowerCase().endsWith('.csv')
+                                            ? 'text/csv'
+                                            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                                    };
+                                }));
+                                await syncAllToCloud(true, null, true, driveFiles, 'leave');
+                            } catch (syncErr) {
+                                console.error('[SYNC] 휴가 자료 자동 저장 실패:', syncErr);
+                                if (cloudFetchAllBtn) {
+                                    cloudFetchAllBtn.disabled = false;
+                                    cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
+                                }
+                                alert(`휴가 파일은 화면에 불러왔지만 클라우드 또는 드라이브 저장에 실패했습니다.\n\n${syncErr.message || syncErr}`);
+                            }
                 }
             }
 
@@ -2848,7 +3055,7 @@
 
                 // [NEW] 수동으로 입력한 조치 사유 반영 (관리자 조치 내역)
                 Object.entries(manualReasons).forEach(([key, curResVal]) => {
-                    const [name, fDate] = key.split('_');
+                    const [name, fDate] = splitManagerKey(key);
                     if (name && fDate && curResVal) {
                         // 실제 출퇴근 데이터가 없더라도 수동 사유가 있으면 행 생성
                         if (!recordsMap[name]) recordsMap[name] = {};
@@ -3087,8 +3294,8 @@
             <h2>근태 보고서</h2>
             <div class="header-rightside">
                 <div class="report-meta">
-                    <div class="meta-item"><span class="meta-label">보고일자</span><span class="meta-value current-report-date-display"><u>${reportDate}</u></span></div>
-                    <div class="meta-item"><span class="meta-label">종합기간</span><span class="meta-value"><u>${periodText}</u></span></div>
+                    <div class="meta-item"><span class="meta-label">보고일자</span><span class="meta-value current-report-date-display"><u>${escapeHtml(reportDate)}</u></span></div>
+                    <div class="meta-item"><span class="meta-label">종합기간</span><span class="meta-value"><u>${escapeHtml(periodText)}</u></span></div>
                 </div>
                 <table class="approval-table">
                     <tr><th>담당</th><th>부장</th><th>전무</th><th>대표이사</th><th>회장</th></tr>
@@ -3183,7 +3390,7 @@
                         const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
                         const nameLabel = isSimpleMode ? `${nameIdx + 1}. ${name}` : name;
 
-                        tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${nameLabel}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
+                        tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${escapeHtml(nameLabel)}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
                             const corrKey = `${name}_${dt}`;
@@ -3262,7 +3469,7 @@
                             else if (isSimpleMode && !isOutRange && (empInfo.org || '').includes('밸브파크') && earliestInMapPark[dt]?.name === name) cls = 'earliest-in-cell-park';
                             else if (isSimpleMode && !isOutRange && !(empInfo.org || '').includes('밸브파크') && earliestInMap[dt]?.name === name) cls = 'earliest-in-cell';
 
-                            tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
+                            tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : escapeHtml(displayVal)}</td>`;
                         });
                         if (showSimpleLeaveColumn) tbodyHtml += `<td rowspan="3" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"></td>`;
                         tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
@@ -3305,7 +3512,7 @@
                             else if (isSimpleMode && !isOutRange && !(empInfo.org || '').includes('밸브파크') && latestOutMap[dt]?.name === name) cls = 'latest-out-cell';
 
                             let hlClass = (!isSimpleMode && showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
-                            tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : displayVal}</td>`;
+                            tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : escapeHtml(displayVal)}</td>`;
                         });
                         tbodyHtml += `</tr><tr class="employee-border-bottom"><td class="sticky-col td-label label-reason">사유</td>`;
                         let r_idx = 0;
@@ -3340,7 +3547,7 @@
                             // [수정] 재직 기간 외인 경우(isOutRange)는 통합하지 않고 개별 셀로 출력 (사용자 요청)
                             if (isOutRange) {
                                 const cls = 'time-cell reason-cell not-employed';
-                                tbodyHtml += `<td class="${cls}">${currentReason}</td>`;
+                                tbodyHtml += `<td class="${cls}">${escapeHtml(currentReason)}</td>`;
                                 r_idx++;
                             } else {
                                 // 사유가 6글자 이상인 경우에만 연속 동일 사유 셀 병합
@@ -3365,10 +3572,10 @@
 
                                 const cls = 'time-cell reason-cell';
                                 if (span > 1) {
-                                    tbodyHtml += `<td class="${cls}" colspan="${span}">${currentReason}</td>`;
+                                    tbodyHtml += `<td class="${cls}" colspan="${span}">${escapeHtml(currentReason)}</td>`;
                                     r_idx += span;
                                 } else {
-                                    tbodyHtml += `<td class="${cls}">${currentReason}</td>`;
+                                    tbodyHtml += `<td class="${cls}">${escapeHtml(currentReason)}</td>`;
                                     r_idx++;
                                 }
                             }
@@ -3431,7 +3638,7 @@
                                 summaryHtml += `<div class="tardy-summary-group">`;
                                 [name].forEach(item => {
                                     summaryHtml += `<div class="tardy-summary-item">
-                                        [${item.date}] <strong>${item.name}</strong>: <span class="tardy-summary-time" style="color:#ef4444; font-weight:700;">${item.min}분</span>
+                                        [${escapeHtml(item.date)}] <strong>${escapeHtml(item.name)}</strong>: <span class="tardy-summary-time" style="color:#ef4444; font-weight:700;">${escapeHtml(item.min)}분</span>
                                     </div>`;
                                 });
                                 summaryHtml += `</div>`;
@@ -3462,9 +3669,6 @@
 
             function getTardyReportItem(name, date, rec) {
                 const corrKey = `${name}_${date}`;
-                let correction = manualCorrections[corrKey];
-                if (correction === true) correction = { in: true };
-                if (correction && correction.in === true) return null;
 
                 const reason = String(rec?.reason || '');
                 const skipKeywords = ['출장', '외근', '경조', '휴가', '공가', '병가', '청원', '대체', '포상', '교육', '훈련', '파견', '현장', '반차', '오전반차', '오후반차', '예비군'];
@@ -3491,6 +3695,7 @@
                 const explanation = String(employeeExplanations[corrKey] || '').trim();
                 return {
                     name,
+                    team: String(empInfo.org || '').trim() || '미지정',
                     date,
                     inTime: String(rec.inTime || ''),
                     minutes: Math.ceil((punchSeconds - shiftSeconds) / 60),
@@ -3535,9 +3740,10 @@
                     try {
                         const CHUNK = 100;
                         for (let i = 0; i < candidateKeys.length; i += CHUNK) {
-                            const { data } = await supabase.from('attendance_anomalies')
+                            const { data, error } = await supabase.from('attendance_anomalies')
                                 .select('manager_key, explanation')
                                 .in('manager_key', candidateKeys.slice(i, i + CHUNK));
+                            if (error) throw error;
                             (data || []).forEach(row => {
                                 employeeExplanations[row.manager_key] = String(row.explanation || '').trim();
                             });
@@ -3545,15 +3751,44 @@
                         localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
                     } catch (error) {
                         console.warn('[TARDY REPORT] 직원 사유 동기화 실패:', error);
+                        alert('직원 작성 사유를 최신 상태로 불러오지 못해 현재 화면의 자료로 보고서를 생성합니다: ' + error.message);
                     }
                 }
 
-                const items = [];
+                const allItems = [];
                 matrix.names.forEach(name => dates.forEach(date => {
                     const item = getTardyReportItem(name, date, matrix.recordsMap[name]?.[date]);
-                    if (item) items.push(item);
+                    if (item) allItems.push(item);
                 }));
-                items.sort((a, b) => a.name.localeCompare(b.name, 'ko') || a.date.localeCompare(b.date));
+                const tardyTeamOrder = ['대표이사', '국내외관리 영업팀', '반도체 영업팀', '밸브파크팀', '생산기술팀', '엔지니어링팀', '해외영업팀', '2차전지 영업팀', '미지정'];
+                const teamOrderIndex = team => {
+                    if (team === '미지정') return Number.MAX_SAFE_INTEGER;
+                    const index = tardyTeamOrder.indexOf(team);
+                    return index === -1 ? tardyTeamOrder.length - 1 : index;
+                };
+                allItems.sort((a, b) => teamOrderIndex(a.team) - teamOrderIndex(b.team) || a.team.localeCompare(b.team, 'ko') || a.name.localeCompare(b.name, 'ko') || a.date.localeCompare(b.date));
+                const allItemsByTeam = {};
+                allItems.forEach(item => {
+                    if (!allItemsByTeam[item.team]) allItemsByTeam[item.team] = [];
+                    allItemsByTeam[item.team].push(item);
+                });
+                const availableTeams = Object.keys(allItemsByTeam).sort((a, b) => teamOrderIndex(a) - teamOrderIndex(b) || a.localeCompare(b, 'ko'));
+                let savedSelectedTeams = null;
+                try {
+                    const savedValue = localStorage.getItem('tardy_report_selected_teams');
+                    if (savedValue !== null) {
+                        const parsedValue = JSON.parse(savedValue);
+                        if (Array.isArray(parsedValue)) savedSelectedTeams = parsedValue.map(team => String(team));
+                    }
+                } catch (error) {
+                    console.warn('[TARDY REPORT] 팀 선택값을 불러오지 못했습니다:', error);
+                }
+                const selectedTeams = savedSelectedTeams === null
+                    ? availableTeams.slice()
+                    : availableTeams.filter(team => savedSelectedTeams.includes(team));
+                if (availableTeams.length > 0 && selectedTeams.length === 0) selectedTeams.push(...availableTeams);
+                const selectedTeamSet = new Set(selectedTeams);
+                const items = allItems.filter(item => selectedTeamSet.has(item.team));
 
                 const showInTime = localStorage.getItem('tardy_report_show_in_time') !== 'false';
                 const showMinutes = localStorage.getItem('tardy_report_show_minutes') === 'true';
@@ -3569,11 +3804,24 @@
                     });
                     return result;
                 };
-                const formatSummaryDate = (date, dayOnly) => dayOnly ? `${parseInt(date.slice(8, 10), 10)}일` : date;
-                const renderSummaryRows = (rows, dayOnly = false) => Object.entries(groupByEmployee(rows)).map(([name, employeeRows]) => {
-                    const tardyDates = employeeRows.map(row => formatSummaryDate(row.date, dayOnly));
-                    const missingDates = employeeRows.filter(row => row.missing).map(row => formatSummaryDate(row.date, dayOnly));
-                    return `<tr><td>${escapeTardyReportHtml(name)}</td><td>${employeeRows.length}회</td><td>${escapeTardyReportHtml(tardyDates.join(', '))}</td><td>${employeeRows.length - missingDates.length}건</td><td>${missingDates.length}건</td><td>${missingDates.length ? escapeTardyReportHtml(missingDates.join(', ')) : '-'}</td></tr>`;
+                const showSummaryYear = Boolean(start && end && start.slice(0, 4) !== end.slice(0, 4));
+                const formatGroupedSummaryDates = dateValues => {
+                    const dateGroups = new Map();
+                    Array.from(new Set(dateValues)).sort().forEach(date => {
+                        const monthKey = date.slice(0, 7);
+                        if (!dateGroups.has(monthKey)) dateGroups.set(monthKey, []);
+                        dateGroups.get(monthKey).push(`${parseInt(date.slice(8, 10), 10)}일`);
+                    });
+                    return Array.from(dateGroups.entries()).map(([monthKey, days]) => {
+                        const [year, month] = monthKey.split('-');
+                        const monthLabel = `${showSummaryYear ? `${year}년 ` : ''}${parseInt(month, 10)}월`;
+                        return `<div class="summary-date-group"><div class="summary-date-month">${escapeTardyReportHtml(monthLabel)}</div><div class="summary-date-days">- ${escapeTardyReportHtml(days.join(', '))}</div></div>`;
+                    }).join('');
+                };
+                const renderSummaryRows = rows => Object.entries(groupByEmployee(rows)).map(([name, employeeRows]) => {
+                    const tardyDates = employeeRows.map(row => row.date);
+                    const missingDates = employeeRows.filter(row => row.missing).map(row => row.date);
+                    return `<tr><td>${escapeTardyReportHtml(name)}</td><td>${employeeRows.length}회</td><td class="summary-date-cell">${formatGroupedSummaryDates(tardyDates)}</td><td>${employeeRows.length - missingDates.length}건</td><td>${missingDates.length}건</td><td class="summary-date-cell">${missingDates.length ? formatGroupedSummaryDates(missingDates) : '-'}</td></tr>`;
                 }).join('');
                 const renderDetailRows = rows => rows.slice().sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name, 'ko')).map((item, index) => `
                     <tr class="${item.missing ? 'missing' : ''}">
@@ -3582,20 +3830,29 @@
                         ${showMinutes ? `<td>${item.minutes}분</td>` : ''}
                         <td>${item.explanation ? escapeTardyReportHtml(item.explanation) : '<strong>미작성</strong>'}</td>
                     </tr>`).join('');
-                const renderTables = (rows, dayOnly = false) => `
-                    <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>지각 날짜</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${renderSummaryRows(rows, dayOnly) || '<tr><td colspan="6">해당 월에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
-                    <h2>날짜별 상세 내역</h2><table class="detail"><thead><tr><th style="width:36px">번호</th><th>직원명</th><th>날짜</th>${optionalHeaders}<th style="width:34%">직원 작성 사유</th></tr></thead><tbody>${renderDetailRows(rows) || `<tr><td colspan="${emptyRowColspan}">해당 월에 지각 내역이 없습니다.</td></tr>`}</tbody></table>`;
+                const renderTables = rows => `
+                    <h2>직원별 요약</h2><table><thead><tr><th>직원명</th><th>지각 횟수</th><th>지각 날짜</th><th>사유 작성</th><th>사유 미작성</th><th>미작성 날짜</th></tr></thead><tbody>${renderSummaryRows(rows) || '<tr><td colspan="6">선택 기간에 지각 내역이 없습니다.</td></tr>'}</tbody></table>
+                    <h2>날짜별 상세 내역</h2><table class="detail"><thead><tr><th style="width:36px">번호</th><th>직원명</th><th>날짜</th>${optionalHeaders}<th style="width:34%">직원 작성 사유</th></tr></thead><tbody>${renderDetailRows(rows) || `<tr><td colspan="${emptyRowColspan}">선택 기간에 지각 내역이 없습니다.</td></tr>`}</tbody></table>`;
                 const grouped = groupByEmployee(items);
-                const monthKeys = Array.from(new Set(dates.map(date => date.slice(0, 7)))).sort();
-                const isMultiMonth = monthKeys.length > 1;
-                const reportTables = isMultiMonth
-                    ? monthKeys.map(monthKey => {
-                        const monthItems = items.filter(item => item.date.startsWith(monthKey));
-                        const [year, month] = monthKey.split('-');
-                        const monthMissingCount = monthItems.filter(item => item.missing).length;
-                        return `<section class="month-section"><div class="month-heading"><h2>${escapeTardyReportHtml(year)}년 ${parseInt(month, 10)}월</h2><span>총 ${monthItems.length}건 · 사유 미작성 ${monthMissingCount}건</span></div>${renderTables(monthItems, true)}</section>`;
-                    }).join('')
-                    : renderTables(items);
+                const groupedByTeam = {};
+                items.forEach(item => {
+                    if (!groupedByTeam[item.team]) groupedByTeam[item.team] = [];
+                    groupedByTeam[item.team].push(item);
+                });
+                const teamKeys = Object.keys(groupedByTeam).sort((a, b) => teamOrderIndex(a) - teamOrderIndex(b) || a.localeCompare(b, 'ko'));
+                const teamSelectionRows = availableTeams.length > 0 ? availableTeams.map(team => {
+                    const teamItems = allItemsByTeam[team];
+                    const teamEmployeeCount = new Set(teamItems.map(item => item.name)).size;
+                    const teamMissingCount = teamItems.filter(item => item.missing).length;
+                    return `<tr><td><input class="tardy-team-checkbox" type="checkbox" value="${escapeTardyReportHtml(team)}" ${selectedTeamSet.has(team) ? 'checked' : ''} aria-label="${escapeTardyReportHtml(team)} 선택"></td><td class="team-name-cell">${escapeTardyReportHtml(team)}</td><td>${teamEmployeeCount}명</td><td>${teamItems.length}건</td><td>${teamMissingCount}건</td></tr>`;
+                }).join('') : '<tr><td colspan="5">선택 기간에 지각 내역이 있는 팀이 없습니다.</td></tr>';
+                const allTeamsSelected = availableTeams.length > 0 && selectedTeams.length === availableTeams.length;
+                const reportTables = teamKeys.length > 0 ? teamKeys.map(team => {
+                    const teamItems = groupedByTeam[team];
+                    const teamMissingCount = teamItems.filter(item => item.missing).length;
+                    const teamEmployeeCount = Object.keys(groupByEmployee(teamItems)).length;
+                    return `<section class="team-section"><div class="team-heading"><h2>${escapeTardyReportHtml(team)}</h2><span>대상 ${teamEmployeeCount}명 · 총 ${teamItems.length}건 · 사유 미작성 ${teamMissingCount}건</span></div>${renderTables(teamItems)}</section>`;
+                }).join('') : `<section class="team-section empty-section">${renderTables([])}</section>`;
 
                 reportScreen.removeAttribute('style');
                 reportScreen.innerHTML = `
@@ -3607,13 +3864,16 @@
                         #tardy-report-screen .card{flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:10px}#tardy-report-screen .card b{display:block;font-size:18px;margin-top:3px}
                         #tardy-report-screen h2{font-size:15px;margin:20px 0 7px}#tardy-report-screen table{border-collapse:collapse;width:100%;table-layout:fixed}#tardy-report-screen th,#tardy-report-screen td{border:1px solid #d1d5db;padding:6px;text-align:center;word-break:break-word}
                         #tardy-report-screen th{background:#f3f4f6}#tardy-report-screen .missing td{background:#fff7ed}#tardy-report-screen .detail td:last-child{text-align:left}#tardy-report-screen .actions{display:flex;justify-content:flex-end;margin-bottom:12px}
+                        #tardy-report-screen .summary-date-cell{text-align:left;vertical-align:top}#tardy-report-screen .summary-date-group+.summary-date-group{margin-top:7px}#tardy-report-screen .summary-date-month{font-weight:700}#tardy-report-screen .summary-date-days{margin-top:2px;padding-left:2px}
                         #tardy-report-screen button{border:0;border-radius:6px;background:#b45309;color:white;padding:8px 14px;font-weight:700;cursor:pointer}#tardy-report-screen .back-btn{margin-right:8px;background:#fff;color:#374151;border:1px solid #d1d5db}
                         #tardy-report-screen .report-toolbar{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;padding:12px;margin-bottom:18px;border:1px solid #fde68a;border-radius:8px;background:#fffbeb}
                         #tardy-report-screen .date-field{display:flex;flex-direction:column;gap:4px;min-width:150px}#tardy-report-screen .date-field label{font-size:11px;font-weight:700;color:#78350f}#tardy-report-screen .date-field input{height:34px;padding:4px 8px;border:1px solid #d1d5db;border-radius:6px;background:#fff;box-sizing:border-box}
                         #tardy-report-screen .display-options{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border:1px solid #fcd34d;border-radius:6px;background:#fff;box-sizing:border-box}#tardy-report-screen .display-options>span{font-size:11px;font-weight:700;color:#78350f}#tardy-report-screen .display-options label{display:flex;align-items:center;gap:4px;cursor:pointer;white-space:nowrap}#tardy-report-screen .display-options input{accent-color:#b45309}
+                        #tardy-report-screen .team-selector{flex:1 0 100%;margin-top:2px;padding-top:12px;border-top:1px solid #fde68a}#tardy-report-screen .team-selector-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;color:#78350f}#tardy-report-screen .team-selector-heading span{font-size:11px;font-weight:700}
+                        #tardy-report-screen .team-selector-table{table-layout:auto;background:#fff}#tardy-report-screen .team-selector-table th,#tardy-report-screen .team-selector-table td{padding:5px 8px}#tardy-report-screen .team-selector-table th:first-child,#tardy-report-screen .team-selector-table td:first-child{width:48px}#tardy-report-screen .team-selector-table input{width:16px;height:16px;accent-color:#b45309;cursor:pointer}#tardy-report-screen .team-selector-table .team-name-cell{text-align:left;font-weight:700}
                         #tardy-report-screen .refresh-btn{height:34px}#tardy-report-screen button:disabled{opacity:.6;cursor:wait}
-                        #tardy-report-screen .month-section{margin-top:28px;padding-top:20px;border-top:2px solid #d1d5db}#tardy-report-screen .month-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}#tardy-report-screen .month-heading h2{font-size:18px;margin:0;color:#92400e}#tardy-report-screen .month-heading span{color:#6b7280;font-weight:600}
-                        @media print{body>*:not(#tardy-report-screen){display:none!important}#tardy-report-screen{position:static;overflow:visible;background:#fff;padding:0}#tardy-report-screen .report-content{max-width:none;min-height:0;padding:0;box-shadow:none}#tardy-report-screen .actions,#tardy-report-screen .report-toolbar{display:none}#tardy-report-screen h2{break-after:avoid}#tardy-report-screen tr{break-inside:avoid}#tardy-report-screen .month-section{border-top:0;margin-top:0;padding-top:0}#tardy-report-screen .month-section+.month-section{break-before:page}}
+                        #tardy-report-screen .team-section{margin-top:28px;padding-top:20px;border-top:2px solid #d1d5db}#tardy-report-screen .team-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}#tardy-report-screen .team-heading h2{font-size:18px;margin:0;color:#92400e}#tardy-report-screen .team-heading span{color:#6b7280;font-weight:600}
+                        @media print{body>*:not(#tardy-report-screen){display:none!important}#tardy-report-screen{position:static;overflow:visible;background:#fff;padding:0}#tardy-report-screen .report-content{max-width:none;min-height:0;padding:0;box-shadow:none}#tardy-report-screen .actions,#tardy-report-screen .report-toolbar{display:none}#tardy-report-screen h2{break-after:avoid}#tardy-report-screen tr{break-inside:avoid}#tardy-report-screen .team-section{border-top:0;margin-top:0;padding-top:0}#tardy-report-screen .team-section+.team-section{break-before:page}}
                     </style>
                     <div class="report-content">
                         <div class="actions"><button id="tardy-report-back" type="button" class="back-btn">관리자 화면으로 돌아가기</button><button id="tardy-report-print" type="button">인쇄 / PDF 저장</button></div>
@@ -3623,11 +3883,32 @@
                             <div class="date-field"><label for="tardy-period-end">종료일자</label><input id="tardy-period-end" type="date" max="9999-12-31" value="${escapeTardyReportHtml(end)}"></div>
                             <div class="display-options"><span>표시 항목</span><label><input id="tardy-show-in-time" type="checkbox" ${showInTime ? 'checked' : ''}> 출근 시각</label><label><input id="tardy-show-minutes" type="checkbox" ${showMinutes ? 'checked' : ''}> 지각 시간(분)</label></div>
                             <button id="tardy-report-refresh" type="button" class="refresh-btn">조회 / 적용</button>
+                            <div class="team-selector">
+                                <div class="team-selector-heading"><strong>보고서 생성 팀</strong><span id="tardy-team-selection-count">선택 ${selectedTeams.length}/${availableTeams.length}팀</span></div>
+                                <table class="team-selector-table"><thead><tr><th><input id="tardy-team-select-all" type="checkbox" ${allTeamsSelected ? 'checked' : ''} ${availableTeams.length === 0 ? 'disabled' : ''} aria-label="전체 팀 선택"></th><th>팀</th><th>지각 직원</th><th>지각 건수</th><th>미작성</th></tr></thead><tbody>${teamSelectionRows}</tbody></table>
+                            </div>
                         </div>
-                        <h1>지각 현황 보고서</h1><div class="meta">보고일자 ${escapeTardyReportHtml(reportDate)} · 조회기간 ${escapeTardyReportHtml(start || '-')} ~ ${escapeTardyReportHtml(end || '-')}</div>
+                        <h1>지각 현황 보고서</h1><div class="meta">보고일자 ${escapeTardyReportHtml(reportDate)} · 조회기간 ${escapeTardyReportHtml(start || '-')} ~ ${escapeTardyReportHtml(end || '-')} · 선택 팀 ${selectedTeams.length}개</div>
                         <div class="cards"><div class="card">대상 직원<b>${Object.keys(grouped).length}명</b></div><div class="card">총 지각<b>${items.length}건</b></div><div class="card">사유 작성<b>${items.length - missingCount}건</b></div><div class="card">사유 미작성<b>${missingCount}건</b></div></div>
                         ${reportTables}
                     </div>`;
+                const teamCheckboxes = Array.from(reportScreen.querySelectorAll('.tardy-team-checkbox'));
+                const teamSelectAll = reportScreen.querySelector('#tardy-team-select-all');
+                const teamSelectionCount = reportScreen.querySelector('#tardy-team-selection-count');
+                const updateTeamSelectionState = () => {
+                    const checkedCount = teamCheckboxes.filter(checkbox => checkbox.checked).length;
+                    if (teamSelectAll) {
+                        teamSelectAll.checked = teamCheckboxes.length > 0 && checkedCount === teamCheckboxes.length;
+                        teamSelectAll.indeterminate = checkedCount > 0 && checkedCount < teamCheckboxes.length;
+                    }
+                    if (teamSelectionCount) teamSelectionCount.textContent = `선택 ${checkedCount}/${teamCheckboxes.length}팀`;
+                };
+                teamSelectAll?.addEventListener('change', () => {
+                    teamCheckboxes.forEach(checkbox => { checkbox.checked = teamSelectAll.checked; });
+                    updateTeamSelectionState();
+                });
+                teamCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateTeamSelectionState));
+                updateTeamSelectionState();
                 reportScreen.querySelector('#tardy-report-back')?.addEventListener('click', closeTardyReport);
                 reportScreen.querySelector('#tardy-report-print')?.addEventListener('click', () => window.print());
                 reportScreen.querySelector('#tardy-report-refresh')?.addEventListener('click', async event => {
@@ -3636,12 +3917,17 @@
                     const nextEnd = reportScreen.querySelector('#tardy-period-end')?.value || '';
                     const nextShowInTime = reportScreen.querySelector('#tardy-show-in-time')?.checked !== false;
                     const nextShowMinutes = reportScreen.querySelector('#tardy-show-minutes')?.checked === true;
+                    const nextSelectedTeams = teamCheckboxes.filter(checkbox => checkbox.checked).map(checkbox => checkbox.value);
                     if (!nextReportDate || !nextStart || !nextEnd) {
                         alert('보고일자, 시작일자, 종료일자를 모두 선택해주세요.');
                         return;
                     }
                     if (nextStart > nextEnd) {
                         alert('시작일자는 종료일자보다 늦을 수 없습니다.');
+                        return;
+                    }
+                    if (teamCheckboxes.length > 0 && nextSelectedTeams.length === 0) {
+                        alert('보고서를 생성할 팀을 하나 이상 선택해주세요.');
                         return;
                     }
                     const refreshBtn = event.currentTarget;
@@ -3654,87 +3940,116 @@
                     localStorage.setItem('report_period_end', nextEnd);
                     localStorage.setItem('tardy_report_show_in_time', String(nextShowInTime));
                     localStorage.setItem('tardy_report_show_minutes', String(nextShowMinutes));
-                    if (supabase) await fetchAllFromCloud(true);
+                    localStorage.setItem('tardy_report_selected_teams', JSON.stringify(nextSelectedTeams));
+                    if (supabase) {
+                        const cloudLoaded = await fetchAllFromCloud(true);
+                        if (!cloudLoaded) {
+                            alert('클라우드 데이터를 최신 상태로 불러오지 못해 지각 보고서 조회를 중단했습니다.');
+                            refreshBtn.disabled = false;
+                            refreshBtn.textContent = '조회 / 적용';
+                            return;
+                        }
+                    }
                     await openTardyReport();
                 });
             }
 
             if (tardyReportBtn) tardyReportBtn.addEventListener('click', openTardyReport);
 
-            async function saveReportToCloud(dateChunks, names, recordsMap) {
-                if (!supabase) return;
-                try {
-                    const allDates = dateChunks.flat().sort();
-                    if (allDates.length === 0) return;
+            function getReportPeriodInfo(dateValue) {
+                const refDate = new Date(`${dateValue}T00:00:00`);
+                const year = refDate.getFullYear();
+                const month = String(refDate.getMonth() + 1).padStart(2, '0');
+                const firstHalf = refDate.getDate() <= 15;
+                const lastDay = new Date(year, refDate.getMonth() + 1, 0).getDate();
+                const periodStart = `${year}-${month}-${firstHalf ? '01' : '16'}`;
+                const periodEnd = `${year}-${month}-${firstHalf ? '15' : String(lastDay).padStart(2, '0')}`;
+                return { periodStart, periodEnd, reportKey: `${periodStart}_${periodEnd}` };
+            }
 
-                    // 보고서 헤더의 종합기간과 동일하게 1~15일 / 16~말일 기준으로 키 생성
-                    const refDate = new Date(allDates[0]);
-                    const yStr = refDate.getFullYear();
-                    const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
-                    const isP1 = refDate.getDate() <= 15;
-                    const periodStart = `${yStr}-${mStr}-${isP1 ? '01' : '16'}`;
-                    const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
-                    const periodEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
-                    const reportKey = `${periodStart}_${periodEnd}`;
+            function groupDatesByReportPeriod(dateValues) {
+                const groups = new Map();
+                Array.from(new Set(dateValues || [])).sort().forEach(date => {
+                    const { reportKey } = getReportPeriodInfo(date);
+                    if (!groups.has(reportKey)) groups.set(reportKey, []);
+                    groups.get(reportKey).push(date);
+                });
+                return Array.from(groups.values());
+            }
 
-                    // 이미 인쇄 완료된 보고서는 덮어쓰지 않음
-                    const { data: existing } = await supabase
+            function buildReportSnapshot(dates, names, recordsMap) {
+                const snapshot = {};
+                names.forEach(name => {
+                    snapshot[name] = {};
+                    dates.forEach(date => {
+                        const rec = (recordsMap[name] || {})[date];
+                        const corrKey = `${name}_${date}`;
+                        let corrData = manualCorrections[corrKey];
+                        if (corrData === true) corrData = { in: true, out: true, leave: true };
+                        else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false, leave: false };
+                        if (!rec && !corrData.in && !corrData.out && !corrData.leave && !manualReasons[corrKey]) return;
+                        snapshot[name][date] = {
+                            inTime: rec?.inTime || '',
+                            outTime: rec?.outTime || '',
+                            reason: stripAccessLogReasonText(rec?.reason || ''),
+                            shift: rec?.shiftStart || '',
+                            confirmedIn: !!corrData.in,
+                            confirmedOut: !!corrData.out,
+                            confirmedLeave: !!corrData.leave,
+                            managerReason: manualReasons[corrKey] || ''
+                        };
+                    });
+                });
+                return snapshot;
+            }
+
+            async function saveReportToCloud(dateChunks, names, recordsMap, options = {}) {
+                if (!supabase) throw new Error('클라우드에 연결되지 않았습니다.');
+                const isPrinted = options.isPrinted === true;
+                const protectPrinted = options.protectPrinted !== false;
+                const reportDate = reportDateInput.value || formatLocalDateValue(new Date());
+                const savedReports = [];
+
+                for (const rawDates of dateChunks || []) {
+                    const dates = Array.from(new Set(rawDates || [])).sort();
+                    if (dates.length === 0) continue;
+                    const { periodStart, periodEnd, reportKey } = getReportPeriodInfo(dates[0]);
+
+                    const { data: existing, error: existingError } = await supabase
                         .from('attendance_reports')
                         .select('is_printed')
                         .eq('report_key', reportKey)
                         .maybeSingle();
-                    if (existing && existing.is_printed === true) {
+                    if (existingError) throw existingError;
+                    if (protectPrinted && existing?.is_printed === true) {
                         console.log(`[REPORT SAVE] 인쇄 완료된 보고서 보호 — 저장 건너뜀 (${reportKey})`);
-                        return;
+                        continue;
                     }
 
-                    const reportDate = reportDateInput.value || formatLocalDateValue(new Date());
-
-                    // 보고서에 표시된 데이터만 추출 (보정 정보 포함)
-                    const snapshot = {};
-                    names.forEach(name => {
-                        snapshot[name] = {};
-                        allDates.forEach(dt => {
-                            const rec = (recordsMap[name] || {})[dt];
-                            if (!rec && !manualCorrections[`${name}_${dt}`] && !manualReasons[`${name}_${dt}`]) return;
-                            const corrKey = `${name}_${dt}`;
-                            let corrData = manualCorrections[corrKey];
-                            if (corrData === true) corrData = { in: true, out: true };
-                            else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
-                            snapshot[name][dt] = {
-                                inTime: rec?.inTime || '',
-                                outTime: rec?.outTime || '',
-                                reason: stripAccessLogReasonText(rec?.reason || ''),
-                                shift: rec?.shiftStart || '',
-                                confirmedIn: !!corrData.in,
-                                confirmedOut: !!corrData.out,
-                                confirmedLeave: !!corrData.leave,
-                                managerReason: manualReasons[corrKey] || ''
-                            };
-                        });
-                    });
+                    const snapshot = buildReportSnapshot(dates, names, recordsMap);
+                    const hasData = Object.values(snapshot).some(records => Object.keys(records).length > 0);
+                    if (!hasData) continue;
+                    const savedAt = new Date().toISOString();
+                    const payload = {
+                        report_key: reportKey,
+                        period_start: periodStart,
+                        period_end: periodEnd,
+                        report_date: reportDate,
+                        saved_at: savedAt,
+                        names,
+                        snapshot,
+                        is_printed: isPrinted
+                    };
+                    if (isPrinted) payload.printed_at = savedAt;
 
                     const { error } = await supabase
                         .from('attendance_reports')
-                        .upsert({
-                            report_key: reportKey,
-                            period_start: periodStart,
-                            period_end: periodEnd,
-                            report_date: reportDate,
-                            saved_at: new Date().toISOString(),
-                            names: names,
-                            snapshot: snapshot,
-                            is_printed: false
-                        }, {
-                            onConflict: 'report_key',
-                            ignoreDuplicates: false
-                        });
-
-                    if (error) console.error('[REPORT SAVE] 저장 오류:', error);
-                    else console.log(`[REPORT SAVE] 보고서 저장 완료 (${periodStart} ~ ${periodEnd})`);
-                } catch (e) {
-                    console.error('[REPORT SAVE] 예외 발생:', e);
+                        .upsert(payload, { onConflict: 'report_key', ignoreDuplicates: false });
+                    if (error) throw new Error(`${periodStart} ~ ${periodEnd} 보고서 저장 실패: ${error.message}`);
+                    savedReports.push({ reportKey, periodStart, periodEnd });
+                    console.log(`[REPORT SAVE] 보고서 저장 완료 (${periodStart} ~ ${periodEnd})`);
                 }
+                return savedReports;
             }
 
             const startInput = document.getElementById('report-period-start');
@@ -3779,14 +4094,17 @@
             }
 
             if (startInput && endInput) {
-                const handler = () => {
+                const handler = async () => {
                     // 기간 정보 저장
                     localStorage.setItem('report_period_start', startInput.value);
                     localStorage.setItem('report_period_end', endInput.value);
 
                     // 기간 변경 시 클라우드 데이터(조치사유 등)도 함께 자동 동기화
                     if (supabase) {
-                        fetchAllFromCloud(true); // 조용히 동기화
+                        const cloudLoaded = await fetchAllFromCloud(true);
+                        if (!cloudLoaded) {
+                            alert('선택 기간의 클라우드 데이터를 불러오지 못했습니다. 현재 화면은 이전 자료일 수 있습니다.');
+                        }
                     } else {
                         updateAndProcessData();
                     }
@@ -3799,6 +4117,228 @@
             // ----- 검증(Verification) 로직 (그룹화 및 일괄 확인 추가) -----
             let selectedAnomalyKeys = new Set();
             let foldedGroups = new Set();
+
+            async function updateManagerKeyRows(table, values, keys) {
+                const updatedKeys = [];
+                for (let i = 0; i < keys.length; i += 100) {
+                    const chunk = keys.slice(i, i + 100);
+                    const { data, error } = await supabase
+                        .from(table)
+                        .update(values)
+                        .in('manager_key', chunk)
+                        .select('manager_key');
+                    if (error) throw error;
+                    (data || []).forEach(row => updatedKeys.push(row.manager_key));
+                }
+                return updatedKeys;
+            }
+
+            async function fetchManagerKeyRows(table, selectColumns, keys) {
+                const rows = [];
+                for (let i = 0; i < keys.length; i += 100) {
+                    const { data, error } = await supabase
+                        .from(table)
+                        .select(selectColumns)
+                        .in('manager_key', keys.slice(i, i + 100));
+                    if (error) throw error;
+                    rows.push(...(data || []));
+                }
+                return rows;
+            }
+
+            async function updateSupplementStatuses(keys, statusForKey) {
+                for (let i = 0; i < keys.length; i += 20) {
+                    const chunk = keys.slice(i, i + 20);
+                    const results = await Promise.all(chunk.map(async key => {
+                        const [name, date] = splitManagerKey(key);
+                        if (!name || !date) return null;
+                        const { error } = await supabase
+                            .from('attendance_supplements')
+                            .update({ status: statusForKey(key) })
+                            .eq('name', name)
+                            .eq('date', date);
+                        return error;
+                    }));
+                    const firstError = results.find(Boolean);
+                    if (firstError) throw firstError;
+                }
+            }
+
+            async function fetchSupplementStatusRows(keys) {
+                const rows = [];
+                for (let i = 0; i < keys.length; i += 20) {
+                    const chunk = keys.slice(i, i + 20);
+                    const results = await Promise.all(chunk.map(async key => {
+                        const [name, date] = splitManagerKey(key);
+                        if (!name || !date) return [];
+                        const { data, error } = await supabase
+                            .from('attendance_supplements')
+                            .select('id, name, date, status')
+                            .eq('name', name)
+                            .eq('date', date);
+                        if (error) throw error;
+                        return data || [];
+                    }));
+                    results.forEach(result => rows.push(...result));
+                }
+                return rows;
+            }
+
+            async function restoreManagerKeyRows(table, rows, fields) {
+                const stateGroups = new Map();
+                rows.forEach(row => {
+                    const values = {};
+                    fields.forEach(field => { values[field] = row[field]; });
+                    const groupKey = JSON.stringify(values);
+                    if (!stateGroups.has(groupKey)) stateGroups.set(groupKey, { values, keys: [] });
+                    stateGroups.get(groupKey).keys.push(row.manager_key);
+                });
+
+                for (const { values, keys } of stateGroups.values()) {
+                    const restoredKeys = await updateManagerKeyRows(table, values, keys);
+                    if (new Set(restoredKeys).size !== keys.length) {
+                        throw new Error(`${table} 이전 상태 복구 중 일부 행이 누락되었습니다.`);
+                    }
+                }
+            }
+
+            async function restoreSupplementStatusRows(rows) {
+                const stateGroups = new Map();
+                rows.forEach(row => {
+                    const groupKey = JSON.stringify({ status: row.status });
+                    if (!stateGroups.has(groupKey)) stateGroups.set(groupKey, { status: row.status, ids: [] });
+                    stateGroups.get(groupKey).ids.push(row.id);
+                });
+
+                for (const { status, ids } of stateGroups.values()) {
+                    for (let i = 0; i < ids.length; i += 100) {
+                        const chunk = ids.slice(i, i + 100);
+                        const { data, error } = await supabase
+                            .from('attendance_supplements')
+                            .update({ status })
+                            .in('id', chunk)
+                            .select('id');
+                        if (error) throw error;
+                        if (new Set((data || []).map(row => row.id)).size !== chunk.length) {
+                            throw new Error('attendance_supplements 이전 상태 복구 중 일부 행이 누락되었습니다.');
+                        }
+                    }
+                }
+            }
+
+            async function deleteManagerKeyRows(table, keys) {
+                for (let i = 0; i < keys.length; i += 100) {
+                    const chunk = keys.slice(i, i + 100);
+                    const { error } = await supabase
+                        .from(table)
+                        .delete()
+                        .in('manager_key', chunk);
+                    if (error) throw error;
+                }
+            }
+
+            async function applyBulkConfirmation(keys, confirmed) {
+                if (!supabase) throw new Error('클라우드에 연결되지 않았습니다.');
+                const previousCorrections = new Map(keys.map(key => [key, manualCorrections[key]]));
+                const previousAnomalyRows = await fetchManagerKeyRows(
+                    'attendance_anomalies',
+                    'manager_key, status, explanation',
+                    keys
+                );
+                if (new Set(previousAnomalyRows.map(row => row.manager_key)).size !== keys.length) {
+                    throw new Error('일부 이상근태가 클라우드에 없습니다. 먼저 자료를 클라우드에 저장한 후 다시 시도해 주세요.');
+                }
+
+                const previousRecordRows = await fetchManagerKeyRows(
+                    'attendance_records',
+                    'manager_key, status_in, status_out, status_leave',
+                    keys
+                );
+                const existingRecordKeys = new Set(previousRecordRows.map(row => row.manager_key));
+                const missingRecordKeys = keys.filter(key => !existingRecordKeys.has(key));
+
+                const previousSupplementRows = await fetchSupplementStatusRows(keys);
+                const previousAnomalyMap = new Map(previousAnomalyRows.map(row => [row.manager_key, row]));
+                const hasStoredExplanation = key => String(previousAnomalyMap.get(key)?.explanation || '').trim().length > 0;
+                keys.forEach(key => {
+                    manualCorrections[key] = confirmed
+                        ? { in: true, out: true, leave: true }
+                        : { in: false, out: false, leave: false };
+                });
+                let mutationStarted = false;
+                const createdRecordKeys = [];
+
+                try {
+                    mutationStarted = true;
+                    const desiredRecordState = confirmed
+                        ? { status_in: true, status_out: true, status_leave: true }
+                        : { status_in: false, status_out: false, status_leave: false };
+                    const existingRecordKeyList = Array.from(existingRecordKeys);
+                    const updatedRecordKeys = await updateManagerKeyRows('attendance_records', desiredRecordState, existingRecordKeyList);
+                    if (new Set(updatedRecordKeys).size !== existingRecordKeyList.length) {
+                        throw new Error('일부 출퇴근 기록 상태를 저장하지 못했습니다.');
+                    }
+                    for (const key of missingRecordKeys) {
+                        await syncSingleRecordToCloud(key);
+                        createdRecordKeys.push(key);
+                    }
+
+                    if (confirmed) {
+                        const updatedAnomalyKeys = await updateManagerKeyRows('attendance_anomalies', { status: 'processed' }, keys);
+                        if (new Set(updatedAnomalyKeys).size !== keys.length) {
+                            throw new Error('일부 이상근태가 클라우드에 없어 일괄 확인을 완료하지 못했습니다. 먼저 자료를 클라우드에 저장해 주세요.');
+                        }
+                        await updateSupplementStatuses(keys, () => 'processed');
+                    } else {
+                        const submittedKeys = keys.filter(key => hasStoredExplanation(key));
+                        const requestedKeys = keys.filter(key => !hasStoredExplanation(key));
+                        const updatedAnomalyKeys = [];
+                        if (submittedKeys.length > 0) {
+                            updatedAnomalyKeys.push(...await updateManagerKeyRows('attendance_anomalies', { status: 'submitted' }, submittedKeys));
+                        }
+                        if (requestedKeys.length > 0) {
+                            updatedAnomalyKeys.push(...await updateManagerKeyRows('attendance_anomalies', { status: 'requested' }, requestedKeys));
+                        }
+                        if (new Set(updatedAnomalyKeys).size !== keys.length) {
+                            throw new Error('일부 이상근태가 클라우드에 없어 일괄 확인 해제를 완료하지 못했습니다. 먼저 자료를 클라우드에 저장해 주세요.');
+                        }
+                        await updateSupplementStatuses(keys, key => hasStoredExplanation(key) ? 'submitted' : 'requested');
+                    }
+                } catch (error) {
+                    const rollbackErrors = [];
+                    if (mutationStarted) {
+                        const rollbackTasks = [
+                            () => restoreSupplementStatusRows(previousSupplementRows),
+                            () => restoreManagerKeyRows('attendance_anomalies', previousAnomalyRows, ['status']),
+                            () => restoreManagerKeyRows(
+                                'attendance_records',
+                                previousRecordRows,
+                                ['status_in', 'status_out', 'status_leave']
+                            ),
+                            () => deleteManagerKeyRows('attendance_records', createdRecordKeys)
+                        ];
+                        for (const rollbackTask of rollbackTasks) {
+                            try {
+                                await rollbackTask();
+                            } catch (rollbackError) {
+                                rollbackErrors.push(rollbackError.message || String(rollbackError));
+                            }
+                        }
+                    }
+                    previousCorrections.forEach((value, key) => {
+                        if (value === undefined) delete manualCorrections[key];
+                        else manualCorrections[key] = value;
+                    });
+                    localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                    if (rollbackErrors.length > 0) {
+                        throw new Error(`${error.message}\n클라우드 이전 상태 복구 실패: ${rollbackErrors.join(' / ')}`);
+                    }
+                    throw error;
+                }
+
+                localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+            }
+
             if (verifyBtn) {
                 const groupSelect = document.getElementById('verify-group-select');
                 const bulkConfirmBtn = document.getElementById('bulk-confirm-btn');
@@ -3825,51 +4365,60 @@
                 }
 
                 if (bulkConfirmBtn) {
-                    bulkConfirmBtn.onclick = () => {
+                    bulkConfirmBtn.onclick = async () => {
                         if (selectedAnomalyKeys.size === 0) {
                             alert('확인할 항목을 먼저 선택해주세요.');
                             return;
                         }
                         if (!confirm(`선택한 ${selectedAnomalyKeys.size}건을 일괄 확인 처리하시겠습니까?`)) return;
 
-                        selectedAnomalyKeys.forEach(key => {
-                            if (!manualCorrections[key] || typeof manualCorrections[key] !== 'object') {
-                                manualCorrections[key] = { in: false, out: false, leave: false };
-                            }
-                            manualCorrections[key].in = true;
-                            manualCorrections[key].out = true;
-                            manualCorrections[key].leave = true;
-                        });
-
-                        localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
-                        selectedAnomalyKeys.clear();
-                        if (allCheckbox) allCheckbox.checked = false;
-                        verifyBtn.click();
-                        updateAndProcessData();
-                        alert('일괄 확인 처리가 완료되었습니다.');
+                        const keys = Array.from(selectedAnomalyKeys);
+                        bulkConfirmBtn.disabled = true;
+                        if (bulkUnconfirmBtn) bulkUnconfirmBtn.disabled = true;
+                        try {
+                            await applyBulkConfirmation(keys, true);
+                            selectedAnomalyKeys.clear();
+                            if (allCheckbox) allCheckbox.checked = false;
+                            verifyBtn.click();
+                            updateAndProcessData();
+                            alert('일괄 확인 처리가 클라우드에 저장되었습니다.');
+                        } catch (error) {
+                            localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                            updateAndProcessData();
+                            alert('일괄 확인 저장에 실패해 화면 변경을 되돌렸습니다: ' + error.message);
+                        } finally {
+                            bulkConfirmBtn.disabled = false;
+                            if (bulkUnconfirmBtn) bulkUnconfirmBtn.disabled = false;
+                        }
                     };
                 }
 
                 if (bulkUnconfirmBtn) {
-                    bulkUnconfirmBtn.onclick = () => {
+                    bulkUnconfirmBtn.onclick = async () => {
                         if (selectedAnomalyKeys.size === 0) {
                             alert('해제할 항목을 먼저 선택해주세요.');
                             return;
                         }
                         if (!confirm(`선택한 ${selectedAnomalyKeys.size}건을 일괄 확인 해제하시겠습니까?`)) return;
 
-                        selectedAnomalyKeys.forEach(key => {
-                            if (manualCorrections[key]) {
-                                manualCorrections[key] = { in: false, out: false, leave: false };
-                            }
-                        });
-
-                        localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
-                        selectedAnomalyKeys.clear();
-                        if (allCheckbox) allCheckbox.checked = false;
-                        verifyBtn.click();
-                        updateAndProcessData();
-                        alert('일괄 확인 해제가 완료되었습니다.');
+                        const keys = Array.from(selectedAnomalyKeys);
+                        bulkUnconfirmBtn.disabled = true;
+                        if (bulkConfirmBtn) bulkConfirmBtn.disabled = true;
+                        try {
+                            await applyBulkConfirmation(keys, false);
+                            selectedAnomalyKeys.clear();
+                            if (allCheckbox) allCheckbox.checked = false;
+                            verifyBtn.click();
+                            updateAndProcessData();
+                            alert('일괄 확인 해제가 클라우드에 저장되었습니다.');
+                        } catch (error) {
+                            localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                            updateAndProcessData();
+                            alert('일괄 확인 해제 저장에 실패해 화면 변경을 되돌렸습니다: ' + error.message);
+                        } finally {
+                            bulkUnconfirmBtn.disabled = false;
+                            if (bulkConfirmBtn) bulkConfirmBtn.disabled = false;
+                        }
                     };
                 }
 
@@ -3898,10 +4447,11 @@
                             const keys = anomalies.map(a => `${a.name}_${a.originalDate || a.date}`);
                             const CHUNK = 100;
                             for (let i = 0; i < keys.length; i += CHUNK) {
-                                const { data: expData } = await supabase
+                                const { data: expData, error: explanationError } = await supabase
                                     .from('attendance_anomalies')
                                     .select('manager_key, explanation')
                                     .in('manager_key', keys.slice(i, i + CHUNK));
+                                if (explanationError) throw explanationError;
                                 if (expData) {
                                     expData.forEach(r => {
                                         if (r.explanation && r.explanation.trim()) {
@@ -3913,6 +4463,7 @@
                             localStorage.setItem('employeeExplanations', JSON.stringify(employeeExplanations));
                         } catch (e) {
                             console.warn('[VERIFY] explanation 동기화 실패:', e);
+                            alert('직원 보완 사유를 최신 상태로 불러오지 못했습니다. 현재 저장된 화면 자료를 표시합니다: ' + e.message);
                         }
                     }
 
@@ -3974,11 +4525,12 @@
                                         : '';
 
                                 const isGroupFolded = foldedGroups.has(group.groupTitle);
+                                const safeGroupTitle = escapeHtml(group.groupTitle);
                                 groupHeader.innerHTML = `
-                                    <td style="padding: 8px;"><input type="checkbox" class="group-checkbox" data-group="${group.groupTitle}"></td>
+                                    <td style="padding: 8px;"><input type="checkbox" class="group-checkbox" data-group="${safeGroupTitle}"></td>
                                     <td colspan="7" style="padding: 8px; font-size: 0.9rem; color:${titleColor};">
                                         <span class="fold-icon" style="margin-right: 8px;">${isGroupFolded ? '▶' : '▼'}</span>
-                                        ${group.groupTitle}${badge}
+                                        ${safeGroupTitle}${badge}
                                     </td>
                                 `;
                                 verifyTbody.appendChild(groupHeader);
@@ -3987,7 +4539,8 @@
                                 groupHeader.querySelector('.group-checkbox').onclick = (e) => e.stopPropagation();
                                 groupHeader.querySelector('.group-checkbox').onchange = (e) => {
                                     const isChecked = e.target.checked;
-                                    const rowCbs = verifyTbody.querySelectorAll(`.row-checkbox[data-group="${group.groupTitle}"]`);
+                                    const rowCbs = Array.from(verifyTbody.querySelectorAll('.row-checkbox'))
+                                        .filter(cb => cb.dataset.group === group.groupTitle);
                                     rowCbs.forEach(cb => {
                                         cb.checked = isChecked;
                                         const k = cb.getAttribute('data-key');
@@ -4005,7 +4558,8 @@
                                     if (isNowExpanding) foldedGroups.delete(group.groupTitle);
                                     else foldedGroups.add(group.groupTitle);
 
-                                    const rows = verifyTbody.querySelectorAll(`tr[data-group-row="${group.groupTitle}"]`);
+                                    const rows = Array.from(verifyTbody.querySelectorAll('tr[data-group-row]'))
+                                        .filter(row => row.dataset.groupRow === group.groupTitle);
                                     rows.forEach(r => r.style.display = isNowExpanding ? '' : 'none');
                                 };
                             }
@@ -4030,32 +4584,37 @@
                                 const isGroupFolded = foldedGroups.has(group.groupTitle);
                                 tr.style.display = isGroupFolded ? 'none' : '';
                                 tr.setAttribute('data-group-row', group.groupTitle || "");
-                                let groupAttr = group.groupTitle ? `data-group="${group.groupTitle}"` : "";
+                                let groupAttr = group.groupTitle ? `data-group="${escapeHtml(group.groupTitle)}"` : "";
+                                const submittedExplanation = employeeExplanations[corrKey];
+                                const explanationHtml = submittedExplanation
+                                    ? escapeHtml(submittedExplanation.replace(/\(\s*\[/g, '(').replace(/\]\s*\)/g, ')'))
+                                    : (sentAnomalyKeys.has(corrKey) ? '<span style="color: #6b7280; font-weight: 500;">⏳ 요청됨</span>' : '-');
+                                const safeCorrKey = escapeHtml(corrKey);
 
                                 tr.innerHTML = `
-                                    <td><input type="checkbox" class="row-checkbox" data-key="${corrKey}" ${groupAttr} ${selectedAnomalyKeys.has(corrKey) ? 'checked' : ''}></td>
-                                    <td>${a.date}</td>
-                                    <td><strong>${a.name}</strong></td>
-                                    <td>${a.shift}</td>
-                                    <td>${(a.inTime || a.outTime) ? `${a.inTime} ~ ${a.outTime}` : '<span style="color:#999">(기록 없음)</span>'}</td>
-                                    <td class="anomaly-reason" style="${isFullyConfirmed ? '' : 'color:#ef4444'}">${a.reason}</td>
+                                    <td><input type="checkbox" class="row-checkbox" data-key="${safeCorrKey}" ${groupAttr} ${selectedAnomalyKeys.has(corrKey) ? 'checked' : ''}></td>
+                                    <td>${escapeHtml(a.date)}</td>
+                                    <td><strong>${escapeHtml(a.name)}</strong></td>
+                                    <td>${escapeHtml(a.shift)}</td>
+                                    <td>${(a.inTime || a.outTime) ? `${escapeHtml(a.inTime)} ~ ${escapeHtml(a.outTime)}` : '<span style="color:#999">(기록 없음)</span>'}</td>
+                                    <td class="anomaly-reason" style="${isFullyConfirmed ? '' : 'color:#ef4444'}">${escapeHtml(a.reason)}</td>
                                     <td class="employee-explanation" style="font-size: 0.82rem; color: #4F46E5; background-color: #f0f4ff; border: 1px solid #e0e7ff; border-radius: 4px; padding: 4px; line-height: 1.2;">
-                                        ${(employeeExplanations[corrKey] || (sentAnomalyKeys.has(corrKey) ? '<span style="color: #6b7280; font-weight: 500;">⏳ 요청됨</span>' : '-')).replace(/\(\s*\[/g, '(').replace(/\]\s*\)/g, ')')}
+                                        ${explanationHtml}
                                     </td>
                                     <td>
                                         <input type="text" class="manual-reason-input" 
-                                            value="${manualReasons[corrKey] || ''}" 
+                                            value="${escapeHtml(manualReasons[corrKey] || '')}"
                                             placeholder="사유 입력..."
                                             style="width: 100%; padding: 4px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem;"
-                                            data-key="${corrKey}">
+                                            data-key="${safeCorrKey}">
                                     </td>
                                     <td>
                                         <div class="verify-action-group">
-                                            <button class="confirmation-btn ${isPendingLeave ? (corrData.leave ? 'confirmed' : '') : (isFullyConfirmed || isPartiallyConfirmed ? 'confirmed' : '')}" data-key="${corrKey}">
+                                            <button class="confirmation-btn ${isPendingLeave ? (corrData.leave ? 'confirmed' : '') : (isFullyConfirmed || isPartiallyConfirmed ? 'confirmed' : '')}" data-key="${safeCorrKey}">
                                                 ${isPendingLeave ? (corrData.leave ? '✓ 적용됨' : '적용하기') : (isFullyConfirmed ? '✓ 확인됨' : (isPartiallyConfirmed ? '✓ 일부확인' : '미확인'))}
                                             </button>
                                             ${a.hasEarly ? `
-                                                <select class="early-mode-select" data-key="${corrKey}" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.8rem; cursor: pointer;">
+                                                <select class="early-mode-select" data-key="${safeCorrKey}" style="padding: 4px 6px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.8rem; cursor: pointer;">
                                                     <option value="" ${(manualEarlyPunches[corrKey] || "") === "" ? 'selected' : ''}>미처리</option>
                                                     <option value="shift" ${(manualEarlyPunches[corrKey] || "") === "shift" ? 'selected' : ''}>전날로</option>
                                                     <option value="forceIn" ${(manualEarlyPunches[corrKey] || "") === "forceIn" ? 'selected' : ''}>출근으로</option>
@@ -4075,7 +4634,9 @@
                                 confirmBtn.onclick = async () => {
                                     const key = confirmBtn.getAttribute('data-key');
                                     const wasFullyConfirmed = isFullyConfirmed;
-                                    const [name, date] = key.split('_');
+                                    const [name, date] = splitManagerKey(key);
+                                    const previousCorrection = { ...manualCorrections[key] };
+                                    const previousReason = manualReasons[key];
 
                                     if (isPendingLeave) {
                                         manualCorrections[key].leave = !manualCorrections[key].leave;
@@ -4129,7 +4690,7 @@
 
                                                         // 퇴근 맥락: 정규 퇴근(17~18시) vs 조기퇴근
                                                         if (isOutContext || (!isInContext && hour >= 11)) {
-                                                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === key.split('_')[0]);
+                                                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
                                                             const shift = empInfo?.shift || '0800-1700';
                                                             const expOutStr = shift.split(/[-~]/)[1]?.replace(/[^0-9]/g, '') || '1700';
                                                             const expOutHour = parseInt(expOutStr.substring(0, 2));
@@ -4137,7 +4698,7 @@
                                                         }
                                                         // 출근 맥락
                                                         if (isInContext || hour < 11) {
-                                                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === key.split('_')[0]);
+                                                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
                                                             const shift = empInfo?.shift || '0800-1700';
                                                             const expInStr = shift.split(/[-~]/)[0]?.replace(/[^0-9]/g, '') || '0800';
                                                             const expInHour = parseInt(expInStr.substring(0, 2));
@@ -4200,7 +4761,8 @@
                                                 // 정규화 결과를 인풋 필드에 반영 + 하이라이트
                                                 localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
                                                 setTimeout(() => {
-                                                    const inp = document.querySelector(`.manual-reason-input[data-key="${key}"]`);
+                                                    const inp = Array.from(document.querySelectorAll('.manual-reason-input'))
+                                                        .find(input => input.dataset.key === key);
                                                     if (inp) {
                                                         inp.value = manualReasons[key];
                                                         inp.style.background = '#fef9c3';
@@ -4218,35 +4780,63 @@
 
                                     // [추가] 클라우드 상태 동기화 (확인됨 <-> 제출됨/보완요청)
                                     if (supabase) {
-                                        const isCurrentlyConfirmed = (isPendingLeave ? manualCorrections[key].leave : wasFullyConfirmed);
-                                        const nextStatus = !isCurrentlyConfirmed ? 'processed' : (employeeExplanations[key] ? 'submitted' : 'requested');
+                                        const isNowConfirmed = isPendingLeave
+                                            ? manualCorrections[key].leave === true
+                                            : (hasInAnom ? manualCorrections[key].in === true : true)
+                                                && (hasOutAnom ? manualCorrections[key].out === true : true);
+                                        const wasConfirmed = isPendingLeave ? previousCorrection.leave === true : wasFullyConfirmed;
+                                        const nextStatus = isNowConfirmed ? 'processed' : (employeeExplanations[key] ? 'submitted' : 'requested');
+                                        const previousStatus = wasConfirmed ? 'processed' : (employeeExplanations[key] ? 'submitted' : 'requested');
                                         try {
                                             // 1. anomalies 테이블 상태 업데이트
-                                            await supabase
+                                            const { error: anomalyStatusError } = await supabase
                                                 .from('attendance_anomalies')
                                                 .update({ status: nextStatus })
                                                 .eq('manager_key', key);
+                                            if (anomalyStatusError) throw anomalyStatusError;
 
                                             // 2. supplements (사전등록/소명) 테이블 상태 업데이트
-                                            await supabase
+                                            const { error: supplementStatusError } = await supabase
                                                 .from('attendance_supplements')
                                                 .update({ status: nextStatus })
                                                 .eq('name', name)
                                                 .eq('date', date);
+                                            if (supplementStatusError) {
+                                                const { error: rollbackStatusError } = await supabase.from('attendance_anomalies')
+                                                    .update({ status: previousStatus })
+                                                    .eq('manager_key', key);
+                                                if (rollbackStatusError) {
+                                                    throw new Error(`보완 상태 저장 및 이상근태 상태 복원 실패: ${rollbackStatusError.message}`);
+                                                }
+                                                throw supplementStatusError;
+                                            }
                                         } catch (syncErr) {
                                             console.error('Status Sync Error:', syncErr);
+                                            manualCorrections[key] = previousCorrection;
+                                            if (previousReason === undefined) delete manualReasons[key];
+                                            else manualReasons[key] = previousReason;
+                                            localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                                            localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
+                                            alert('클라우드 상태 저장에 실패해 변경을 되돌렸습니다: ' + syncErr.message);
+                                            verifyBtn.click();
+                                            updateAndProcessData();
+                                            return;
                                         }
                                     }
 
                                     verifyBtn.click();
                                     updateAndProcessData();
                                     // [추가] 실시간 클라우드 동기화
-                                    syncSingleRecordToCloud(key);
+                                    try {
+                                        await syncSingleRecordToCloud(key);
+                                    } catch (syncError) {
+                                        alert('상태는 저장됐지만 근태 기록 동기화에 실패했습니다: ' + syncError.message);
+                                    }
                                 };
 
                                 const modeSelect = tr.querySelector('.early-mode-select');
                                 if (modeSelect) {
-                                    modeSelect.onchange = (e) => {
+                                    modeSelect.onchange = async (e) => {
                                         const key = modeSelect.getAttribute('data-key');
                                         const val = e.target.value;
                                         if (val === "") delete manualEarlyPunches[key];
@@ -4255,7 +4845,11 @@
                                         verifyBtn.click();
                                         updateAndProcessData();
                                         // [추가] 실시간 클라우드 동기화
-                                        syncSingleRecordToCloud(key);
+                                        try {
+                                            await syncSingleRecordToCloud(key);
+                                        } catch (syncError) {
+                                            alert('조기 출입 처리 저장에 실패했습니다: ' + syncError.message);
+                                        }
                                     };
                                 }
 
@@ -4268,9 +4862,13 @@
                                     localStorage.setItem('manualReasons', JSON.stringify(manualReasons));
 
                                     clearTimeout(timer);
-                                    timer = setTimeout(() => {
+                                    timer = setTimeout(async () => {
                                         updateAndProcessData();
-                                        syncSingleRecordToCloud(key);
+                                        try {
+                                            await syncSingleRecordToCloud(key);
+                                        } catch (syncError) {
+                                            alert('관리자 사유 저장에 실패했습니다: ' + syncError.message);
+                                        }
                                     }, 500);
                                 };
 
@@ -4490,17 +5088,17 @@
                         item.innerHTML = `
                             <div style="display:flex;flex-direction:column;gap:3px;">
                                 <div style="display:flex;align-items:center;gap:8px;">
-                                    <span style="font-weight:700;font-size:0.9rem;color:#111827;">${r.period_start} ~ ${r.period_end}</span>
+                                    <span style="font-weight:700;font-size:0.9rem;color:#111827;">${escapeHtml(r.period_start)} ~ ${escapeHtml(r.period_end)}</span>
                                     ${printedBadge}
                                 </div>
                                 <span style="font-size:0.78rem;color:#9ca3af;">
-                                    보고일: ${r.report_date || '-'}
-                                    ${printedDate ? ` &nbsp;·&nbsp; 인쇄: ${printedDate}` : ''}
+                                    보고일: ${escapeHtml(r.report_date || '-')}
+                                    ${printedDate ? ` &nbsp;·&nbsp; 인쇄: ${escapeHtml(printedDate)}` : ''}
                                     ${savedDate ? ` &nbsp;·&nbsp; 저장: ${savedDate}` : ''}
                                 </span>
                             </div>
                             <div style="display:flex;gap:6px;">
-                                <button class="view-saved-report-btn" data-key="${r.report_key}"
+                                <button class="view-saved-report-btn" data-key="${escapeHtml(r.report_key)}"
                                     style="padding:6px 14px;border-radius:8px;border:1.5px solid #6d28d9;background:#faf5ff;color:#6d28d9;font-size:0.82rem;font-weight:600;cursor:pointer;">
                                     열람
                                 </button>
@@ -4565,8 +5163,8 @@
                                 ${is_printed ? '📌 영구 저장된 보고서' : '📋 임시 저장된 보고서'}
                             </span>
                             <span style="font-size:0.8rem;color:#7c3aed;">
-                                ${period_start} ~ ${period_end}
-                                ${printedDateStr ? `&nbsp;·&nbsp; 인쇄: ${printedDateStr}` : ''}
+                                ${escapeHtml(period_start)} ~ ${escapeHtml(period_end)}
+                                ${printedDateStr ? `&nbsp;·&nbsp; 인쇄: ${escapeHtml(printedDateStr)}` : ''}
                             </span>
                         </div>
                         <div style="display:flex;gap:8px;">
@@ -4597,8 +5195,8 @@
                                 <h2>근태 보고서</h2>
                                 <div class="header-rightside">
                                     <div class="report-meta">
-                                        <div class="meta-item"><span class="meta-label">보고일자</span><span class="meta-value"><u>${report_date || ''}</u></span></div>
-                                        <div class="meta-item"><span class="meta-label">종합기간</span><span class="meta-value"><u>${periodText}</u></span></div>
+                                        <div class="meta-item"><span class="meta-label">보고일자</span><span class="meta-value"><u>${escapeHtml(report_date || '')}</u></span></div>
+                                        <div class="meta-item"><span class="meta-label">종합기간</span><span class="meta-value"><u>${escapeHtml(periodText)}</u></span></div>
                                     </div>
                                     <table class="approval-table">
                                         <tr><th>담당</th><th>부장</th><th>전무</th><th>대표이사</th><th>회장</th></tr>
@@ -4623,13 +5221,13 @@
                             const rec = snapshot[name] || {};
 
                             // 출근 행
-                            tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${name}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
+                            tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${escapeHtml(name)}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
                             datesChunk.forEach(dt => {
                                 const r = rec[dt];
                                 const val = r?.inTime || '';
                                 let cls = val === '연차' ? 'leave-annual' : val === '반차' ? 'leave-half' : (r?.confirmedIn ? 'confirmed-cell' : '');
                                 const display = val || (r?.confirmedIn ? '✓' : '');
-                                tbodyHtml += `<td class="${cls}">${display}</td>`;
+                                tbodyHtml += `<td class="${cls}">${escapeHtml(display)}</td>`;
                             });
 
                             // 퇴근 행
@@ -4639,7 +5237,7 @@
                                 const val = r?.outTime || '';
                                 let cls = val === '연차' ? 'leave-annual' : val === '반차' ? 'leave-half' : (r?.confirmedOut ? 'confirmed-cell' : '');
                                 const display = val || (r?.confirmedOut ? '✓' : '');
-                                tbodyHtml += `<td class="${cls}">${display}</td>`;
+                                tbodyHtml += `<td class="${cls}">${escapeHtml(display)}</td>`;
                             });
 
                             // 사유 행 (병합 포함)
@@ -4657,8 +5255,8 @@
                                     }
                                 }
                                 tbodyHtml += span > 1
-                                    ? `<td class="time-cell reason-cell" colspan="${span}">${reason}</td>`
-                                    : `<td class="time-cell reason-cell">${reason}</td>`;
+                                    ? `<td class="time-cell reason-cell" colspan="${span}">${escapeHtml(reason)}</td>`
+                                    : `<td class="time-cell reason-cell">${escapeHtml(reason)}</td>`;
                                 i += span;
                             }
                             tbodyHtml += `</tr>`;
@@ -4689,14 +5287,8 @@
                 const allDates = Array.from(currentUniqueDates).sort();
                 if (allDates.length === 0) { window.print(); return; }
 
-                // 기간 텍스트 계산
-                const refDate = new Date(allDates[0]);
-                const yStr = refDate.getFullYear();
-                const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
-                const isP1 = refDate.getDate() <= 15;
-                const pStart = `${yStr}-${mStr}-${isP1 ? '01' : '16'}`;
-                const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
-                const pEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
+                const pStart = allDates[0];
+                const pEnd = allDates[allDates.length - 1];
                 printConfirmPeriod.textContent = `${pStart} ~ ${pEnd}`;
 
                 // 이미 인쇄된 보고서인지 확인
@@ -4721,19 +5313,22 @@
 
                 if (supabase) {
                     try {
-                        const reportKey = `${pStart}_${pEnd}`;
-                        const { data: existing } = await supabase
+                        const reportKeys = groupDatesByReportPeriod(allDates)
+                            .map(chunk => getReportPeriodInfo(chunk[0]).reportKey);
+                        const { data: existingReports, error: existingError } = await supabase
                             .from('attendance_reports')
-                            .select('is_printed, printed_at')
-                            .eq('report_key', reportKey)
-                            .maybeSingle();
+                            .select('report_key, is_printed, printed_at')
+                            .in('report_key', reportKeys);
+                        if (existingError) throw existingError;
+                        const printedReports = (existingReports || []).filter(report => report.is_printed === true);
 
-                        if (existing && existing.is_printed === true) {
+                        if (printedReports.length > 0) {
                             // 이미 인쇄된 보고서 — 경고 및 버튼 세트 교체
-                            const printedAt = existing.printed_at
-                                ? new Date(existing.printed_at).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+                            const latestPrintedAt = printedReports.map(report => report.printed_at).filter(Boolean).sort().pop();
+                            const printedAt = latestPrintedAt
+                                ? new Date(latestPrintedAt).toLocaleString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
                                 : '';
-                            warningDate.textContent = printedAt ? `최초 인쇄: ${printedAt}` : '';
+                            warningDate.textContent = `${printedReports.length}개 기간이 이미 저장됨${printedAt ? ` · 최근 인쇄: ${printedAt}` : ''}`;
                             warning.style.display = 'block';
                             confirmTitle.textContent = '이미 저장된 보고서입니다';
                             confirmDesc.style.display = 'none';
@@ -4774,7 +5369,7 @@
                 progressOverlay.innerHTML = `
                     <div style="background:#fff;border-radius:16px;padding:32px 40px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);min-width:260px;">
                         <div id="print-progress-spinner" style="width:40px;height:40px;border:3px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px;"></div>
-                        <div id="print-progress-text" style="font-size:0.95rem;font-weight:600;color:#111827;">Supabase 저장 중...</div>
+                        <div id="print-progress-text" style="font-size:0.95rem;font-weight:600;color:#111827;">인쇄 준비 중...</div>
                         <div id="print-progress-sub" style="font-size:0.8rem;color:#6b7280;margin-top:6px;">잠시만 기다려 주세요</div>
                     </div>
                 `;
@@ -4788,64 +5383,15 @@
                 };
 
                 try {
-                    // ── 1. Supabase 영구 저장 ─────────────────────────────
-                    setProgress('보고서 저장 중...', 'Supabase에 영구 저장하고 있습니다');
                     const allDates = Array.from(currentUniqueDates).sort();
-                    let periodStart = '', periodEnd = '', reportKey = '';
-                    if (!skipUpload && allDates.length > 0 && supabase) {
-                        const refDate = new Date(allDates[0]);
-                        const yStr = refDate.getFullYear();
-                        const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
-                        const isP1 = refDate.getDate() <= 15;
-                        periodStart = `${yStr}-${mStr}-${isP1 ? '01' : '16'}`;
-                        const lastDay = new Date(yStr, refDate.getMonth() + 1, 0).getDate();
-                        periodEnd = `${yStr}-${mStr}-${isP1 ? '15' : String(lastDay).padStart(2, '0')}`;
-                        reportKey = `${periodStart}_${periodEnd}`;
-                        const reportDate = reportDateInput.value || formatLocalDateValue(new Date());
-                        const matrix = updateAndProcessData(true);
-                        if (matrix) {
-                            const { names, recordsMap } = matrix;
-                            const snapshot = {};
-                            names.forEach(name => {
-                                snapshot[name] = {};
-                                allDates.forEach(dt => {
-                                    const rec = (recordsMap[name] || {})[dt];
-                                    const corrKey = `${name}_${dt}`;
-                                    let corrData = manualCorrections[corrKey];
-                                    if (corrData === true) corrData = { in: true, out: true };
-                                    else if (!corrData || typeof corrData !== 'object') corrData = { in: false, out: false };
-                                    if (!rec && !corrData.in && !corrData.out && !manualReasons[corrKey]) return;
-                                    snapshot[name][dt] = {
-                                        inTime: rec?.inTime || '',
-                                        outTime: rec?.outTime || '',
-                                        reason: stripAccessLogReasonText(rec?.reason || ''),
-                                        shift: rec?.shiftStart || '',
-                                        confirmedIn: !!corrData.in,
-                                        confirmedOut: !!corrData.out,
-                                        confirmedLeave: !!corrData.leave,
-                                        managerReason: manualReasons[corrKey] || ''
-                                    };
-                                });
-                            });
-                            const hasData = Object.values(snapshot).some(s => Object.keys(s).length > 0);
-                            if (hasData) {
-                                await supabase.from('attendance_reports').upsert({
-                                    report_key: reportKey,
-                                    period_start: periodStart,
-                                    period_end: periodEnd,
-                                    report_date: reportDate,
-                                    saved_at: new Date().toISOString(),
-                                    printed_at: new Date().toISOString(),
-                                    is_printed: true,
-                                    names,
-                                    snapshot
-                                }, { onConflict: 'report_key' });
-                                console.log(`[REPORT PRINT] 인쇄 완료 — 보고서 고정 저장 (${reportKey})`);
-                            }
-                        }
+                    const periodStart = allDates[0] || '';
+                    const periodEnd = allDates[allDates.length - 1] || periodStart;
+                    if (!skipUpload) {
+                        if (!supabase) throw new Error('클라우드에 연결되지 않아 보고서를 저장할 수 없습니다.');
+                        if (allDates.length === 0) throw new Error('저장할 보고서 날짜가 없습니다.');
                     }
 
-                    // ── 2. PDF 생성 → 구글 드라이브 업로드 ───────────────
+                    // ── 1. PDF 생성 → 구글 드라이브 업로드 ───────────────
                     if (!skipUpload) try {
                         setProgress('PDF 생성 중...', '보고서를 PDF로 변환하고 있습니다');
                         printConfirmOk.textContent = 'PDF 생성 중...';
@@ -4873,22 +5419,41 @@
 
                             setProgress('구글 드라이브 업로드 중...', '공유 폴더에 PDF를 저장하고 있습니다');
                             printConfirmOk.textContent = '드라이브 업로드 중...';
-                            const res = await fetch(APPS_SCRIPT_URL, {
+                            const response = await fetch(APPS_SCRIPT_URL, {
                                 method: 'POST',
-                                mode: 'no-cors',
                                 headers: { 'Content-Type': 'text/plain' },
                                 body: JSON.stringify({ pdf: pdfBase64, fileName })
                             });
-                            // no-cors 모드에서는 response body 없음 — 업로드 완료로 간주
-                            console.log('[DRIVE] PDF 업로드 요청 완료:', fileName);
-                            setProgress('업로드 완료!', '인쇄 창을 열고 있습니다...');
+                            await verifyDriveUploadResponse(response, 'PDF 업로드');
+                            console.log('[DRIVE] PDF 업로드 확인 완료:', fileName);
+                            setProgress('업로드 완료!', '보고서 상태를 저장하고 있습니다...');
                         } else {
-                            console.warn('[PDF] 조건 미충족 — pages:', pages.length, 'jsPDF:', !!jsPDF, 'html2canvas:', !!window.html2canvas);
+                            throw new Error(`PDF 생성 조건을 충족하지 못했습니다. (페이지 ${pages.length}개, jsPDF ${!!jsPDF}, html2canvas ${!!window.html2canvas})`);
                         }
                     } catch (pdfErr) {
-                        console.warn('[PDF] 생성/업로드 오류 (인쇄는 계속 진행):', pdfErr);
+                        throw new Error(`PDF 생성 또는 드라이브 업로드 실패: ${pdfErr.message}`);
                     }
 
+                    // ── 2. 업로드 성공 후 Supabase에 인쇄 완료 저장 ──────
+                    if (!skipUpload) {
+                        setProgress('보고서 저장 중...', '업로드가 확인된 보고서를 영구 저장하고 있습니다');
+                        const matrix = updateAndProcessData(true);
+                        if (!matrix) throw new Error('보고서 데이터를 구성하지 못했습니다.');
+                        const savedReports = await saveReportToCloud(
+                            groupDatesByReportPeriod(allDates),
+                            matrix.names,
+                            matrix.recordsMap,
+                            { isPrinted: true, protectPrinted: false }
+                        );
+                        if (savedReports.length === 0) throw new Error('저장 가능한 보고서 데이터가 없습니다.');
+                        console.log(`[REPORT PRINT] ${savedReports.length}개 기간 보고서 고정 저장 완료`);
+                        setProgress('저장 완료!', '인쇄 창을 열고 있습니다...');
+                    }
+
+                } catch (error) {
+                    console.error('[PRINT] 인쇄 및 저장 실패:', error);
+                    alert('인쇄 및 저장 중 오류가 발생했습니다.\n\n' + error.message);
+                    return;
                 } finally {
                     // 오버레이 제거
                     const overlay = document.getElementById('print-progress-overlay');
