@@ -1,6 +1,15 @@
 {
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js",
+    "dev:setup": "npm run db:start && npm run dev",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:status": "supabase status",
+    "test": "node --test test/unit/*.test.js",
+    "test:local": "npm test && node tools/verify-local-server.mjs && npm run verify:local",
+    "verify:local": "node tools/verify-local-dev.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -9,5 +18,8 @@
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "supabase": "^2.109.1"
   }
 }

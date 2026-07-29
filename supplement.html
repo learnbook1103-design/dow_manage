@@ -1192,11 +1192,13 @@
 
     <!-- Supabase Library (하단 위치 — 더 안정적) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.0"></script>
+    <script src="lib/app-config.js"></script>
+    <script src="runtime-config.js"></script>
 
     <script>
         (function () {
-            const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
-            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
+            const SUPABASE_URL = window.DOW_CONFIG.supabaseUrl;
+            const SUPABASE_KEY = window.DOW_CONFIG.supabaseKey;
 
             function normalizeName(name) {
                 if (!name) return "";

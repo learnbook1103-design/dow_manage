@@ -12,7 +12,11 @@
     <link rel="stylesheet" href="style.css">
     <!-- Supabase Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.99.0"></script>
+    <script src="lib/app-config.js"></script>
+    <script src="runtime-config.js"></script>
+    <script src="lib/browser/session-store.js"></script>
     <script src="shared_logic.js"></script>
+    <script src="lib/attendance/import-normalizer.js"></script>
     <style>
         /* admin 전용 — 나머지는 style.css */
         body {
@@ -194,10 +198,8 @@
     <script>
         // Session Check — index.html에서 로그인 후 is_admin=true인 경우만 접근 허용
         (function () {
-            const isAdmin = sessionStorage.getItem('attendance_user_is_admin') === 'true';
-            const name = localStorage.getItem('attendance_user_name');
-            const pin = localStorage.getItem('attendance_user_pin');
-            if (!isAdmin || !name || !pin) {
+            const user = window.DowSession?.read();
+            if (!user?.isAdmin || !user.name || !user.pin) {
                 location.href = 'index.html';
             }
         })();
@@ -543,9 +545,15 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // [설정] Supabase 연동 정보 (사용자가 직접 입력 필요)
-            const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
-            const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
+            const SUPABASE_URL = window.DOW_CONFIG.supabaseUrl;
+            const SUPABASE_KEY = window.DOW_CONFIG.supabaseKey;
+            const attendanceImporter = window.AttendanceImportNormalizer;
+            const authSession = window.DowSession;
             let supabase = null;
+
+            if (!attendanceImporter || !authSession) {
+                throw new Error('관리자 공통 모듈을 불러오지 못했습니다.');
+            }
 
             if (SUPABASE_URL && SUPABASE_KEY && window.supabase?.createClient) {
                 supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -570,8 +578,9 @@
             }
 
             async function verifyAdminSession() {
-                const name = normalizeName(localStorage.getItem('attendance_user_name') || '');
-                const pin = localStorage.getItem('attendance_user_pin') || '';
+                const user = authSession.read();
+                const name = normalizeName(user.name);
+                const pin = user.pin;
                 if (!supabase || !name || !pin) return false;
 
                 const { data, error } = await supabase
@@ -590,7 +599,7 @@
                     if (!supabase) throw new Error('클라우드 라이브러리를 불러오지 못했습니다.');
                     const isValidAdmin = await verifyAdminSession();
                     if (!isValidAdmin) {
-                        sessionStorage.removeItem('attendance_user_is_admin');
+                        authSession.clearAuthorization();
                         alert('관리자 권한을 다시 확인해 주세요. 로그인 화면으로 이동합니다.');
                         location.href = 'index.html';
                         return;
@@ -609,9 +618,7 @@
 
             document.getElementById('logout-btn').onclick = () => {
                 if (confirm('로그아웃 하시겠습니까?')) {
-                    localStorage.removeItem('attendance_user_name');
-                    localStorage.removeItem('attendance_user_pin');
-                    sessionStorage.removeItem('attendance_user_is_admin');
+                    authSession.clear();
                     location.href = 'index.html';
                 }
             };
@@ -2143,177 +2150,6 @@
             }
             // ────────────────────────────────────────────────────────────
 
-            function isPackedSingleColumnSheet(rows) {
-                const nonEmptyRows = (rows || [])
-                    .filter(row => Array.isArray(row) && row.some(cell => String(cell || '').trim() !== ''))
-                    .slice(0, 20);
-                if (nonEmptyRows.length === 0) return false;
-
-                const packedRows = nonEmptyRows.filter(row => {
-                    const cells = row.map(cell => String(cell || '').trim()).filter(Boolean);
-                    if (cells.length !== 1) return false;
-                    const text = cells[0];
-                    const delimiterParts = text.split(/,|\t|;|\|/).map(part => part.trim()).filter(Boolean);
-                    const hasExpectedWords = /(날짜|일자|이름|성명|사원명|출근|퇴근|근무조|비고|발생시각)/.test(text);
-                    const hasDateAndTime = /\d{4}[-/.]\d{1,2}[-/.]\d{1,2}/.test(text) && /\d{1,2}:\d{2}/.test(text);
-                    return delimiterParts.length >= 3 || (hasExpectedWords && /\s+/.test(text)) || hasDateAndTime;
-                });
-
-                return packedRows.length >= Math.min(3, nonEmptyRows.length) || (nonEmptyRows.length <= 2 && packedRows.length > 0);
-            }
-
-            function getAttendanceField(row, names) {
-                for (const name of names) {
-                    if (row && row[name] !== undefined && String(row[name]).trim() !== '') return row[name];
-                }
-                return '';
-            }
-
-            function findHeaderRowIndex(rows, keywords, minMatches = 2) {
-                let bestIdx = -1;
-                let bestScore = 0;
-                (rows || []).slice(0, 12).forEach((row, idx) => {
-                    if (!Array.isArray(row)) return;
-                    const cells = row.map(v => String(v || '').trim()).filter(Boolean);
-                    const score = cells.reduce((sum, cell) => sum + (keywords.some(k => cell.includes(k)) ? 1 : 0), 0);
-                    if (score > bestScore) {
-                        bestScore = score;
-                        bestIdx = idx;
-                    }
-                });
-                return bestScore >= minMatches ? bestIdx : -1;
-            }
-
-            function parseAttendanceDate(value) {
-                if (value instanceof Date && !isNaN(value)) {
-                    return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`;
-                }
-                if (typeof value === 'number' && Number.isFinite(value)) {
-                    const parsed = window.XLSX && window.XLSX.SSF
-                        ? window.XLSX.SSF.parse_date_code(value)
-                        : null;
-                    if (parsed && parsed.y && parsed.m && parsed.d) {
-                        return `${parsed.y}-${pad2(parsed.m)}-${pad2(parsed.d)}`;
-                    }
-                }
-                const rawText = String(value || '').trim();
-                if (/^\d{4}-\d{1,2}-\d{1,2}T.*Z$/i.test(rawText)) {
-                    const parsedDate = new Date(rawText);
-                    if (!isNaN(parsedDate)) return `${parsedDate.getFullYear()}-${pad2(parsedDate.getMonth() + 1)}-${pad2(parsedDate.getDate())}`;
-                }
-                const text = rawText.replace(/\./g, '-').replace(/\//g, '-').replace('T', ' ').split(' ')[0];
-                let match = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-                if (!match) {
-                    const shortMatch = text.match(/^(\d{1,2})-(\d{1,2})-(\d{2})$/);
-                    if (shortMatch) match = [`20${shortMatch[3]}-${shortMatch[1]}-${shortMatch[2]}`, `20${shortMatch[3]}`, shortMatch[1], shortMatch[2]];
-                }
-                return match ? `${match[1]}-${pad2(match[2])}-${pad2(match[3])}` : null;
-            }
-
-            function isValidAttendanceTime(value) {
-                if (value === null || value === undefined || value === '') return false;
-                if (typeof value === 'number' && Number.isFinite(value)) return value >= 0 && value < 1;
-                const text = String(value).trim();
-                if (!text || text === '-') return false;
-                if (['연차', '반차', '오전반차', '오후반차', '외근', '출장'].some(k => text.includes(k))) return true;
-                const cleaned = text.replace(':', '').trim();
-                if (!/^\d{3,4}$/.test(cleaned)) return false;
-                const padded = cleaned.padStart(4, '0');
-                const hour = parseInt(padded.substring(0, 2), 10);
-                const minute = parseInt(padded.substring(2, 4), 10);
-                return hour >= 0 && hour <= 29 && minute >= 0 && minute <= 59;
-            }
-
-            function isLikelyPersonName(value) {
-                const text = String(value || '').trim().replace(/\s+/g, '');
-                if (text.length < 2 || text.length > 20) return false;
-                if (parseAttendanceDate(text) || isValidAttendanceTime(text)) return false;
-                if (/날짜|일자|출근|퇴근|상태|근무|시간|시각|부서|부문|팀|합계|총계/.test(text)) return false;
-                return /^[가-힣A-Za-z·.]+$/.test(text);
-            }
-
-            function pad2(value) {
-                return String(value).padStart(2, '0');
-            }
-
-            function parseAttendanceDateTime(value) {
-                if (value === null || value === undefined || value === '') return null;
-
-                if (value instanceof Date && !isNaN(value)) {
-                    return {
-                        date: `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}`,
-                        time: `${pad2(value.getHours())}:${pad2(value.getMinutes())}:${pad2(value.getSeconds())}`
-                    };
-                }
-
-                if (typeof value === 'number' && Number.isFinite(value)) {
-                    const parsed = window.XLSX && window.XLSX.SSF
-                        ? window.XLSX.SSF.parse_date_code(value)
-                        : null;
-                    if (parsed) {
-                        return {
-                            date: `${parsed.y}-${pad2(parsed.m)}-${pad2(parsed.d)}`,
-                            time: `${pad2(parsed.H || 0)}:${pad2(parsed.M || 0)}:${pad2(Math.floor(parsed.S || 0))}`
-                        };
-                    }
-                }
-
-                const text = String(value).trim().replace('T', ' ');
-                const match = text.match(/(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?/);
-                if (match) {
-                    return {
-                        date: `${match[1]}-${pad2(match[2])}-${pad2(match[3])}`,
-                        time: `${pad2(match[4])}:${pad2(match[5])}:${pad2(match[6] || '00')}`
-                    };
-                }
-
-                return null;
-            }
-
-            function validateAttendanceUpload(fileName, sheetRows, normalizedRows) {
-                const nonEmptySheetRows = (sheetRows || [])
-                    .filter(row => Array.isArray(row) && row.some(cell => String(cell || '').trim() !== ''));
-
-                if (nonEmptySheetRows.length === 0) {
-                    return { ok: false, message: `${fileName}: 읽을 수 있는 데이터가 없습니다.` };
-                }
-
-                if (isPackedSingleColumnSheet(sheetRows)) {
-                    return {
-                        ok: false,
-                        message: `${fileName}: 여러 열로 나뉘어야 할 값이 A열 한 칸에 몰려 있습니다. 엑셀의 '텍스트 나누기' 또는 CSV 구분자 설정을 확인한 뒤 다시 업로드해 주세요.`
-                    };
-                }
-
-                const maxColumnCount = Math.max(...nonEmptySheetRows.map(row => row.filter(cell => String(cell || '').trim() !== '').length));
-                if (maxColumnCount < 2) {
-                    return {
-                        ok: false,
-                        message: `${fileName}: 유효한 열이 너무 적습니다. 컬럼이 분리되어 있는지 확인해 주세요.`
-                    };
-                }
-
-                const headerIdx = findHeaderRowIndex(sheetRows, ['날짜', '일자', '이름', '성명', '사원명', '출근', '퇴근', '발생시각', '상태', '근무조']);
-                if (headerIdx !== -1) {
-                    const rows = (normalizedRows || []).filter(row => row && Object.values(row).some(v => String(v || '').trim() !== ''));
-                    const hasRecognizedAttendanceRow = rows.slice(0, 150).some(row => {
-                        const date = getAttendanceField(row, ['날짜', '일자']);
-                        const name = getAttendanceField(row, ['이름', '성명', '사원명']);
-                        const inTime = getAttendanceField(row, ['출근', '출근시간', '출근시각']);
-                        const outTime = getAttendanceField(row, ['퇴근', '퇴근시간', '퇴근시각']);
-                        const eventTime = getAttendanceField(row, ['발생시각']);
-                        return (parseAttendanceDate(date) && isLikelyPersonName(name) && (isValidAttendanceTime(inTime) || isValidAttendanceTime(outTime)))
-                            || (isLikelyPersonName(name) && parseAttendanceDateTime(eventTime));
-                    });
-
-                    if (!hasRecognizedAttendanceRow) {
-                        console.warn(`[UPLOAD] ${fileName}: 헤더는 찾았지만 검증 가능한 출퇴근 행을 찾지 못했습니다. 기존 호환성을 위해 업로드는 허용합니다.`);
-                    }
-                }
-
-                return { ok: true };
-            }
-
             function handleFiles(files) {
                 let loadedCount = 0;
                 const fileArray = Array.from(files);
@@ -2378,12 +2214,12 @@
                             const workbook = XLSX.read(data, { type: 'array' });
                             const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                             const sheetRows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
-                            const headerIdx = findHeaderRowIndex(sheetRows, ['날짜', '일자', '이름', '성명', '사원명', '출근', '퇴근', '발생시각', '상태', '근무조']);
-                            const jsonData = normalizeRows(XLSX.utils.sheet_to_json(firstSheet, {
+                            const headerIdx = attendanceImporter.findHeaderRowIndex(sheetRows);
+                            const jsonData = attendanceImporter.normalizeRows(XLSX.utils.sheet_to_json(firstSheet, {
                                 defval: "",
                                 range: headerIdx > 0 ? headerIdx : undefined
                             }));
-                            const validation = validateAttendanceUpload(file.name, sheetRows, jsonData);
+                            const validation = attendanceImporter.validateAttendanceUpload(file.name, sheetRows, jsonData);
 
                             if (!validation.ok) {
                                 rejectedMessages.push(validation.message);
@@ -2443,129 +2279,6 @@
                 });
             }
 
-            function normalizeRows(rawData) {
-                if (!rawData || rawData.length === 0) return rawData;
-
-                const firstRow = rawData[0];
-                const headers = Object.keys(firstRow);
-                const previousDateString = (dateStr) => {
-                    const date = new Date(`${dateStr}T00:00:00`);
-                    if (isNaN(date)) return dateStr;
-                    date.setDate(date.getDate() - 1);
-                    return formatLocalDateValue(date);
-                };
-                const getAttendanceLogBucket = (time) => {
-                    const match = String(time || "").match(/^(\d{1,2}):(\d{2})/);
-                    if (!match) return "";
-                    const minutes = Number(match[1]) * 60 + Number(match[2]);
-                    if (minutes <= 299) return "prevOut";
-                    if (minutes <= 719) return "in";
-                    if (minutes <= 779) return "lunch";
-                    return "out";
-                };
-                const toPreviousDayOutTime = (time) => {
-                    const match = String(time || "").match(/^(\d{1,2}):(\d{2})/);
-                    if (!match) return time;
-                    return `${String(Number(match[1]) + 24).padStart(2, '0')}:${match[2]}`;
-                };
-
-                // [NEW] 로그 형태의 데이터 처리 (발생시각, 이름 기반)
-                if (headers.includes('발생시각') && !headers.includes('출근')) {
-                    const grouped = {};
-                    rawData.forEach(row => {
-                        const name = normalizeName(row['이름']);
-                        const parsedDateTime = parseAttendanceDateTime(row['발생시각']);
-                        const shift = String(row['근무조'] || "").trim();
-                        if (!name || !parsedDateTime) return;
-
-                        const { date, time } = parsedDateTime;
-                        if (date && time) {
-                            const bucket = getAttendanceLogBucket(time);
-                            const recordDate = bucket === "prevOut" ? previousDateString(date) : date;
-                            const key = `${name}_${recordDate}`;
-                            if (!grouped[key]) grouped[key] = { date: recordDate, name, shift, ins: [], lunches: [], outs: [] };
-                            if (shift && !grouped[key].shift) grouped[key].shift = shift;
-
-                            if (bucket === "in") {
-                                grouped[key].ins.push(time);
-                            } else if (bucket === "lunch") {
-                                grouped[key].lunches.push(time);
-                            } else if (bucket === "out") {
-                                grouped[key].outs.push(time);
-                            } else if (bucket === "prevOut") {
-                                grouped[key].outs.push(toPreviousDayOutTime(time));
-                            }
-                        }
-                    });
-                    return Object.values(grouped).map(group => {
-                        const inTimes = group.ins.sort();
-                        const lunchTimes = group.lunches.sort();
-                        const outTimes = group.outs.sort();
-                        const fallbackIn = inTimes[0] || lunchTimes[0] || "";
-                        const fallbackOut = outTimes[outTimes.length - 1] || lunchTimes[lunchTimes.length - 1] || "";
-
-                        return {
-                            '날짜': group.date,
-                            '이름': group.name,
-                            '출근': fallbackIn,
-                            '퇴근': fallbackOut,
-                            '근무조': group.shift
-                        };
-                    });
-                }
-
-                // 기존 행 기반 데이터 처리 (Matrix Style)
-                const canonicalMap = {};
-                const findAndMap = (canonical, tests) => {
-                    const found = tests.find(t => headers.some(h => t(h)));
-                    if (found) {
-                        const src = headers.find(h => found(h));
-                        if (src && src !== canonical) canonicalMap[src] = canonical;
-                    }
-                };
-
-                findAndMap('날짜', [h => h === '날짜', h => h.includes('날짜') || h.includes('일자')]);
-                findAndMap('이름', [h => h === '이름', h => h.includes('이름') || h.includes('성명') || h.includes('사원명')]);
-                findAndMap('출근', [h => h === '출근', h => h === '출', h => h.includes('출근') && (h.includes('시간') || h.includes('시각')), h => h.includes('출입')]);
-                findAndMap('퇴근', [h => h === '퇴근', h => h === '퇴', h => h.includes('퇴근') && (h.includes('시간') || h.includes('시각'))]);
-                findAndMap('근무조', [h => h === '근무조', h => h.includes('근무조'), h => h === '조']);
-
-                // [수정] 비고(사유) 컬럼은 여러 곳(부재, 예외 등)에서 특정 키워드만 추출
-                const reasonHeaders = headers.filter(h => ['비고', '부재', '예외', '사유'].some(k => h.includes(k)));
-
-                return rawData.map(row => {
-                    const newRow = Object.assign({}, row);
-                    Object.entries(canonicalMap).forEach(([src, dst]) => {
-                        if (src in newRow && !(dst in newRow)) newRow[dst] = newRow[src];
-                    });
-
-                    // [추가] 근무조 정보 정규화 (출근 시간만 있는 경우 +9시간)
-                    if (newRow['근무조']) {
-                        newRow['근무조'] = expandShift(newRow['근무조']);
-                    }
-
-                    // [추가] 특정 키워드(외근, 조퇴, 생일자)만 추출하여 비고로 통합
-                    let combinedReason = "";
-                    const targetKeywords = [
-                        { key: '외근', label: '외근' },
-                        { key: '생일자', label: '생일' }
-                    ];
-
-                    reasonHeaders.forEach(h => {
-                        const val = String(newRow[h] || "");
-                        targetKeywords.forEach(t => {
-                            if (val.includes(t.key) && !combinedReason.includes(t.label)) {
-                                if (combinedReason) combinedReason += ", ";
-                                combinedReason += t.label;
-                            }
-                        });
-                    });
-                    newRow['비고'] = combinedReason;
-
-                    return newRow;
-                });
-            }
-
             function handleFileForSlot(file, slotIndex, dropZone, statusEl) {
                 if (!file.name.match(/\.(xlsx|xls|csv)$/)) {
                     alert('엑셀 파일을 업로드해주세요.');
@@ -2575,7 +2288,7 @@
                 reader.onload = (e) => {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    const jsonData = normalizeRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" }));
+                    const jsonData = attendanceImporter.normalizeRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: "" }));
 
                     if (slotIndex === 1) currentJsonData1 = jsonData;
                     else currentJsonData2 = jsonData;
@@ -2624,7 +2337,7 @@
                             // header: 1로 가져와 헤더가 밀리거나 없는 경우에도 유연하게 대처
                             const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "", range: range || undefined });
 
-                            if (isPackedSingleColumnSheet(rawData)) {
+                            if (attendanceImporter.isPackedSingleColumnSheet(rawData)) {
                                 rejectedMessages.push(`${file.name}: 휴가 데이터가 한 열에 몰려 있습니다. 엑셀의 '텍스트 나누기' 또는 CSV 구분자 설정을 확인해 주세요.`);
                                 loadedCount++;
                                 if (loadedCount === fileArray.length) finishLeaveUpload();

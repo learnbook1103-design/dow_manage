@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // [설정] Supabase 연동 정보 (사용자가 직접 입력 필요)
-    const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
+    const SUPABASE_URL = window.DOW_CONFIG?.supabaseUrl || "https://grxslikvzxafmxuepusy.supabase.co";
+    const SUPABASE_KEY = window.DOW_CONFIG?.supabaseKey || "";
     let supabase = null;
 
     if (SUPABASE_URL && SUPABASE_KEY) {

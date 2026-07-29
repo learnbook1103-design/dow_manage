@@ -1011,6 +1011,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="lib/app-config.js"></script>
+    <script src="runtime-config.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script>
         (function () {
@@ -1025,9 +1027,11 @@
         const GAS_URL = 'https://script.google.com/macros/s/AKfycbwqgihWlgJlNWoUoIREVhPGmryac8D6DG0gnDB2-L7v1Pz7X-LLyvpIv4k7Gkv2lcPuvQ/exec';
 
         // ── 결재 시스템 ──────────────────────────────────────────────
-        const SUPABASE_URL = 'https://grxslikvzxafmxuepusy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc';
-        const GAS_APPROVAL_URL = 'https://script.google.com/macros/s/AKfycbw9ilToZxa0TbUJcOSisgYXVL-g-S5jy8eptzaHLcgAu53GmYdtZ5AXsxmoKxphBLTomA/exec';
+        const SUPABASE_URL = window.DOW_CONFIG.supabaseUrl;
+        const SUPABASE_KEY = window.DOW_CONFIG.supabaseKey;
+        const GAS_APPROVAL_URL = window.DOW_CONFIG.externalWritesEnabled
+            ? 'https://script.google.com/macros/s/AKfycbw9ilToZxa0TbUJcOSisgYXVL-g-S5jy8eptzaHLcgAu53GmYdtZ5AXsxmoKxphBLTomA/exec'
+            : null;
         const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         let currentType = null;
         let listFilter = 'all';
@@ -1102,7 +1106,7 @@
             try {
                 const { data: row, error } = await _sb.from('approvals').insert({ type, applicant: userName, data, amount: amount || 0 }).select().single();
                 if (error) throw new Error(error.message);
-                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'submit', id: row.id, type, applicant: userName, amount: amount || 0, data }) }).catch(() => {});
+                if (GAS_APPROVAL_URL) fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'submit', id: row.id, type, applicant: userName, amount: amount || 0, data }) }).catch(() => {});
                 showToast('✅ 신청이 완료됐습니다.');
                 document.getElementById('form-' + type).querySelectorAll('input, select').forEach(el => { if (el.type !== 'select-one') el.value = ''; });
                 document.getElementById('trip-total').textContent = '합계: 0 원';
@@ -1144,7 +1148,7 @@
             try {
                 const { error } = await _sb.from('approvals').update({ status, note: note || '', decided_by: userName, decided_at: new Date().toISOString() }).eq('id', id);
                 if (error) throw new Error(error.message);
-                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'decide', id, status, note: note || '', decided_by: userName }) }).catch(() => {});
+                if (GAS_APPROVAL_URL) fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'decide', id, status, note: note || '', decided_by: userName }) }).catch(() => {});
                 showToast(status === 'approved' ? '✅ 승인 완료' : '❌ 반려 완료');
                 loadList();
             } catch (e) {

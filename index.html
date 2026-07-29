@@ -10,6 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="lib/app-config.js"></script>
+    <script src="runtime-config.js"></script>
+    <script src="lib/browser/session-store.js"></script>
     <style>
         :root {
             --bg: #ffffff;
@@ -639,18 +642,17 @@
     </div>
 
     <script>
-        const SUPABASE_URL = "https://grxslikvzxafmxuepusy.supabase.co";
-        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc";
+        const SUPABASE_URL = window.DOW_CONFIG.supabaseUrl;
+        const SUPABASE_KEY = window.DOW_CONFIG.supabaseKey;
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const authSession = window.DowSession;
         let currentRole = 'staff';
 
         // 기존 세션 자동 이동
         (function () {
-            const name = localStorage.getItem('attendance_user_name');
-            const pin = localStorage.getItem('attendance_user_pin');
-            const isAdmin = sessionStorage.getItem('attendance_user_is_admin');
-            if (name && pin && isAdmin !== null) {
-                location.href = isAdmin === 'true' ? 'admin.html' : 'supplement.html';
+            const user = authSession?.read();
+            if (user?.name && user?.pin && user.hasAuthorization) {
+                location.href = user.isAdmin ? 'admin.html' : 'supplement.html';
             }
         })();
 
@@ -735,13 +737,8 @@
         }
 
         function saveAndGo(name, pin, isAdmin, org, rank) {
-            localStorage.setItem('attendance_user_name', name);
-            localStorage.setItem('attendance_user_pin', pin);
-            localStorage.setItem('attendance_user_org', org || '');
-            localStorage.setItem('attendance_user_rank', rank || '');
-            localStorage.setItem('attendance_login_date', new Date().toISOString().slice(0, 10));
-            // sessionStorage는 실제 DB의 is_admin 값 저장 (관리자 페이지 접근 권한용)
-            sessionStorage.setItem('attendance_user_is_admin', String(isAdmin));
+            if (!authSession) throw new Error('로그인 세션 모듈을 불러오지 못했습니다.');
+            authSession.save({ name, pin, isAdmin, org, rank });
             // 페이지 이동은 선택한 카드(currentRole) 기준
             location.href = currentRole === 'admin' ? 'admin.html' : 'supplement.html';
         }

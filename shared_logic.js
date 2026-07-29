@@ -634,3 +634,17 @@ function calculateAnomalies(combinedData, config) {
 
     return anomalies;
 }
+
+if (typeof module === 'object' && module.exports) {
+    module.exports = {
+        normalizeName,
+        cleanTime,
+        expandShift,
+        isWeekendDateString,
+        formatLocalDateValue,
+        normalizeAttendanceDateValue,
+        timeToMinutesForHalfDay,
+        detectHalfDayIsAM,
+        calculateAnomalies
+    };
+}

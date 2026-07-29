@@ -3,9 +3,11 @@ const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs');
 const path = require('path');
+const { createServerConfig } = require('./lib/app-config');
 
 const app = express();
-const PORT = 3000;
+const serverConfig = createServerConfig(process.env);
+const PORT = serverConfig.port;
 const HUB_PATH = path.resolve(__dirname, 'hub-data');
 const MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash-lite'];
 
@@ -52,7 +54,10 @@ const FUNCTION_DECLARATIONS = [
 
 function safePath(rel) {
     const abs = path.resolve(HUB_PATH, rel || '');
-    if (!abs.startsWith(HUB_PATH)) throw new Error('허브 외부 경로 접근 불가');
+    const relative = path.relative(HUB_PATH, abs);
+    if (relative.startsWith('..') || path.isAbsolute(relative)) {
+        throw new Error('허브 외부 경로 접근 불가');
+    }
     return abs;
 }
 
@@ -81,8 +86,8 @@ function execTool(name, args, userName) {
 
 // ── System Prompt ─────────────────────────────────────────────────────────────
 
-function getWeekRange() {
-    const today = new Date();
+function getWeekRange(referenceDate = new Date()) {
+    const today = new Date(referenceDate);
     const day = today.getDay();
     const monday = new Date(today);
     monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1));
@@ -336,12 +341,13 @@ app.get('/api/hub-file', (req, res) => {
 // ── Approval API ─────────────────────────────────────────────────────────────
 
 const { createClient } = require('@supabase/supabase-js');
-const SUPABASE_URL = 'https://grxslikvzxafmxuepusy.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc';
-const GAS_APPROVAL_URL = 'https://script.google.com/macros/s/AKfycbw9ilToZxa0TbUJcOSisgYXVL-g-S5jy8eptzaHLcgAu53GmYdtZ5AXsxmoKxphBLTomA/exec';
+const SUPABASE_URL = serverConfig.supabaseUrl;
+const SUPABASE_KEY = serverConfig.supabaseKey;
+const GAS_APPROVAL_URL = serverConfig.gasApprovalUrl;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 async function syncToGas(payload) {
+    if (!GAS_APPROVAL_URL) return;
     try {
         await fetch(GAS_APPROVAL_URL, {
             method: 'POST',
@@ -352,6 +358,27 @@ async function syncToGas(payload) {
         console.warn('GAS 동기화 실패 (무시):', e.message);
     }
 }
+
+app.get('/api/health', async (_req, res) => {
+    const { count, error } = await sb
+        .from('employees')
+        .select('*', { count: 'exact', head: true });
+
+    if (error) {
+        return res.status(503).json({
+            ok: false,
+            database: 'disconnected',
+            message: error.message
+        });
+    }
+
+    return res.json({
+        ok: true,
+        database: 'connected',
+        databaseUrl: SUPABASE_URL,
+        employeeCount: count
+    });
+});
 
 app.post('/api/approval/submit', async (req, res) => {
     const { type, applicant, data, amount } = req.body;
@@ -383,9 +410,24 @@ app.post('/api/approval/decide', async (req, res) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () => {
-    console.log(`\n✅  DOW 인트라넷 실행 중 → http://localhost:${PORT}\n`);
-    if (!process.env.GEMINI_API_KEY) {
-        console.warn('⚠️  GEMINI_API_KEY 환경변수가 설정되지 않았습니다. (.env 파일 확인)');
-    }
-});
+function startServer(port = PORT) {
+    return app.listen(port, () => {
+        console.log(`\n✅  DOW 인트라넷 실행 중 → http://localhost:${port}\n`);
+        console.log(`🗄️  DB → ${SUPABASE_URL}${serverConfig.isLocal ? ' (로컬)' : ''}\n`);
+        if (!process.env.GEMINI_API_KEY) {
+            console.warn('⚠️  GEMINI_API_KEY 환경변수가 설정되지 않았습니다. (.env 파일 확인)');
+        }
+    });
+}
+
+if (require.main === module) {
+    startServer();
+}
+
+module.exports = {
+    app,
+    startServer,
+    safePath,
+    getWeekRange,
+    toGeminiContents
+};

@@ -995,10 +995,14 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="lib/app-config.js"></script>
+    <script src="runtime-config.js"></script>
     <script>
-        const SUPABASE_URL = 'https://grxslikvzxafmxuepusy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc';
-        const GAS_APPROVAL_URL = 'https://script.google.com/macros/s/AKfycbw9ilToZxa0TbUJcOSisgYXVL-g-S5jy8eptzaHLcgAu53GmYdtZ5AXsxmoKxphBLTomA/exec';
+        const SUPABASE_URL = window.DOW_CONFIG.supabaseUrl;
+        const SUPABASE_KEY = window.DOW_CONFIG.supabaseKey;
+        const GAS_APPROVAL_URL = window.DOW_CONFIG.externalWritesEnabled
+            ? 'https://script.google.com/macros/s/AKfycbw9ilToZxa0TbUJcOSisgYXVL-g-S5jy8eptzaHLcgAu53GmYdtZ5AXsxmoKxphBLTomA/exec'
+            : null;
         const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentType = null;
@@ -1381,7 +1385,7 @@
                     const { data: empData } = await _sb.from('employees').select('email').eq('name', approverName).maybeSingle();
                     approverEmail = empData?.email || '';
                 }
-                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'submit', id: row.id, type, applicant: userName, amount: amount || 0, data, approval_steps: approvalSteps, approverEmail, approverName, applicantEmail, step: 1 }) }).catch(() => {});
+                if (GAS_APPROVAL_URL) fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'submit', id: row.id, type, applicant: userName, amount: amount || 0, data, approval_steps: approvalSteps, approverEmail, approverName, applicantEmail, step: 1 }) }).catch(() => {});
                 showToast('신청이 완료됐습니다.' + (approvalSteps.length ? ` (${approvalSteps.length}단계 결재)` : ''));
                 // 폼 초기화
                 document.getElementById('form-' + type).querySelectorAll('input:not([type=file]), textarea').forEach(el => { el.value = ''; });
@@ -1595,7 +1599,7 @@
                     const { data: appData } = await _sb.from('employees').select('email').eq('name', item.applicant).maybeSingle();
                     applicantEmail = appData?.email || '';
                 }
-                fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'decide', id, status, note: note || '', decided_by: userName, decided_step: currentStep, current_step: nextStep, overall_status: overallStatus, type: item.type, applicant: item.applicant, approverEmail, approverName, applicantEmail }) }).catch(() => {});
+                if (GAS_APPROVAL_URL) fetch(GAS_APPROVAL_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: 'decide', id, status, note: note || '', decided_by: userName, decided_step: currentStep, current_step: nextStep, overall_status: overallStatus, type: item.type, applicant: item.applicant, approverEmail, approverName, applicantEmail }) }).catch(() => {});
 
                 if (overallStatus === 'approved') showToast('최종 승인 완료');
                 else if (overallStatus === 'rejected') showToast('반려 완료');

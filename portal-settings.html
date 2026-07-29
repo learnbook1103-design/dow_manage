@@ -384,6 +384,8 @@ main { max-width: 860px; margin: 0 auto; padding: 80px 22px 60px; }
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="lib/app-config.js"></script>
+<script src="runtime-config.js"></script>
 <script>
 (function() {
   const isAdmin = sessionStorage.getItem('attendance_user_is_admin');
@@ -391,8 +393,8 @@ main { max-width: 860px; margin: 0 auto; padding: 80px 22px 60px; }
   if (!name || isAdmin !== 'true') { location.href = 'portal.html'; return; }
 })();
 
-const SUPABASE_URL = 'https://grxslikvzxafmxuepusy.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdyeHNsaWt2enhhZm14dWVwdXN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxMDI4MzAsImV4cCI6MjA4ODY3ODgzMH0.F2Kz13S44mPdt4RelEIGzGP7qfZBbNRm-HAaKxJZdjc';
+const SUPABASE_URL = window.DOW_CONFIG.supabaseUrl;
+const SUPABASE_KEY = window.DOW_CONFIG.supabaseKey;
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 const TYPES = ['비품구매', '경조사비', '출장비', '식비'];
