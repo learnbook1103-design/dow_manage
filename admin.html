@@ -17,6 +17,7 @@
     <script src="lib/browser/session-store.js"></script>
     <script src="shared_logic.js"></script>
     <script src="lib/attendance/import-normalizer.js"></script>
+    <script src="lib/attendance/report-presentation.js"></script>
     <style>
         /* admin 전용 — 나머지는 style.css */
         body {
@@ -188,6 +189,7 @@
             padding-bottom: 2mm !important;
         }
     </style>
+    <link rel="stylesheet" href="report-v2.css">
     <!-- Include SheetJS (xlsx) from CDN for in-browser Excel parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -2991,7 +2993,7 @@
                     });
 
                     const pageDiv = document.createElement('div');
-                    pageDiv.className = 'report-page';
+                    pageDiv.className = isSimpleMode ? 'report-page report-page-simple' : 'report-page';
                     const refDate = new Date(datesChunk[0]);
                     const yStr = refDate.getFullYear();
                     const mStr = String(refDate.getMonth() + 1).padStart(2, '0');
@@ -3018,6 +3020,18 @@
             </div>
         </div>
     `;
+
+                    if (isSimpleMode) {
+                        pageDiv.innerHTML = `<header class="relay-report-header">
+                            <div><h2>근태 보고서</h2>
+                            <p>기간 ${escapeHtml(periodText)}</p></div>
+                <table class="approval-table">
+                    <tr><th>담당</th><th>부장</th><th>전무</th><th>대표이사</th><th>회장</th></tr>
+                    <tr><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td><td class="sign-space"></td></tr>
+                    <tr><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td><td class="sign-bottom"></td></tr>
+                </table>
+                        </header>`;
+                    }
 
                     const table = document.createElement('table');
                     table.className = isSimpleMode ? 'matrix-table matrix-table-simple' : 'matrix-table';
@@ -3076,14 +3090,16 @@
                         });
                     }
 
-                    let theadHtml = `<thead><tr><th colspan="2" class="sticky-col corner-cell">일자</th>`;
+                    let theadHtml = isSimpleMode
+                        ? `<colgroup><col style="width:56px"><col style="width:30px">${datesChunk.map(() => '<col>').join('')}${showSimpleLeaveColumn ? '<col style="width:42px">' : ''}</colgroup><thead><tr><th class="td-name">사원</th><th class="td-label">구분</th>`
+                        : `<thead><tr><th colspan="2" class="sticky-col corner-cell">일자</th>`;
 
                     // [수정] 실제 데이터가 있는 날짜만 렌더링하도록 루프 변경 (빈 열 삭제)
                     datesChunk.forEach(dt => {
                         const d = new Date(dt);
                         theadHtml += `<th class="th-dategroup">${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}<br>(${weekdaysMap[d.getDay()]})</th>`;
                     });
-                    if (showSimpleLeaveColumn) theadHtml += `<th style="min-width:28px; text-align:center;">잔여<br>연차</th>`;
+                    if (showSimpleLeaveColumn) theadHtml += `<th class="leave-balance">잔여<br>연차</th>`;
                     theadHtml += `</tr></thead>`;
 
                     let tbodyHtml = `<tbody>`;
@@ -3101,9 +3117,12 @@
                     renderNames.forEach((name, nameIdx) => {
                         const recs = recordsMap[name] || {};
                         const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
-                        const nameLabel = isSimpleMode ? `${nameIdx + 1}. ${name}` : name;
+                        const nameLabel = name;
+                        const isPark = (empInfo.org || '').includes('밸브파크');
+                        const previousInfo = employeeConfigList.find(e => normalizeName(e.name) === renderNames[nameIdx - 1]) || {};
+                        const groupStart = isSimpleMode && nameIdx > 0 && isPark && !(previousInfo.org || '').includes('밸브파크');
 
-                        tbodyHtml += `<tr class="internal-row"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${escapeHtml(nameLabel)}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
+                        tbodyHtml += `<tr class="internal-row${groupStart ? ' group-start' : ''}"><td rowspan="3" class="sticky-col td-name" style="border-bottom:1px solid var(--gray-700)!important;"><strong>${escapeHtml(nameLabel)}</strong></td><td class="sticky-col td-label label-in">출근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
                             const corrKey = `${name}_${dt}`;
@@ -3182,9 +3201,13 @@
                             else if (isSimpleMode && !isOutRange && (empInfo.org || '').includes('밸브파크') && earliestInMapPark[dt]?.name === name) cls = 'earliest-in-cell-park';
                             else if (isSimpleMode && !isOutRange && !(empInfo.org || '').includes('밸브파크') && earliestInMap[dt]?.name === name) cls = 'earliest-in-cell';
 
+                            if (isSimpleMode) displayVal = AttendanceReportPresentation.timeText(recs[dt], 'in', displayVal);
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : escapeHtml(displayVal)}</td>`;
                         });
-                        if (showSimpleLeaveColumn) tbodyHtml += `<td rowspan="3" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"></td>`;
+                        if (showSimpleLeaveColumn) {
+                            const leaveKey = JSON.stringify([yStr, mStr, isP1, name]);
+                            tbodyHtml += `<td rowspan="3" class="leave-balance" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"><span class="leave-balance-editor" contenteditable="plaintext-only" role="textbox" inputmode="decimal" aria-label="${escapeHtml(name)} 잔여 연차 직접 입력" data-leave-balance-key="${escapeHtml(leaveKey)}" data-placeholder="입력" title="직접 입력 · 현재 화면에서만 유지되며 새로고침 시 초기화됩니다">${escapeHtml(AttendanceReportPresentation.leaveBalance(leaveKey))}</span></td>`;
+                        }
                         tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
                         datesChunk.forEach(dt => {
                             const isOutRange = (empInfo.joinDate && dt < empInfo.joinDate) || (empInfo.leaveDate && dt > empInfo.leaveDate);
@@ -3225,6 +3248,7 @@
                             else if (isSimpleMode && !isOutRange && !(empInfo.org || '').includes('밸브파크') && latestOutMap[dt]?.name === name) cls = 'latest-out-cell';
 
                             let hlClass = (!isSimpleMode && showAnomaliesHighlight && unconfirmedAnomaliesMap[corrKey] && unconfirmedAnomaliesMap[corrKey].out) ? ' anomaly-highlight' : '';
+                            if (isSimpleMode) displayVal = AttendanceReportPresentation.timeText(recs[dt], 'out', displayVal);
                             tbodyHtml += `<td class="${cls}${hlClass}">${isOutRange ? '' : escapeHtml(displayVal)}</td>`;
                         });
                         tbodyHtml += `</tr><tr class="employee-border-bottom"><td class="sticky-col td-label label-reason">사유</td>`;
@@ -3255,6 +3279,7 @@
                             // if (isConfirmedIn && currentReason.includes('지각')) {
                             //     currentReason = currentReason.replace(/지각,?\s*/g, '').trim().replace(/,$/, '');
                             // }
+                            if (isSimpleMode && !isOutRange) currentReason = AttendanceReportPresentation.reasonText(recs[dt], currentReason);
                             let span = 1;
 
                             // [수정] 재직 기간 외인 경우(isOutRange)는 통합하지 않고 개별 셀로 출력 (사용자 요청)
@@ -3307,8 +3332,8 @@
                         pageDiv.appendChild(table);
                     }
 
-                    // [추가] 지각 현황 요약 섹션 렌더링 (간략 양식에서는 생략)
-                    if (!isSimpleMode && pageTardySummary.length > 0) {
+                    // Both formats use the same tardiness calculation and detailed rows.
+                    if (pageTardySummary.length > 0) {
                         const summaryWrap = document.createElement('div');
                         summaryWrap.className = 'tardy-summary-section';
 
@@ -3362,6 +3387,11 @@
                         summaryHtml += `</div>`;
                         summaryWrap.innerHTML = summaryHtml;
                         pageDiv.appendChild(summaryWrap);
+                    } else if (isSimpleMode) {
+                        const emptySummary = document.createElement('p');
+                        emptySummary.className = 'tardy-empty';
+                        emptySummary.textContent = '지각 내역 및 시간: 없음 (0건)';
+                        pageDiv.appendChild(emptySummary);
                     }
 
 

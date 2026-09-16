@@ -1,0 +1,71 @@
+/* Format 2 only: shared screen / native print / captured PDF presentation. */
+/* Keep a document-owned inset even when browser print margins are disabled. */
+.report-page.report-page-simple {
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 10mm 10mm 12mm !important;
+}
+.report-page-simple .relay-report-header { display: flex; align-items: end; justify-content: space-between; border-bottom: 1px solid #0f172a; margin-bottom: 8px; padding-bottom: 6px; }
+.report-page-simple .relay-report-header h2 { font-size: 20px; margin: 0; }
+.report-page-simple .relay-report-header p { font-size: 12px; margin: 4px 0 0; color: #64748b; }
+.report-page-simple .matrix-table-simple-wrap { display: block; }
+.report-page-simple .matrix-table-simple {
+    width: 100% !important;
+    max-width: 190mm !important;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+.report-page-simple .matrix-table-simple th,
+.report-page-simple .matrix-table-simple td {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    font-size: 9.5px !important;
+    line-height: 1 !important;
+    padding: 0.8px 1px !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    border-color: #94a3b8 !important;
+    font-variant-numeric: tabular-nums;
+}
+.report-page-simple .matrix-table-simple .td-name { width: 56px !important; }
+.report-page-simple .matrix-table-simple .td-label { width: 30px !important; }
+.report-page-simple .matrix-table-simple .leave-balance { width: 42px !important; }
+.report-page-simple .leave-balance-editor { display: block; min-height: 0; padding: 2px 1px; cursor: text; }
+.report-page-simple .leave-balance-editor:focus { outline: 1px solid #0284c7; background: #f0f9ff; }
+.report-page-simple .matrix-table-simple .label-in,
+.report-page-simple .matrix-table-simple .label-out,
+.report-page-simple .matrix-table-simple .label-reason {
+    color: #0f172a !important;
+    background: #f8fafc !important;
+}
+.report-page-simple .matrix-table-simple .reason-cell { font-size: 9px !important; }
+.report-page-simple .matrix-table-simple .group-start td { border-top: 2px solid #0f172a !important; }
+.report-page-simple .earliest-in-cell,
+.report-page-simple .earliest-in-cell-park { background: #e0f2fe !important; color: #0c4a6e !important; }
+.report-page-simple .latest-out-cell,
+.report-page-simple .latest-out-cell-park { background: #ffedd5 !important; color: #7c2d12 !important; }
+.report-page-simple .tardy-summary-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.report-page-simple .tardy-summary-item { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.report-page-simple .tardy-empty { font-size: 10px; color: #475569; }
+/* Browser margins are optional; the report itself supplies the safety inset. */
+@page reportSimple {
+    size: A4 portrait;
+    margin: 0;
+}
+@media print {
+    /* Follow the available area when the user chooses default or custom margins. */
+    .report-page.report-page-simple {
+        page: reportSimple;
+        width: 100% !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 10mm 10mm 12mm !important;
+    }
+
+    .report-page-simple .matrix-table-simple { max-width: none !important; }
+    .report-page-simple .leave-balance-editor:focus { outline: none; background: transparent; }
+    .report-page-simple .matrix-table-simple th,
+    .report-page-simple .matrix-table-simple td { white-space: normal !important; }
+}
