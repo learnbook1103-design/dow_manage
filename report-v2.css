@@ -11,6 +11,8 @@
 .report-page-simple .relay-report-header p { font-size: 12px; margin: 4px 0 0; color: #64748b; }
 .report-page-simple .matrix-table-simple-wrap { display: block; }
 .report-page-simple .matrix-table-simple {
+    --gray-700: #94a3b8;
+    border-bottom: 1px solid #94a3b8 !important;
     width: 100% !important;
     max-width: 190mm !important;
     table-layout: fixed;
