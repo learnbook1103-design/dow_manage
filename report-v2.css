@@ -48,6 +48,8 @@
 .report-page-simple .latest-out-cell-park { background: #ffedd5 !important; color: #7c2d12 !important; }
 .report-page-simple .tardy-summary-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .report-page-simple .tardy-summary-item { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+/* Keep lateness in the detailed summary without a yellow matrix background. */
+.report-page-simple .matrix-table-simple .tardy-yellow { background: #fff !important; color: inherit !important; }
 .report-page-simple .tardy-empty { font-size: 10px; color: #475569; }
 /* Browser margins are optional; the report itself supplies the safety inset. */
 @page reportSimple {
