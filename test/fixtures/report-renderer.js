@@ -24,7 +24,7 @@ function fixture() {
     return { dates, employees, records };
 }
 
-function render(mode = 'simple', { source, data = fixture(), showLeave = true, corrections = {} } = {}) {
+function render(mode = 'simple', { source, data = fixture(), showLeave = true, corrections = {}, baseline = null, leaves = null } = {}) {
     const html = source || fs.readFileSync(path.join(root, 'admin.html'), 'utf8');
     const start = html.indexOf('function renderMatrixReport(');
     const end = html.indexOf('function escapeTardyReportHtml(', start);
@@ -38,6 +38,9 @@ function render(mode = 'simple', { source, data = fixture(), showLeave = true, c
         stripAccessLogReasonText: value => value,
         escapeHtml: value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'),
         AttendanceReportPresentation: require('../../lib/attendance/report-presentation'),
+        AttendanceLeaveBalance: require('../../lib/attendance/leave-balance'),
+        leaveBalanceBaseline: baseline, currentLeaveData: leaves, holidayConfigList: [],
+        normalizeAttendanceDateValue: value => value,
     };
     vm.createContext(context);
     vm.runInContext(html.slice(start, end), context);

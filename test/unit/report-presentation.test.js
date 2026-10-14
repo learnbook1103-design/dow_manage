@@ -83,6 +83,10 @@ test('manual leave balances stay separate by employee and period for the open se
     field.textContent = '';
     handlers.input({target: { closest: () => field }});
     assert.equal(api.leaveBalance(firstKey), '');
+    assert.equal(api.leaveBalance(firstKey, '4.5'), '4.5');
+    field.dataset.autoBalance = '4.5';
+    handlers.focusout({target: {closest: () => field}});
+    assert.equal(field.textContent, '4.5');
 });
 
 test('leave labels occupy the requested time slot without changing source records', () => {
