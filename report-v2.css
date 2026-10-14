@@ -36,6 +36,7 @@
 .report-page-simple .matrix-table-simple .leave-balance { width: 42px !important; }
 .report-page-simple .leave-balance-editor { display: block; min-height: 0; padding: 2px 1px; cursor: text; }
 .report-page-simple .leave-balance-editor:focus { outline: 1px solid #0284c7; background: #f0f9ff; }
+.report-page-simple .leave-balance-editor:empty::before { content: attr(data-placeholder); color: #64748b; font-size: 8px; }
 .report-page-simple .matrix-table-simple .label-in,
 .report-page-simple .matrix-table-simple .label-out,
 .report-page-simple .matrix-table-simple .label-reason {
