@@ -55,12 +55,37 @@ test('invalid formats and duplicate names reject new baseline', () => {
 
 test('real report renderer writes calculated values and explains missing employee data', () => {
     const {render} = require('../fixtures/report-renderer');
-    const b = baseline();
-    b.employees['가나다'] = b.employees['시험사원'];
-    const html = render('simple', {baseline:b, leaves:detail.map(l => ({...l,name:'가나다'}))});
+    const b = {version:2,asOf:'2026-09-30',historyAsOf:'2026-08-31',employees:{'가나다':{balance:5.5,historyBalance:5.5,accrualType:'annual',policyThrough:'2026-12-31'}}};
+    const html = render('simple', {baseline:b, leaves:[]});
     assert.match(html, /data-auto-balance="5.5"[^>]*>5.5<\/span>/);
-    assert.match(html, /기준 보유일수 없음/);
+    assert.match(html, /초기 잔여일수 미입력/);
     assert.doesNotMatch(render('standard', {baseline:b, leaves:detail}), /data-auto-balance/);
+});
+
+test('fixed opening balance rolls forward across months, only on hire-day, with no double subtraction', () => {
+    const {calculateOpening:calc} = require('../../lib/attendance/leave-balance');
+    const b={version:2,asOf:'2026-09-30',historyAsOf:'2026-08-31',employees:{'시험':{balance:0.5,historyBalance:0,joinDate:'2026-08-03',accrualType:'monthly',policyThrough:'2026-12-31'}}};
+    const records=[{name:'시험',date:'2026-09-22',out_time:'반차'}, {name:'시험',date:'2026-10-07',out_time:'반차'}];
+    assert.equal(calc(b,'시험','2026-09-15',records).value,1);
+    assert.equal(calc(b,'시험','2026-09-30',records).value,0.5);
+    assert.equal(calc(b,'시험','2026-10-02',records).value,0.5);
+    assert.equal(calc(b,'시험','2026-10-03',records).value,1.5);
+    assert.equal(calc(b,'시험','2026-10-15',records).value,1);
+    assert.equal(calc(b,'시험','2026-10-15',[...records,...records]).value,1);
+    assert.equal(calc(b,'시험','2026-11-15',records).value,2);
+    assert.equal(calc(b,'시험','2027-01-01',records).value,null);
+    assert.equal(calc(b,'시험','2026-10-15',null).value,null);
+});
+
+test('both half-day slots count once each; annual grants are explicit and date-bound', () => {
+    const {calculateOpening:calc}=require('../../lib/attendance/leave-balance');
+    const b={version:2,asOf:'2026-09-30',employees:{'시험':{balance:2,accrualType:'annual',policyThrough:'2027-12-31',annualGrants:[{date:'2027-01-01',days:15}]}}};
+    const r=[{name:'시험',date:'2026-10-07',in_time:'반차',out_time:'반차'}];
+    assert.equal(calc(b,'시험','2026-10-07',r).value,1);
+    assert.equal(calc(b,'시험','2026-12-31',r).value,1);
+    assert.equal(calc(b,'시험','2027-01-01',r).value,16);
+    assert.equal(calc(b,'시험','2027-01-02',r).value,16);
+    assert.equal(calc(b,'시험','2026-10-07',[{...r[0],in_time:'',out_time:''}]).value,2);
 });
 
 test('monthly leave accrues on the hire-day, not the first day, without counting snapshot accrual twice', () => {

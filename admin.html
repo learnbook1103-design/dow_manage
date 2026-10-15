@@ -326,14 +326,11 @@
                             양식 2 잔여 연차 표시
                         </label>
                         <details style="font-size:0.8rem; padding:0.4rem;">
-                            <summary>잔여 연차 자동 계산 기준</summary>
-                            <label>자료 기준일 <input id="leave-baseline-date" type="date" value="2026-09-18"></label><br>
-                            <label>휴가 보유현황 <input id="leave-holding-file" type="file" accept=".xlsx,.xls"></label><br>
-                            <label>월별 사용내역 <input id="leave-monthly-file" type="file" accept=".xlsx,.xls"></label><br>
-                            <button id="leave-baseline-load" type="button">기준 자료 적용</button>
-                            <p id="leave-baseline-status" role="status">두 기준 파일과 해당 월 전체 휴가 상세 내역이 필요합니다. 자료는 현재 화면에서만 유지됩니다.</p>
-                            <p>보고서 기간 마지막 날 기준입니다. 직접 입력값이 우선하며 값을 지우면 자동 계산으로 돌아갑니다. 다른 월은 해당 월의 기준 자료를 불러오세요.</p>
-                            <p>당해 입사자는 입사 다음 달부터 매월 입사일과 같은 날짜에 월차 1일이 발생하는 기준입니다. 기준 자료에 이미 포함된 발생분은 중복 가산하지 않습니다.</p>
+                            <summary>잔여 연차 계산 기준</summary>
+                            <p id="leave-baseline-status" role="status">저장된 초기 잔여일수를 불러옵니다.</p>
+                            <p>2026년 9월 30일 초기 잔여에 이후 발생분을 더하고, 보고서 종료일까지 사용한 연차·반차를 차감합니다. 올해 입사자는 매월 입사일에 월차가 발생합니다.</p>
+                            <p>초기값이 없는 직원과 다음 연도 부여 기준이 미설정된 기간은 ‘확인’으로 표시합니다. 직접 입력은 현재 화면에서만 유지됩니다.</p>
+                            <button id="leave-baseline-load" type="button">초기값·사용내역 다시 불러오기</button>
                         </details>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem;">
                             <button id="print-btn" class="primary-btn" title="근태 보고서 인쇄 및 PDF 저장"
@@ -730,6 +727,8 @@
             let leaveFilesMap = new Map();
             let currentLeaveData = null;
             let leaveBalanceBaseline = null;
+            let leaveLedgerRecords = null;
+            let leaveLedgerThrough = null;
             let currentUniqueDates = new Set();
             let globalUnconfirmedAnomalies = false;
             let unconfirmedAnomaliesMap = {};
@@ -1701,7 +1700,38 @@
                         cloudFetchAllBtn.textContent = "클라우드 데이터 불러오기";
                     }, 3000);
                 }
+                const ledgerEnd = document.getElementById('report-period-end')?.value;
+                if (ledgerEnd) { await loadLeaveLedger(ledgerEnd); updateAndProcessData(); }
                 return { savedCount };
+            }
+
+            function mergeLeaveLedger(recordsMap) {
+                const merged = new Map((leaveLedgerRecords || []).map(r => [`${r.name}_${r.date}`, r]));
+                Object.entries(recordsMap || {}).forEach(([name, dates]) => Object.entries(dates).forEach(([date, r]) => {
+                    merged.set(`${name}_${date}`, {name, date, in_time:r.inTime || '', out_time:r.outTime || ''});
+                }));
+                return [...merged.values()];
+            }
+
+            async function loadLeaveLedger(end) {
+                const status = document.getElementById('leave-baseline-status');
+                try {
+                    const {data, error} = await supabase.from('app_settings').select('value')
+                        .eq('module', 'attendance').eq('key', 'leave_opening_v2').maybeSingle();
+                    if (error) throw error;
+                    if (!data?.value || data.value.version !== 2) throw new Error('저장된 초기 잔여일수가 없습니다');
+                    const baseline = data.value;
+                    const through = end.slice(0, 8) + String(new Date(Number(end.slice(0,4)), Number(end.slice(5,7)), 0).getDate());
+                    const rows = await fetchAllCloudRowsByDate('attendance_records', 'name,date,in_time,out_time', baseline.historyAsOf, through);
+                    leaveBalanceBaseline = baseline;
+                    leaveLedgerRecords = rows;
+                    leaveLedgerThrough = through;
+                    status.textContent = `${baseline.asOf} 초기 잔여 저장됨 · ${through}까지 저장된 사용내역 반영. 새 사용 내역은 업로드해 주세요.`;
+                } catch(error) {
+                    leaveLedgerRecords = null;
+                    leaveLedgerThrough = null;
+                    status.textContent = `잔여 계산 자료 불러오기 실패: ${error.message}`;
+                }
             }
 
             async function fetchAllFromCloud(silent = false) {
@@ -1802,6 +1832,7 @@
                     localStorage.setItem('preemptiveSupplements', JSON.stringify(preemptiveSupplements));
                     localStorage.setItem('sentAnomalyKeys', JSON.stringify(Array.from(sentAnomalyKeys)));
 
+                    await loadLeaveLedger(end);
                     updateAndProcessData();
 
                     // 클라우드 데이터 불러오기 완료 후 보고서 저장 (데이터가 있을 때만)
@@ -3218,10 +3249,12 @@
                         });
                         if (showSimpleLeaveColumn) {
                             const leaveKey = JSON.stringify([yStr, mStr, isP1, name]);
-                            const balance = typeof leaveBalanceBaseline !== 'undefined' && leaveBalanceBaseline
-                                ? AttendanceLeaveBalance.calculate(leaveBalanceBaseline, name, `${yStr}-${mStr}-${endDayStr}`,
-                                    currentLeaveData?.map(lv => ({...lv, start: normalizeAttendanceDateValue(lv.start), end: normalizeAttendanceDateValue(lv.end || lv.start)})),
-                                    holidayConfigList.map(h => h.date)) : {value: null, reason: '연차 기준 파일을 불러오거나 직접 입력하세요'};
+                            const cutoff = `${yStr}-${mStr}-${endDayStr}`;
+                            const balance = typeof leaveBalanceBaseline !== 'undefined' && leaveBalanceBaseline?.version === 2
+                                ? AttendanceLeaveBalance.calculateOpening(leaveBalanceBaseline, name, cutoff,
+                                    typeof leaveLedgerThrough !== 'undefined' && leaveLedgerThrough >= cutoff && Array.isArray(leaveLedgerRecords)
+                                        ? mergeLeaveLedger(recordsMap) : null)
+                                : {value: null, reason: '초기 잔여 자료를 불러오세요'};
                             tbodyHtml += `<td rowspan="3" class="leave-balance" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"><span class="leave-balance-editor" contenteditable="plaintext-only" role="textbox" inputmode="decimal" aria-label="${escapeHtml(name)} 잔여 연차 직접 입력" data-leave-balance-key="${escapeHtml(leaveKey)}" data-placeholder="확인" data-auto-balance="${balance.value == null ? '' : balance.value}" title="${escapeHtml(balance.reason)} · 직접 입력은 현재 화면에서만 유지됩니다">${escapeHtml(AttendanceReportPresentation.leaveBalance(leaveKey, balance.value == null ? '' : String(balance.value)))}</span></td>`;
                         }
                         tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
@@ -4661,23 +4694,7 @@
                 });
             });
 
-            document.getElementById('leave-baseline-load').addEventListener('click', async () => {
-                const status = document.getElementById('leave-baseline-status');
-                try {
-                    const readRows = async id => {
-                        const file = document.getElementById(id).files[0];
-                        if (!file) throw new Error('두 기준 파일을 모두 선택해 주세요.');
-                        const book = XLSX.read(await file.arrayBuffer(), {type: 'array'});
-                        return XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]], {header: 1, defval: ''});
-                    };
-                    const [holding, monthly] = await Promise.all([readRows('leave-holding-file'), readRows('leave-monthly-file')]);
-                    leaveBalanceBaseline = AttendanceLeaveBalance.parse(holding, monthly, document.getElementById('leave-baseline-date').value);
-                    status.textContent = `${leaveBalanceBaseline.asOf} 기준 적용됨. 보유현황의 연차 값으로 계산합니다. 새로고침 시 다시 불러오세요.`;
-                    if (!reportContainer.classList.contains('hidden')) updateAndProcessData();
-                } catch (error) {
-                    status.textContent = `적용 실패: ${error.message} 기존 적용 자료는 유지됩니다.`;
-                }
-            });
+            document.getElementById('leave-baseline-load').addEventListener('click', () => { void fetchAllFromCloud(false); });
 
             if (simpleLeaveColumnToggle) {
                 simpleLeaveColumnToggle.addEventListener('change', () => {
