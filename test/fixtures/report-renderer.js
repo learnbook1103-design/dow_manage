@@ -40,9 +40,12 @@ function render(mode = 'simple', { source, data = fixture(), showLeave = true, c
         AttendanceReportPresentation: require('../../lib/attendance/report-presentation'),
         AttendanceLeaveBalance: require('../../lib/attendance/leave-balance'),
         leaveBalanceBaseline: baseline, currentLeaveData: leaves, holidayConfigList: [],
+        leaveLedgerRecords: leaves || [], leaveLedgerThrough: '2026-12-31',
         normalizeAttendanceDateValue: value => value,
     };
     vm.createContext(context);
+    const mergeStart = html.indexOf('function mergeLeaveLedger(');
+    if (mergeStart >= 0) vm.runInContext(html.slice(mergeStart, html.indexOf('async function loadLeaveLedger(', mergeStart)), context);
     vm.runInContext(html.slice(start, end), context);
     context.renderMatrixReport([data.dates], data.employees.map(emp => emp.name), data.records);
     return container.innerHTML;
