@@ -10,6 +10,17 @@ const detail = [
     {name: '시험사원', start: '2026-09-10', type: '연차', days: 1, status: '승인'},
     {name: '시험사원', start: '2026-09-21', type: '오후반차', days: 0.5, status: '완료'}
 ];
+test('explicit monthly start grants on the 15th from October without changing hire date or regranting September', () => {
+    const {calculateOpening:calc}=require('../../lib/attendance/leave-balance');
+    const employee={balance:0,historyBalance:0,joinDate:'2022-07-12',accrualType:'monthly',monthlyStart:'2026-10-15',policyThrough:null,annualGrants:[]};
+    const b={version:2,asOf:'2026-09-30',historyAsOf:'2026-08-31',employees:{시험:employee}};
+    for(const [date,value] of [['2026-09-15',0],['2026-09-30',0],['2026-10-14',0],['2026-10-15',1],['2026-11-14',1],['2026-11-15',2],['2027-01-01',3],['2027-01-15',4]]) {
+        assert.equal(calc(b,'시험',date,[]).value,value,date);
+    }
+    const records=[{name:'시험',date:'2026-10-16',out_time:'반차'}];
+    assert.equal(calc(b,'시험','2026-10-31',records).value,0.5);
+    assert.equal(employee.joinDate,'2022-07-12');
+});
 test('confirmed September supplement fills missing Hong data without pre-deducting October use', () => {
     const holding = [['이름', '연차'], ['홍선기', '']];
     const b = parse(holding, [header], '2026-09-18');
