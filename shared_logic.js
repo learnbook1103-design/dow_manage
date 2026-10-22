@@ -484,7 +484,17 @@ function calculateAnomalies(combinedData, config) {
         }
 
         // 승인완료된 연차(isFullLeave)는 검증 대상에서 완전 제외
-        if (isFullLeave) return;
+        if (isFullLeave) {
+            // Keep the editing entry even after a manager reason becomes leave.
+            // Normal anomaly detection still excludes approved full-day leave.
+            if (ignoreManualReasonsForDetection && String(manualReasons[`${nameVal}_${group.originalDate || dateVal}`] || '').trim()) {
+                anomalies.push({date:dateVal, name:nameVal, shift:shiftStr,
+                    inTime:inVal || '', outTime:outVal || '', reason:'담당자 사유 입력 내역',
+                    originalDate:group.originalDate, inAnom:false, outAnom:false,
+                    hasEarly:false, hasAccessLog, isResolved:true});
+            }
+            return;
+        }
 
         // 기타 휴가(경조, 보건, 외근 등)
         let isLeaveResolved = false;
@@ -582,7 +592,8 @@ function calculateAnomalies(combinedData, config) {
 
         // [수정] 조정 내역 보존: 사유가 있거나 휴가/조정 사항인 경우 이상 근태가 아니더라도 목록에 유지 (사용자 요청)
         const isManualAdjustment = reasons.length > 0 || hasEarly;
-        const isHistoryPersistent = !!manualReason;
+        const isHistoryPersistent = !!manualReason || (ignoreManualReasonsForDetection &&
+            !!String(manualReasons[`${nameVal}_${group.originalDate || dateVal}`] || '').trim());
 
         if (isManualAdjustment || isHistoryPersistent) {
             anomalies.push({

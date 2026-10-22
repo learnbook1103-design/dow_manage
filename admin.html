@@ -19,6 +19,7 @@
     <script src="lib/attendance/import-normalizer.js"></script>
     <script src="lib/attendance/report-presentation.js"></script>
     <script src="lib/attendance/leave-balance.js"></script>
+    <script src="lib/attendance/manual-reason.js"></script>
     <style>
         /* admin 전용 — 나머지는 style.css */
         body {
@@ -1458,7 +1459,7 @@
                             in_time: nextInTime,
                             out_time: nextOutTime,
                             shift: r.shift || ex.shift || null,
-                            manager_reason: r.manager_reason || (dropExistingLeaveReason || dropExistingLeaveMarker ? "" : ex.manager_reason) || "",
+                            manager_reason: Object.prototype.hasOwnProperty.call(manualReasons, r.manager_key) ? r.manager_reason : (r.manager_reason || (dropExistingLeaveReason || dropExistingLeaveMarker ? "" : ex.manager_reason) || ""),
                             employee_explanation: r.employee_explanation || ex.employee_explanation || "",
                             early_punch_mode: r.early_punch_mode || ex.early_punch_mode || "",
                             status_in: dropExistingLeaveReason || dropExistingLeaveMarker || hasIncomingInTime ? r.status_in : (r.status_in || ex.status_in),
@@ -1472,7 +1473,7 @@
                         in_time: r.in_time || ex.in_time || null,
                         out_time: r.out_time || ex.out_time || null,
                         reason: stripAccessLogReasonText(r.reason || ex.reason || ""),
-                        manager_reason: r.manager_reason || ex.manager_reason || "",
+                        manager_reason: Object.prototype.hasOwnProperty.call(manualReasons, r.manager_key) ? r.manager_reason : (r.manager_reason || ex.manager_reason || ""),
                         employee_explanation: r.employee_explanation || ex.employee_explanation || "",
                         early_punch_mode: r.early_punch_mode || ex.early_punch_mode || "",
                         status_in: r.status_in || ex.status_in,
@@ -2035,7 +2036,7 @@
                 }
             }
 
-            async function syncSingleRecordToCloud(key) {
+            async function syncSingleRecordToCloud(key, options = {}) {
                 if (!supabase) throw new Error('클라우드에 연결되지 않았습니다.');
                 const [name, date] = splitManagerKey(key);
                 const corrData = manualCorrections[key] || { in: false, out: false, leave: false };
@@ -2074,8 +2075,26 @@
                         is_anomalous: !!(unconfirmedAnomaliesMap[key] && (unconfirmedAnomaliesMap[key].in || unconfirmedAnomaliesMap[key].out))
                     };
 
-                    const { error } = await supabase.from('attendance_records').upsert([record], { onConflict: 'manager_key' });
+                    const savedRecord = options.reasonEdit
+                        ? AttendanceManualReason.revise(record, ex?.manager_reason || '', record.manager_reason)
+                        : record;
+                    const { error } = await supabase.from('attendance_records').upsert([savedRecord], { onConflict: 'manager_key' });
                     if (error) throw error;
+                    if (options.reasonEdit) {
+                        // Replace cached markers too, so clearing the reason survives rerender/reload.
+                        attendanceFilesMap.forEach(rows => rows.forEach(row => {
+                            if (normalizeName(row.이름) === name && normalizeAttendanceDateValue(row.날짜) === date) {
+                                row.출근 = savedRecord.in_time || '';
+                                row.퇴근 = savedRecord.out_time || '';
+                            }
+                        }));
+                        if (Array.isArray(leaveLedgerRecords)) {
+                            leaveLedgerRecords = leaveLedgerRecords.filter(r => !(r.name === name && r.date === date));
+                            leaveLedgerRecords.push(savedRecord);
+                        }
+                        if (manualCorrections[key]) manualCorrections[key].leave = savedRecord.status_leave;
+                        localStorage.setItem('manualCorrections', JSON.stringify(manualCorrections));
+                    }
                     return true;
                 } catch (e) {
                     console.error("Realtime Sync Failed:", e);
@@ -2864,11 +2883,11 @@
                         };
 
 
-                        if (reason.includes("연차")) {
+                        if (AttendanceManualReason.kind(reason) === '연차') {
                             if (!rec.inTime) rec.inTime = "연차";
                             if (!rec.outTime) rec.outTime = "";
                         }
-                        else if (reason.includes("반차")) {
+                        else if (AttendanceManualReason.kind(reason).includes('반차')) {
                             // 이미 한쪽이 "반차"면 중복 처리 방지
                             if (rec.inTime === "반차" || rec.outTime === "반차") return;
 
@@ -2897,7 +2916,7 @@
                         const currentReasonForClean = rec.reason || "";
                         const cleaned = currentReasonForClean.split(',')
                             .map(r => r.trim())
-                            .filter(r => !r.includes("반차") && !r.includes("연차") && r !== "")
+                            .filter(r => !/^(연차|(?:오전\s*|오후\s*)?반차)$/.test(r) && r !== "")
                             .join(', ');
                         rec.reason = cleaned;
 
@@ -4655,9 +4674,9 @@
 
                                     clearTimeout(timer);
                                     timer = setTimeout(async () => {
-                                        updateAndProcessData();
                                         try {
-                                            await syncSingleRecordToCloud(key);
+                                            await syncSingleRecordToCloud(key, {reasonEdit:true});
+                                            updateAndProcessData();
                                         } catch (syncError) {
                                             alert('관리자 사유 저장에 실패했습니다: ' + syncError.message);
                                         }
