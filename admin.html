@@ -19,6 +19,7 @@
     <script src="lib/attendance/import-normalizer.js"></script>
     <script src="lib/attendance/report-presentation.js"></script>
     <script src="lib/attendance/leave-balance.js"></script>
+    <script src="lib/attendance/leave-adjustments.js"></script>
     <script src="lib/attendance/manual-reason.js"></script>
     <style>
         /* admin 전용 — 나머지는 style.css */
@@ -329,8 +330,8 @@
                         <details style="font-size:0.8rem; padding:0.4rem;">
                             <summary>잔여 연차 계산 기준</summary>
                             <p id="leave-baseline-status" role="status">저장된 초기 잔여일수를 불러옵니다.</p>
-                            <p>2026년 9월 30일 초기 잔여에 이후 발생분을 더하고, 보고서 종료일까지 사용한 연차·반차를 차감합니다. 올해 입사자는 매월 입사일에 월차가 발생합니다.</p>
-                            <p>초기값이 없는 직원과 다음 연도 부여 기준이 미설정된 기간은 ‘확인’으로 표시합니다. 직접 입력은 현재 화면에서만 유지됩니다.</p>
+                            <p>초기 잔여에 발생분을 더하고 사용한 연차·반차를 차감합니다. 잔여연차를 직접 수정한 뒤 Enter를 누르거나 다른 칸으로 이동하면 보고서 종료일 기준 잔여로 저장됩니다. 이후에는 기준일 다음 날부터 발생·사용분을 반영합니다. 빈칸은 수정 취소이며, 0일은 숫자 0을 입력하세요.</p>
+                            <p>초기값이 없는 직원과 다음 연도 부여 기준이 미설정된 기간은 ‘확인’으로 표시합니다. ${cutoff} 기준 잔여로 저장됩니다 (Enter 또는 다른 칸 클릭).</p>
                             <button id="leave-baseline-load" type="button">초기값·사용내역 다시 불러오기</button>
                         </details>
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem;">
@@ -1713,6 +1714,18 @@
                 }));
                 return [...merged.values()];
             }
+
+            window.saveLeaveBalanceAdjustment = async function(name, date, text) {
+                const status = document.getElementById('leave-baseline-status');
+                status.textContent = `${name} 잔여연차 저장 중…`;
+                try {
+                    leaveBalanceBaseline = await AttendanceLeaveAdjustments.save(supabase, name, date, text);
+                    status.textContent = `${name} · ${date} 기준 잔여 ${Number(text)}일 저장됨. 다음 날부터 발생·사용분을 반영합니다.`;
+                } catch(error) {
+                    status.textContent = `잔여연차 저장 실패: ${error.message}`;
+                    throw error;
+                }
+            };
 
             async function loadLeaveLedger(end) {
                 const status = document.getElementById('leave-baseline-status');
@@ -3274,7 +3287,7 @@
                                     typeof leaveLedgerThrough !== 'undefined' && leaveLedgerThrough >= cutoff && Array.isArray(leaveLedgerRecords)
                                         ? mergeLeaveLedger(recordsMap) : null)
                                 : {value: null, reason: '초기 잔여 자료를 불러오세요'};
-                            tbodyHtml += `<td rowspan="3" class="leave-balance" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"><span class="leave-balance-editor" contenteditable="plaintext-only" role="textbox" inputmode="decimal" aria-label="${escapeHtml(name)} 잔여 연차 직접 입력" data-leave-balance-key="${escapeHtml(leaveKey)}" data-placeholder="확인" data-auto-balance="${balance.value == null ? '' : balance.value}" title="${escapeHtml(balance.reason)} · 직접 입력은 현재 화면에서만 유지됩니다">${escapeHtml(AttendanceReportPresentation.leaveBalance(leaveKey, balance.value == null ? '' : String(balance.value)))}</span></td>`;
+                            tbodyHtml += `<td rowspan="3" class="leave-balance" style="text-align:center; vertical-align:middle; font-weight:700; border-bottom:1px solid var(--gray-700) !important;"><span class="leave-balance-editor" contenteditable="plaintext-only" role="textbox" inputmode="decimal" aria-label="${escapeHtml(name)} 잔여 연차 직접 입력" data-leave-balance-key="${escapeHtml(leaveKey)}" data-leave-balance-name="${escapeHtml(name)}" data-leave-balance-date="${cutoff}" data-placeholder="확인" data-auto-balance="${balance.value == null ? '' : balance.value}" title="${escapeHtml(balance.reason)} · 직접 입력은 현재 화면에서만 유지됩니다">${escapeHtml(AttendanceReportPresentation.leaveBalance(leaveKey, balance.value == null ? '' : String(balance.value)))}</span></td>`;
                         }
                         tbodyHtml += `</tr><tr class="internal-row"><td class="sticky-col td-label label-out">퇴근</td>`;
                         datesChunk.forEach(dt => {

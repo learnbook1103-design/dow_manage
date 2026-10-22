@@ -45,7 +45,7 @@ function render(mode = 'simple', { source, data = fixture(), showLeave = true, c
     };
     vm.createContext(context);
     const mergeStart = html.indexOf('function mergeLeaveLedger(');
-    if (mergeStart >= 0) vm.runInContext(html.slice(mergeStart, html.indexOf('async function loadLeaveLedger(', mergeStart)), context);
+    if (mergeStart >= 0) vm.runInContext(html.slice(mergeStart, html.indexOf('window.saveLeaveBalanceAdjustment =', mergeStart)), context);
     vm.runInContext(html.slice(start, end), context);
     context.renderMatrixReport([data.dates], data.employees.map(emp => emp.name), data.records);
     return container.innerHTML;
