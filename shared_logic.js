@@ -373,9 +373,6 @@ function calculateAnomalies(combinedData, config) {
 
     // 통합된 데이터를 바탕으로 검증 수행
     Object.values(groupedMap).forEach(group => {
-        // [특정 사용자 근무조 하드코딩]
-        if (group.name === "박주연") group.shift = "0900-1800";
-
         const dateVal = group.date;
         const nameVal = group.name;
         const inVal = group.in;

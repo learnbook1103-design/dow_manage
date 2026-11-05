@@ -2702,7 +2702,6 @@
                             let inTime = cleanTime(row["출근"]);
                             let outTime = cleanTime(row["퇴근"]);
                             let shiftStr = String(row["근무조"] || "");
-                            if (name === "박주연") shiftStr = "0900-1800";
 
                             // [추가] 엑셀에 근무조가 없으면 인사정보에 등록된 기본 근무조 사용
                             if (!shiftStr) {

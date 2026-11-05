@@ -66,3 +66,14 @@ test('주말과 지정 휴일은 이상근태 계산에서 제외한다', () => 
 
     assert.deepEqual(anomalies, []);
 });
+
+test('박주연의 09:30 근무조를 이름별 고정 시간으로 덮어쓰지 않는다', () => {
+    for (const shift of ['0930', '09:30', '0930-1830', '']) {
+        for (const punch of ['09:20', '09:30', '09:31']) {
+            const result = calculateAnomalies([
+                {이름:'박주연',날짜:'2026-10-30',출근:punch,퇴근:'18:30',근무조:shift}
+            ], {employeeConfigList:[{name:'박주연',shift:'09:30'}],currentUniqueDates:new Set(['2026-10-30'])});
+            assert.equal(result.some(r => r.inAnom), punch === '09:31', `${shift}: ${punch}`);
+        }
+    }
+});
