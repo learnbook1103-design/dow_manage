@@ -35,6 +35,7 @@ function render(mode = 'simple', { source, data = fixture(), showLeave = true, c
         reportContainer: container, reportDateInput: { value: '2026-09-16' }, simpleLeaveColumnToggle: { checked: showLeave },
         employeeConfigList: data.employees, manualCorrections: corrections, manualReasons: {}, unconfirmedAnomaliesMap: {}, showAnomaliesHighlight: true,
         currentUniqueDates: new Set(data.dates), normalizeName: name => name, expandShift: value => value === '0800' ? '0800-1700' : value,
+        resolveAttendanceShift: require('../../shared_logic').resolveAttendanceShift,
         stripAccessLogReasonText: value => value,
         escapeHtml: value => String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;'),
         AttendanceReportPresentation: require('../../lib/attendance/report-presentation'),

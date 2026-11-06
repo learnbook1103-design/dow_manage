@@ -16,6 +16,7 @@
     <script src="runtime-config.js"></script>
     <script src="lib/browser/session-store.js"></script>
     <script src="shared_logic.js"></script>
+    <script src="lib/attendance/shift-history.js"></script>
     <script src="lib/attendance/import-normalizer.js"></script>
     <script src="lib/attendance/report-presentation.js"></script>
     <script src="lib/attendance/leave-balance.js"></script>
@@ -418,6 +419,30 @@
                 </div>
             </div>
         </div>
+
+        <dialog id="shift-change-dialog" class="no-print" aria-labelledby="shift-change-title">
+            <form id="shift-change-form">
+                <h2 id="shift-change-title">근무조 변경</h2>
+                <p id="shift-change-current"></p>
+                <fieldset id="shift-change-fields">
+                    <label>적용 시작일 <input id="shift-change-date" type="date" required></label>
+                    <div class="shift-change-times">
+                        <label>출근 시간 <input id="shift-change-start" type="time" required></label>
+                        <label>퇴근 시간 <input id="shift-change-end" type="time" required></label>
+                    </div>
+                </fieldset>
+                <p id="shift-change-impact" aria-live="polite"></p>
+                <details id="shift-change-history">
+                    <summary>변경 이력</summary>
+                    <ul></ul>
+                </details>
+                <p id="shift-change-error" role="alert"></p>
+                <div class="shift-change-actions">
+                    <button id="shift-change-cancel" type="button" class="secondary-btn">취소</button>
+                    <button id="shift-change-apply" type="submit" class="primary-btn">적용</button>
+                </div>
+            </form>
+        </dialog>
 
         <!-- Verification Modal -->
         <div id="verify-modal" class="modal hidden no-print">
@@ -884,6 +909,97 @@
 
             // ----- [추가] 사원 관리 모달 임시 상태 변수 -----
             let tempEmployeeConfigList = [];
+            let shiftHistories = new Map();
+            let shiftHistoryRevision = 0;
+
+            function attachShiftHistory(employee) {
+                employee.shiftHistory = shiftHistories.get(normalizeName(employee.name)) || [];
+                return employee;
+            }
+
+            function formatShiftRange(shift) {
+                return expandShift(shift).split(/[-~]/).map(part => {
+                    const raw = part.trim().replace(/[^0-9]/g, '');
+                    const digits = raw.length === 3 ? raw.padStart(4, '0') : raw;
+                    return /^\d{4}$/.test(digits) ? digits.slice(0, 2) + ':' + digits.slice(2) : '';
+                }).join(' ~ ');
+            }
+
+            const shiftDialog = document.getElementById('shift-change-dialog');
+            const shiftForm = document.getElementById('shift-change-form');
+            const shiftDateInput = document.getElementById('shift-change-date');
+            const shiftStartInput = document.getElementById('shift-change-start');
+            const shiftEndInput = document.getElementById('shift-change-end');
+            const shiftImpact = document.getElementById('shift-change-impact');
+            const shiftError = document.getElementById('shift-change-error');
+            const shiftFields = document.getElementById('shift-change-fields');
+            const shiftApply = document.getElementById('shift-change-apply');
+            const shiftCancel = document.getElementById('shift-change-cancel');
+            let shiftEmployee;
+
+            function openShiftChange(employee) {
+                shiftEmployee = attachShiftHistory(employee);
+                const today = formatLocalDateValue(new Date());
+                const current = formatShiftRange(resolveAttendanceShift(shiftEmployee, today));
+                document.getElementById('shift-change-title').textContent = `${employee.name} 근무조 변경`;
+                document.getElementById('shift-change-current').textContent = `현재 사원 설정 ${current}`;
+                shiftDateInput.value = '';
+                [shiftStartInput.value, shiftEndInput.value = ''] = current.split(' ~ ');
+                shiftImpact.textContent = '';
+                shiftError.textContent = '';
+                const details = document.getElementById('shift-change-history');
+                details.open = false;
+                details.hidden = shiftEmployee.shiftHistory.length === 0;
+                const list = details.querySelector('ul');
+                list.replaceChildren(...[...shiftEmployee.shiftHistory].sort((a, b) => b.date.localeCompare(a.date)).map(change => {
+                    const item = document.createElement('li');
+                    item.textContent = `${change.date}부터 ${formatShiftRange(change.shift)}`;
+                    return item;
+                }));
+                shiftDialog.showModal();
+            }
+
+            shiftDateInput.addEventListener('input', () => {
+                const date = shiftDateInput.value;
+                if (!date) {
+                    shiftImpact.textContent = '';
+                    return;
+                }
+                const next = shiftEmployee.shiftHistory.map(change => change.date).filter(day => day > date).sort()[0];
+                const until = next ? ` ${next}에 다음 근무조가 적용됩니다.` : '';
+                const overwrite = shiftEmployee.shiftHistory.some(change => change.date === date) ? ' 같은 날짜의 변경 이력을 수정합니다.' : '';
+                const impact = date <= formatLocalDateValue(new Date())
+                    ? `${date}부터 기존 근태의 지각·조퇴를 다시 계산합니다.`
+                    : `${date}부터 새 근무조가 적용됩니다.`;
+                shiftImpact.textContent = impact + until + overwrite;
+            });
+            shiftCancel.addEventListener('click', () => shiftDialog.close());
+            shiftDialog.addEventListener('cancel', event => {
+                if (shiftApply.disabled) event.preventDefault();
+            });
+            shiftForm.addEventListener('submit', async event => {
+                event.preventDefault();
+                if (shiftApply.disabled) return;
+                shiftError.textContent = '';
+                shiftFields.disabled = shiftApply.disabled = shiftCancel.disabled = true;
+                try {
+                    const name = normalizeName(shiftEmployee.name);
+                    const change = await AttendanceShiftHistory.save(supabase, name, shiftDateInput.value, shiftStartInput.value, shiftEndInput.value);
+                    const history = shiftHistories.get(name) || [];
+                    shiftHistories.set(name, [...history.filter(item => item.date !== change.date), change]);
+                    shiftHistoryRevision++;
+                    employeeConfigList.forEach(attachShiftHistory);
+                    tempEmployeeConfigList.forEach(attachShiftHistory);
+                } catch (error) {
+                    shiftError.textContent = `저장 실패 · ${error.message}`;
+                    return;
+                } finally {
+                    shiftFields.disabled = shiftApply.disabled = shiftCancel.disabled = false;
+                }
+                shiftDialog.close();
+                renderEmployeeManager();
+                updateAndProcessData();
+            });
             let draggedItemIndex = null;
 
             // 사원 정렬 함수 (기본 적용)
@@ -1003,13 +1119,17 @@
                         tempEmployeeConfigList[index].rank = e.target.value;
                     });
 
-                    const shiftInput = document.createElement('input');
-                    shiftInput.type = 'text';
-                    shiftInput.placeholder = '근무조 (예: 09:00-18:00)';
-                    shiftInput.style.width = '120px';
-                    shiftInput.value = emp.shift || '';
-                    shiftInput.addEventListener('change', (e) => {
-                        tempEmployeeConfigList[index].shift = e.target.value;
+                    const shiftInput = document.createElement('button');
+                    shiftInput.type = 'button';
+                    shiftInput.className = 'secondary-btn';
+                    shiftInput.textContent = formatShiftRange(resolveAttendanceShift(attachShiftHistory(emp), formatLocalDateValue(new Date())));
+                    shiftInput.setAttribute('aria-label', `${emp.name} 근무조 변경 · ${shiftInput.textContent}`);
+                    shiftInput.addEventListener('click', () => {
+                        if (!normalizeName(emp.name)) {
+                            alert('사원 명단을 먼저 클라우드에 저장해 주세요.');
+                            return;
+                        }
+                        openShiftChange(emp);
                     });
 
                     const pinInput = document.createElement('input');
@@ -1760,7 +1880,8 @@
                 }
 
                 try {
-                    const [data, pData, aData] = await Promise.all([
+                    const historyRevision = shiftHistoryRevision;
+                    const [data, pData, aData, histories] = await Promise.all([
                         fetchAllCloudRowsByDate('attendance_records', '*', start, end),
                         fetchAllCloudRowsByDate('attendance_supplements', '*', start, end, 'name'),
                         fetchAllCloudRowsByDate(
@@ -1768,8 +1889,12 @@
                             'manager_key, date, explanation, status',
                             start,
                             end
-                        )
+                        ),
+                        AttendanceShiftHistory.load(supabase)
                     ]);
+                    if (historyRevision === shiftHistoryRevision) shiftHistories = histories;
+                    employeeConfigList.forEach(attachShiftHistory);
+                    tempEmployeeConfigList.forEach(attachShiftHistory);
 
                     const clearCachedRange = (obj) => {
                         Object.keys(obj || {}).forEach(key => {
@@ -1945,7 +2070,7 @@
 
                     if (error) throw error;
 
-                    employeeConfigList = [...validEmployees];
+                    employeeConfigList = validEmployees.map(attachShiftHistory);
                     localStorage.setItem('employeeConfigList', JSON.stringify(employeeConfigList));
                     updateAndProcessData();
                     alert("사원 명단이 클라우드에 성공적으로 저장되고 로컬에 적용되었습니다.");
@@ -1970,7 +2095,7 @@
                     if (error) throw error;
 
                     if (data && data.length > 0) {
-                        const newConfigs = data.map(row => ({
+                        const newConfigs = data.map(row => attachShiftHistory({
                             org: row.org || "",
                             name: normalizeName(row.name),
                             rank: row.rank || "",
@@ -3125,9 +3250,8 @@
                             if (s.length < 4 || isNaN(parseInt(s))) return null;
                             return parseInt(s.substring(0, 2)) * 60 + parseInt(s.substring(2, 4));
                         };
-                        const getExpectedOutMinutes = (rec, emp) => {
-                            const rawShift = rec.shiftStart || emp.shift || '0800';
-                            const expanded = expandShift(String(rawShift));
+                        const getExpectedOutMinutes = (rec, emp, date) => {
+                            const expanded = expandShift(resolveAttendanceShift(emp, date, rec.shiftStart));
                             let end = (expanded.split(/[-~]/)[1] || '').replace(/[^0-9]/g, '');
                             if (!end) return null;
                             if (end.length === 3) end = `0${end}`;
@@ -3147,7 +3271,7 @@
                                 const inMin = toMinutes(r.inTime);
                                 const outMin = toMinutes(r.outTime);
                                 const anomaly = unconfirmedAnomaliesMap[`${n}_${dt}`] || {};
-                                const expectedOutMin = getExpectedOutMinutes(r, empI);
+                                const expectedOutMin = getExpectedOutMinutes(r, empI, dt);
                                 const isEarlyOutValue = outMin !== null && expectedOutMin !== null && outMin < expectedOutMin;
                                 if (isPark) {
                                     if (inMin !== null && !anomaly.in && (!earliestInMapPark[dt] || inMin < earliestInMapPark[dt].min))
@@ -3235,12 +3359,8 @@
                             const isNormalConfirmed = currentReason.includes("정상출근") && isConfirmedIn;
 
                             if (!isSkipCheck && !isNormalConfirmed && val && !isNaN(parseInt(val.replace(':', '')))) {
-                                // [개선] 기준 근무조 시간 도출 (엑셀 데이터 우선 -> 사원 설정 -> 기본값 0800)
-                                let shiftStartStr = (recs[dt] || {}).shiftStart || "";
-                                if (!shiftStartStr && empInfo.shift) {
-                                    shiftStartStr = empInfo.shift.split(/[-~]/)[0].replace(/[^0-9]/g, '');
-                                }
-                                if (!shiftStartStr) shiftStartStr = "0800";
+                                const shiftStartStr = expandShift(resolveAttendanceShift(empInfo, dt, recs[dt]?.shiftStart))
+                                    .split(/[-~]/)[0].replace(/[^0-9]/g, '').padStart(4, '0');
 
                                 const punchStr = val.replace(':', '').trim();
                                 if (punchStr.length >= 4) {
@@ -3505,8 +3625,7 @@
                 if ([inHour, inMinute, inSecond].some(Number.isNaN)) return null;
 
                 const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name) || {};
-                let shiftStart = String(rec?.shiftStart || '').split(/[-~]/)[0].replace(/[^0-9]/g, '');
-                if (!shiftStart && empInfo.shift) shiftStart = String(empInfo.shift).split(/[-~]/)[0].replace(/[^0-9]/g, '');
+                let shiftStart = expandShift(resolveAttendanceShift(empInfo, date, rec?.shiftStart)).split(/[-~]/)[0].replace(/[^0-9]/g, '');
                 if (shiftStart.length === 3) shiftStart = `0${shiftStart}`;
                 if (shiftStart.length < 4) shiftStart = '0800';
 
@@ -3803,6 +3922,7 @@
             function buildReportSnapshot(dates, names, recordsMap) {
                 const snapshot = {};
                 names.forEach(name => {
+                    const employee = employeeConfigList.find(e => normalizeName(e.name) === name);
                     snapshot[name] = {};
                     dates.forEach(date => {
                         const rec = (recordsMap[name] || {})[date];
@@ -3815,7 +3935,7 @@
                             inTime: rec?.inTime || '',
                             outTime: rec?.outTime || '',
                             reason: stripAccessLogReasonText(rec?.reason || ''),
-                            shift: rec?.shiftStart || '',
+                            shift: resolveAttendanceShift(employee, date, rec?.shiftStart),
                             confirmedIn: !!corrData.in,
                             confirmedOut: !!corrData.out,
                             confirmedLeave: !!corrData.leave,
@@ -4513,16 +4633,14 @@
 
                                                         // 퇴근 맥락: 정규 퇴근(17~18시) vs 조기퇴근
                                                         if (isOutContext || (!isInContext && hour >= 11)) {
-                                                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
-                                                            const shift = empInfo?.shift || '0800-1700';
+                                                            const shift = expandShift(a.shift);
                                                             const expOutStr = shift.split(/[-~]/)[1]?.replace(/[^0-9]/g, '') || '1700';
                                                             const expOutHour = parseInt(expOutStr.substring(0, 2));
                                                             return hour >= expOutHour ? t : `조기퇴근 (${hour}:${String(timeMatch[2] || '00').padStart(2, '0')} 퇴근)`;
                                                         }
                                                         // 출근 맥락
                                                         if (isInContext || hour < 11) {
-                                                            const empInfo = employeeConfigList.find(e => normalizeName(e.name) === name);
-                                                            const shift = empInfo?.shift || '0800-1700';
+                                                            const shift = expandShift(a.shift);
                                                             const expInStr = shift.split(/[-~]/)[0]?.replace(/[^0-9]/g, '') || '0800';
                                                             const expInHour = parseInt(expInStr.substring(0, 2));
                                                             const expInMin = parseInt(expInStr.substring(2, 4) || '0');
