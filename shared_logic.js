@@ -61,6 +61,14 @@ function expandShift(shiftStr) {
     return s;
 }
 
+function resolveAttendanceShift(employee, date, recordedShift) {
+    let effective;
+    for (const change of employee?.shiftHistory || []) {
+        if (change.date <= date && (!effective || change.date > effective.date)) effective = change;
+    }
+    return effective?.shift || String(recordedShift || '').trim() || employee?.shift || '0800-1700';
+}
+
 function isWeekendDateString(dateStr) {
     if (!dateStr) return false;
     const [year, month, day] = String(dateStr).split('-').map(Number);
@@ -377,7 +385,6 @@ function calculateAnomalies(combinedData, config) {
         const nameVal = group.name;
         const inVal = group.in;
         const outVal = group.out;
-        const shiftStr = group.shift;
         const hasActualPunch = [inVal, outVal].some(t => t && String(t).includes(':') && !isNaN(parseInt(String(t).replace(':', ''))));
         const toMinutes = (t) => {
             if (!t) return null;
@@ -399,6 +406,7 @@ function calculateAnomalies(combinedData, config) {
 
         // [추가] 재직 기간 외 데이터 검증 제외 (사용자 요청)
         const empInfo = employeeConfigList.find(e => normalizeName(e.name) === nameVal);
+        const shiftStr = resolveAttendanceShift(empInfo, dateVal, group.shift);
         if (empInfo) {
             if (empInfo.joinDate && dateVal < empInfo.joinDate) return;
             if (empInfo.leaveDate && dateVal > empInfo.leaveDate) return;
@@ -648,6 +656,7 @@ if (typeof module === 'object' && module.exports) {
         normalizeName,
         cleanTime,
         expandShift,
+        resolveAttendanceShift,
         isWeekendDateString,
         formatLocalDateValue,
         normalizeAttendanceDateValue,

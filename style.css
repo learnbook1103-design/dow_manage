@@ -330,6 +330,58 @@ textarea:focus {
 }
 
 /* ── 10. 모달 ───────────────────────────────────────────── */
+#shift-change-dialog {
+    width: min(400px, calc(100% - 32px));
+    box-sizing: border-box;
+    padding: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: var(--text-main);
+}
+
+#shift-change-dialog::backdrop {
+    background: rgb(15 23 42 / 50%);
+}
+
+#shift-change-dialog h2 {
+    margin: 0 0 8px;
+    font-size: 1.2rem;
+}
+
+#shift-change-dialog fieldset {
+    margin: 16px 0;
+    padding: 0;
+    border: 0;
+}
+
+#shift-change-dialog label {
+    display: grid;
+    gap: 4px;
+}
+
+#shift-change-dialog input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.shift-change-times {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.shift-change-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+#shift-change-error {
+    color: #b91c1c;
+}
+
 .modal {
     position: fixed;
     inset: 0;
